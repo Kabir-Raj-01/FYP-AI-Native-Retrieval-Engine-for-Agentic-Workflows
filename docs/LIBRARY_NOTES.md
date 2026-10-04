@@ -22,7 +22,7 @@ it**. Rules:
 | Qdrant server, Windows binary (`QDRANT_VERSION`) | | | https://github.com/qdrant/qdrant/releases |
 | fastembed | 0.8.1 | 2026-10-04 | https://qdrant.github.io/fastembed/ |
 | sentence-transformers | 6.1.0 (torch 2.14.1) | 2026-10-04 | https://www.sbert.net/ |
-| langgraph | 1.2.12 (langsmith 0.14.4, uuid-utils 0.17.1) | 2026-10-04 | https://langchain-ai.github.io/langgraph/ |
+| langgraph | 1.2.12 (langsmith 0.14.4, uuid-utils **0.17.0**, see gotchas) | 2026-10-05 | https://langchain-ai.github.io/langgraph/ |
 | fastapi | 0.142.2 | 2026-10-04 | https://fastapi.tiangolo.com/ |
 | pydantic | 2.13.5 (pydantic-core 2.46.5) | 2026-10-04 | https://docs.pydantic.dev/latest/ |
 | httpx | 0.28.1 | 2026-10-04 | https://www.python-httpx.org/ |
@@ -44,11 +44,16 @@ it**. Rules:
   store. Fix: build `.venv` from the signed python.org installer (`py -3.11`; per-user via
   `winget install --id Python.Python.3.11 -e --scope user`). Do not disable Smart App
   Control (it cannot be re-enabled without reinstalling Windows).
-- **`import langgraph.graph` fails on the same machine**: `uuid-utils` 0.17.1 (pulled in by
-  langsmith/langchain-core) ships an unsigned `_uuid_utils` `.pyd` that Smart App Control
-  blocks. Not yet solved — must be resolved before the Weeks 8–9 graph work on an affected
-  machine. Other wheels' native modules (pydantic-core, numpy, torch, onnxruntime, rapidfuzz,
-  PyYAML) load fine.
+- **`import langgraph.graph` failed on the same machine** with `uuid-utils` 0.17.1 (pulled
+  in by langsmith/langchain-core, which accept `>=0.12.0,<1.0`): its `_uuid_utils` `.pyd` is
+  blocked by Smart App Control. Tested 2026-10-05, each version in a fresh venv: 0.12.0,
+  0.13.0, 0.14.0, 0.14.1, 0.15.0, 0.16.0, 0.16.1, 0.16.2, **0.17.0** and 1.0.0 load;
+  only 0.17.1 is blocked. `requirements.lock` holds 0.17.0 (newest allowed that loads).
+  Do not upgrade it to 0.17.1. Other wheels' native modules (pydantic-core, numpy, torch,
+  onnxruntime, rapidfuzz, PyYAML) load fine.
+- **`py` can resolve to the Python install manager's app alias**
+  (`%LOCALAPPDATA%\Microsoft\WindowsApps\py.exe`), which may fail with "The file cannot be
+  accessed by the system"; call the python.org interpreter by its path instead (SETUP §7).
 - **langsmith registers a pytest plugin** (`langsmith_plugin`) that imports `uuid_utils` at
   pytest start-up; `pyproject.toml` disables it with `addopts = "-p no:langsmith_plugin"`.
 - **ruff 0.16 formats Python code blocks inside Markdown**: `ruff format --check .` reformats
@@ -83,8 +88,28 @@ it**. Rules:
 ## LangGraph
 - [ ] `StateGraph` with a Pydantic model as state; nodes returning partial updates;
       conditional edges; compile without a checkpointer (ADR-002). Verified snippet:
-- [ ] Setting `recursion_limit` at invoke time. Verified snippet:
+      *Partly verified 2026-10-05 on 1.2.12 (smoke run, flat state only):*
+      ```python
+      class S(BaseModel):
+          n: int = 0
+
+      def inc(s: S) -> dict:                           # receives the model, returns a partial dict
+          return {"n": s.n + 1}
+
+      g = StateGraph(S)
+      g.add_node("inc", inc)
+      g.add_edge(START, "inc")
+      g.add_conditional_edges("inc", lambda s: END if s.n >= 3 else "inc")
+      app = g.compile()                                # no checkpointer
+      app.invoke(S(), config={"recursion_limit": 10})  # -> {'n': 3}
+      ```
+      Still to verify: a **nested** model (`GraphState.state` / `.scratch`) updated by
+      partial returns — ADR-009's reversal condition.
+- [x] Setting `recursion_limit` at invoke time: `invoke(..., config={"recursion_limit": n})`
+      (smoke run above, 2026-10-05).
 - Gotchas:
+  - `invoke()` returns a **dict** of the state's fields, not an instance of the Pydantic
+    state model — validate it back (`GraphState.model_validate(...)`) where a model is needed.
 
 ## FastAPI + Pydantic v2
 - Use v2 APIs: `model_config = ConfigDict(...)`, `field_validator`, `model_validator`,

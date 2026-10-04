@@ -1,6 +1,6 @@
 # Development Setup (Windows)
 
-> Status: Stable · Owner: Kabir · Last updated: 2026-10-04
+> Status: Stable · Owner: Kabir · Last updated: 2026-10-05
 
 The project is developed and run on **Windows only**. Every command in this repository is
 written for **PowerShell** and is run from the repository root with the virtual
@@ -26,10 +26,10 @@ note in §7).
 ```powershell
 git clone <repo-url> retrieval-engine
 cd retrieval-engine
-py -3.11 -m venv .venv
+py -3.11 -m venv .venv               # python.org 3.11 (signed), see §7 if `py -3.11` fails
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-pip install -e ".[dev]"
+pip install -r requirements.lock -e ".[dev]"   # exact versions (§6)
 pre-commit install                   # hooks: .pre-commit-config.yaml
 Copy-Item .env.example .env          # then fill in values (below)
 ```
@@ -88,7 +88,7 @@ python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml   # first
 ## 5. Command reference
 | Task | Command |
 |---|---|
-| Install (editable, dev extras) | `pip install -e ".[dev]"` then `pre-commit install` |
+| Install (editable, dev extras) | `pip install -r requirements.lock -e ".[dev]"` then `pre-commit install` |
 | Lint / format | `ruff check .` / `ruff format .` |
 | Type check | `mypy --strict engine` |
 | Unit tests + coverage | `pytest -m "not integration and not llm and not e2e" --cov=engine --cov-report=term-missing` |
@@ -105,13 +105,20 @@ python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml   # first
 | Delete local state DBs | `Remove-Item -Confirm var\*.sqlite3` |
 
 ## 6. Pinning versions
-After the first successful install + unit-test run on a clean machine:
+`requirements.lock` was first generated on 2026-10-05 (python.org 3.11.9, Windows 11).
+Everyone — and CI — installs with `pip install -r requirements.lock -e ".[dev]"`.
+To regenerate it after a deliberate upgrade (keeps the file's `#` header; update its
+date line by hand):
 ```powershell
-pip freeze | Out-File -Encoding utf8 requirements.lock
+python -c "import pathlib, subprocess, sys; p = pathlib.Path('requirements.lock'); head = [l for l in p.read_text(encoding='utf-8').splitlines() if l.startswith('#')] if p.exists() else []; body = subprocess.run([sys.executable, '-m', 'pip', 'freeze', '--exclude-editable'], capture_output=True, text=True, check=True).stdout; p.write_text('\n'.join(head + [body]).rstrip('\n') + '\n', encoding='utf-8', newline='\n')"
 ```
-and copy exact versions of the core libraries into `LIBRARY_NOTES.md`. Everyone installs
-with `pip install -r requirements.lock -e ".[dev]"` from then on. Upgrades happen in a
-dedicated PR that re-runs all tests (`pytest`).
+Why not `pip freeze | Out-File …`: `--exclude-editable` keeps out the `-e d:\…` line (an
+absolute path that breaks on every other machine), and Windows PowerShell 5.1 adds a
+byte-order mark both in `Out-File -Encoding utf8` **and** when piping text into a native
+program, so Python runs pip itself (verified 2026-10-05: the command reproduces the
+committed file byte-for-byte). Copy exact versions of the core
+libraries into `LIBRARY_NOTES.md`. Upgrades happen in a dedicated PR that re-runs all
+tests (`pytest`); keep `uuid-utils` off 0.17.1 (§7).
 
 ## 7. Troubleshooting
 | Symptom | Fix |
@@ -128,3 +135,8 @@ dedicated PR that re-runs all tests (`pytest`).
 | LLM JSON parse failures | check the model supports JSON output; lower temperature to 0; see LIBRARY_NOTES |
 | `database is locked` (SQLite) | WAL mode enabled? one TaskStore connection per worker thread |
 | mypy errors from third-party libs | add module to `[[tool.mypy.overrides]] ignore_missing_imports` in pyproject |
+| `DLL load failed … An Application Control policy has blocked this file` | Windows **Smart App Control** blocks some unsigned native modules. Do not turn Smart App Control off (it cannot be re-enabled without reinstalling Windows); use the fixes in the next rows. Details: LIBRARY_NOTES "Windows environment" |
+| …while importing `_sqlite3` (pre-commit, `pytest --cov` or any SQLite store fails) | the venv was built from an unsigned Python (e.g. uv-managed). Install the signed python.org build — `winget install --id Python.Python.3.11 -e --scope user` — delete `.venv` and recreate it with `py -3.11` |
+| …while importing `_uuid_utils` (`import langgraph` fails) | `uuid-utils` 0.17.1 is blocked; 0.12.0–0.17.0 and 1.0.0 load. `requirements.lock` holds 0.17.0; reinstall from the lock |
+| `py -3.11` → "No suitable Python runtime found" | only a non-python.org 3.11 is registered (`py -0p` shows e.g. `Astral/CPython3.11.16`); install python.org 3.11 as above |
+| `py.exe` → "The file cannot be accessed by the system" | `py` resolved to the Python install manager's app alias (`…\WindowsApps\py.exe`). Call the interpreter directly, e.g. `& "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe" -m venv .venv`, or disable the `py.exe` alias under Settings → Apps → Advanced app settings → App execution aliases |
