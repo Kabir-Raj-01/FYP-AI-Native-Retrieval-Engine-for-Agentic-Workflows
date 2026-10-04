@@ -1,6 +1,6 @@
 # Library Notes (pinned versions + verified usage)
 
-> Status: Living document · Owner: All · Last updated: 2026-10-04
+> Status: Living document · Owner: All · Last updated: 2026-10-05
 
 Coding assistants often write code for an older version of a library than the one
 installed. This file records the **exact pinned version** and **usage verified by running
@@ -11,24 +11,49 @@ it**. Rules:
 4. Do not paste snippets from memory (human or AI) into "Verified" blocks.
 
 ## Pinned versions
-| Package | Version | Pinned on | Official docs |
+"Installed on" = the version resolved by `pip install -e ".[dev]"` on Kabir's machine
+(Windows 11, python.org 3.11.9); these become pins once `requirements.lock` is committed
+(SETUP §6).
+
+| Package | Version | Installed on | Official docs |
 |---|---|---|---|
-| python | 3.11.x | | https://docs.python.org/3.11/ |
-| qdrant-client | | | https://qdrant.tech/documentation/ |
+| python | 3.11.9 (python.org, Authenticode-signed) | 2026-10-04 | https://docs.python.org/3.11/ |
+| qdrant-client | 1.19.1 | 2026-10-04 | https://qdrant.tech/documentation/ |
 | Qdrant server, Windows binary (`QDRANT_VERSION`) | | | https://github.com/qdrant/qdrant/releases |
-| fastembed | | | https://qdrant.github.io/fastembed/ |
-| sentence-transformers | | | https://www.sbert.net/ |
-| langgraph | | | https://langchain-ai.github.io/langgraph/ |
-| fastapi | | | https://fastapi.tiangolo.com/ |
-| pydantic | 2.x | | https://docs.pydantic.dev/latest/ |
-| httpx | | | https://www.python-httpx.org/ |
-| anthropic | | | https://docs.claude.com |
-| openai | | | https://platform.openai.com/docs |
-| rapidfuzz | | | https://rapidfuzz.github.io/RapidFuzz/ |
-| structlog | | | https://www.structlog.org/ |
-| tenacity | | | https://tenacity.readthedocs.io/ |
-| python-dotenv | | | https://saurabh-kumar.com/python-dotenv/ |
-| pytest / hypothesis / ruff / mypy | | | |
+| fastembed | 0.8.1 | 2026-10-04 | https://qdrant.github.io/fastembed/ |
+| sentence-transformers | 6.1.0 (torch 2.14.1) | 2026-10-04 | https://www.sbert.net/ |
+| langgraph | 1.2.12 (langsmith 0.14.4, uuid-utils 0.17.1) | 2026-10-04 | https://langchain-ai.github.io/langgraph/ |
+| fastapi | 0.142.2 | 2026-10-04 | https://fastapi.tiangolo.com/ |
+| pydantic | 2.13.5 (pydantic-core 2.46.5) | 2026-10-04 | https://docs.pydantic.dev/latest/ |
+| httpx | 0.28.1 | 2026-10-04 | https://www.python-httpx.org/ |
+| anthropic | 1.11.0 | 2026-10-04 | https://docs.claude.com |
+| openai | 3.24.0 | 2026-10-04 | https://platform.openai.com/docs |
+| rapidfuzz | 3.14.6 | 2026-10-04 | https://rapidfuzz.github.io/RapidFuzz/ |
+| structlog | 26.1.0 | 2026-10-04 | https://www.structlog.org/ |
+| tenacity | 9.1.4 | 2026-10-04 | https://tenacity.readthedocs.io/ |
+| python-dotenv | 1.2.4 | 2026-10-04 | https://saurabh-kumar.com/python-dotenv/ |
+| pyyaml / numpy | 6.0.3 / 2.4.6 | 2026-10-04 | |
+| pytest / pytest-cov / hypothesis / ruff / mypy | 9.1.1 / 7.1.0 / 6.168.3 / 0.16.10 / 2.4.0 | 2026-10-04 | |
+| pre-commit / detect-secrets | 4.6.2 / 1.5.0 | 2026-10-04 | |
+
+## Windows environment — gotchas (verified 2026-10-04)
+- **Smart App Control blocks some unsigned native DLLs.** With Smart App Control on, the
+  uv-managed CPython 3.11.16 failed `import sqlite3` ("DLL load failed … An Application
+  Control policy has blocked this file"); `sqlite3.dll`/`_sqlite3.pyd` are unsigned. That
+  breaks pre-commit, `pytest --cov` (coverage.py stores data in SQLite) and every SQLite
+  store. Fix: build `.venv` from the signed python.org installer (`py -3.11`; per-user via
+  `winget install --id Python.Python.3.11 -e --scope user`). Do not disable Smart App
+  Control (it cannot be re-enabled without reinstalling Windows).
+- **`import langgraph.graph` fails on the same machine**: `uuid-utils` 0.17.1 (pulled in by
+  langsmith/langchain-core) ships an unsigned `_uuid_utils` `.pyd` that Smart App Control
+  blocks. Not yet solved — must be resolved before the Weeks 8–9 graph work on an affected
+  machine. Other wheels' native modules (pydantic-core, numpy, torch, onnxruntime, rapidfuzz,
+  PyYAML) load fine.
+- **langsmith registers a pytest plugin** (`langsmith_plugin`) that imports `uuid_utils` at
+  pytest start-up; `pyproject.toml` disables it with `addopts = "-p no:langsmith_plugin"`.
+- **ruff 0.16 formats Python code blocks inside Markdown**: `ruff format --check .` reformats
+  the spec snippets. `pyproject.toml` sets `extend-exclude = ["*.md"]` (the pre-commit hook
+  already restricted ruff to Python files).
 
 ## Qdrant — things to verify and record
 - [ ] Creating a collection with a **named dense vector** and a **named sparse vector** on
@@ -64,6 +89,35 @@ it**. Rules:
 ## FastAPI + Pydantic v2
 - Use v2 APIs: `model_config = ConfigDict(...)`, `field_validator`, `model_validator`,
   `model_dump()`, `model_validate()` — not v1 `class Config`, `@validator`, `.dict()`.
+- [x] **Verified 2026-10-04 on pydantic 2.13.5** by a minimal experiment (run, not recalled;
+      source: behaviour of the installed package, not a doc page) and by
+      `tests/unit/state/`:
+  - A `@field_serializer("vector")` reading `info.context` runs for `model_dump()` and
+    `model_dump_json()`; returning `None` keeps the key (`"vector": null`) — a field
+    serializer cannot drop a key. The context passed to `model_dump(context=...)` reaches
+    nested models.
+  - `model_dump(exclude=...)` drops `@computed_field` keys, including through nested
+    specs (`{"field": {"computed": True}}`, list indexes `{0: {...}}`).
+  - With `extra="forbid"`, `model_validate()` of a payload containing a computed-field key
+    fails with `extra_forbidden` (why `dump_with_vectors` strips them; ADR-009 §4a).
+  - Assigning to a `@computed_field` property raises `AttributeError: property '…' of
+    '…' object has no setter`, also with `validate_assignment=True`.
+  - A model-instance default (`scratch: IterationScratch = IterationScratch()`) and `= []` /
+    `= {}` defaults are copied per instance, not shared.
+  - `AwareDatetime` rejects naive datetimes.
+- Gotchas:
+  - mypy 2.4 needs `@computed_field  # type: ignore[prop-decorator]` above `@property`
+    (confirmed needed: `--strict` reports unused ignores and reports none).
+  - A field named `json` would shadow `BaseModel.json`; use `json_: bool =
+    Field(alias="json")`. Do **not** add `populate_by_name=True`: it also accepts the key
+    `json_`, which then slips past `extra="forbid"`.
+
+## python-dotenv
+- [x] Verified 2026-10-04 on 1.2.4 (installed signature): `load_dotenv(override=False)`
+      by default (existing variables win); `find_dotenv(usecwd=True)` searches upwards from
+      the working directory. `engine/config.py` uses
+      `load_dotenv(find_dotenv(usecwd=True), override=False)`; covered by
+      `tests/unit/test_config.py::test_dotenv_is_loaded_but_existing_env_wins`.
 - [ ] Custom exception handlers returning the API_CONTRACT error body. Verified snippet:
 - [ ] Lifespan handler that builds the Engine once at startup. Verified snippet:
 - Gotchas:

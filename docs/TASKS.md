@@ -15,11 +15,15 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 ## Week 7 (28 Sep–4 Oct) — Foundations and contracts
 - [ ] All: read all docs; resolve open questions in PR comments
 - [ ] K: repo skeleton, pyproject, Qdrant Windows binary setup, CI, pre-commit (SETUP, TESTING §6)
+      — skeleton, pyproject fixes and pre-commit done (branch `k/foundations-week7`);
+      Qdrant binary not installed, CI not yet run on GitHub
 - [ ] K: ADR-001 embedding + chunking + sparse method (accept) · ADR-003 dataset source, licence, split (draft)
-- [ ] S: `engine/state/models.py` exactly per STATE_SPEC; invariant tests skeleton
-- [ ] V: `engine/config.py` EngineConfig + loader + config tests (CONFIG_SCHEMA)
-- [ ] V: test fakes + conftest fixtures (TESTING §2)
-- [ ] All: all `interfaces.py` files with docstrings, bodies `NotImplementedError`
+- [x] S: `engine/state/models.py` exactly per STATE_SPEC; invariant tests skeleton
+      (also `serialization.py`, `invariants.py`; merge waits for ADR-009 acceptance)
+- [x] V: `engine/config.py` EngineConfig + loader + config tests (CONFIG_SCHEMA)
+- [x] V: test fakes + conftest fixtures (TESTING §2) (`engine_with_fakes` skips until the
+      Engine exists; `planner_responses/*.json` belong with the planner, Week 11)
+- [x] All: all `interfaces.py` files with docstrings, bodies `NotImplementedError`
 - [ ] S+V: review ADR-009 and mark it Accepted (its amendments are already applied to
       STATE_SPEC, ARCHITECTURE and API_CONTRACT) · review ADR-010
 - [ ] All: show ADR-011 (deviations from the proposal) to the supervisor; mark Accepted once approved
@@ -117,3 +121,4 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 |---|---|
 | 2026-09-25 | Documentation set complete; Week 7 starting. |
 | 2026-10-04 | Windows-only setup; audit against the proposal: owners per Table II, Week 13 controller core, ADR-010/011 added, ADR-003 partly filled, all experiment configs for E1–E3, pre-commit config. |
+| 2026-10-05 | First code (K with Claude Code, branch `k/foundations-week7`): errors, EngineConfig + loader, state models/serialization/invariants, all interfaces + factory stub, fakes/fixtures, import-boundary test. 475 unit tests green, 100 % coverage of `engine/`. Open: ADR-009/010 acceptance, an ADR line for the checkpoint interpretations, LangGraph import blocked by Smart App Control on K's machine (LIBRARY_NOTES). |
