@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from engine.config import EngineConfig, load_config
+from engine.config import EngineConfig
 from engine.errors import StateInvariantError
 from engine.state.invariants import check_invariants
 from engine.state.models import (
@@ -26,11 +26,6 @@ from engine.state.models import (
     TaskStatus,
 )
 from tests.builders import make_budget, make_evidence, make_gap, make_plan_event, make_state
-
-
-@pytest.fixture(scope="module")
-def cfg() -> EngineConfig:
-    return load_config(environ={})
 
 
 def active_prev(**overrides: Any) -> RetrievalState:
