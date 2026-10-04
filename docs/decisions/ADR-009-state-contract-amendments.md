@@ -390,6 +390,28 @@ an API_CONTRACT row map to 500 `INTERNAL_ERROR`.
   resets `stagnation_count`, `transforms_in_streak` and `last_result`, while the ownership
   matrix gives `last_result` only to `score_and_update`.
 
+**A7. Reversal condition evaluated: `GraphState`/`IterationScratch` composes with LangGraph.**
+Tested on langgraph 1.2.12 with the real models (2026-10-05;
+`tests/unit/graph/test_langgraph_graphstate.py`, LIBRARY_NOTES "LangGraph"). Nested
+partial updates work — each top-level field is one channel, nodes receive typed nested
+models with computed fields, and the persist-resets-scratch loop runs — so §2 stands. The
+test also found constraints the graph code (Weeks 8–9) must respect; recommended, for
+Samay to confirm with the graph:
+- A returned field replaces the whole field (no deep merge): nodes return
+  `model_copy(update=...)` of `state`/`scratch`, never a partial dict of their fields.
+- Unknown returned keys are dropped silently: node return keys should be checked (e.g. a
+  small helper or a test per node).
+- Values are validated only when the next node reads them: `Engine` validates `invoke()`'s
+  output with `GraphState.model_validate`.
+- Objects are passed by reference, including the caller's input, so in-place mutation
+  leaks: `Engine.step` deep-copies the loaded state (`model_copy(deep=True)`) as `prev`
+  for `check_invariants`; nodes never mutate in place (invariant 9).
+- Correction to §5's rationale: LangGraph rebuilds the `GraphState` wrapper at each node
+  boundary but does not revalidate the nested `RetrievalState` instance (pydantic
+  `revalidate_instances="never"`), and `model_copy(update=...)` does not validate either.
+  The decision in §5 (invariants checked by `check_invariants` in `persist`, not by model
+  validators) is unaffected.
+
 **Doc edits to apply when this ADR is Accepted** (frozen contracts, not edited yet):
 STATE_SPEC §2 and §6 vector notes ("omitted" → "serialized as null"), STATE_SPEC §4/§6
 datetime annotations (`AwareDatetime`), STATE_SPEC §5 (A3 readings), API_CONTRACT intro

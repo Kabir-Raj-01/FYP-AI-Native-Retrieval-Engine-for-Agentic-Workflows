@@ -86,9 +86,9 @@ it**. Rules:
 - Gotchas:
 
 ## LangGraph
-- [ ] `StateGraph` with a Pydantic model as state; nodes returning partial updates;
-      conditional edges; compile without a checkpointer (ADR-002). Verified snippet:
-      *Partly verified 2026-10-05 on 1.2.12 (smoke run, flat state only):*
+- [x] `StateGraph` with a Pydantic model as state; nodes returning partial updates;
+      conditional edges; compile without a checkpointer (ADR-002). Verified snippet
+      (2026-10-05, 1.2.12; flat state — nested GraphState below):
       ```python
       class S(BaseModel):
           n: int = 0
@@ -103,8 +103,27 @@ it**. Rules:
       app = g.compile()                                # no checkpointer
       app.invoke(S(), config={"recursion_limit": 10})  # -> {'n': 3}
       ```
-      Still to verify: a **nested** model (`GraphState.state` / `.scratch`) updated by
-      partial returns — ADR-009's reversal condition.
+- [x] **Nested `GraphState` (ADR-009 §2) verified 2026-10-05 on 1.2.12** with the real
+      `GraphState`/`RetrievalState`/`IterationScratch` models, pinned by
+      `tests/unit/graph/test_langgraph_graphstate.py` (read from the installed source:
+      `langgraph/graph/state.py`, `_pick_mapper`/`_coerce_state`/`_get_updates`):
+  - Each top-level field (`state`, `scratch`) is one LastValue channel; every node gets
+    `GraphState(**channels)` with typed nested models and working computed fields. A
+    plan → … → persist loop with a conditional edge and `{"scratch": IterationScratch()}`
+    in `persist` behaves as ARCHITECTURE §4 describes (one-node invoke with a populated
+    state: ~0.5 ms).
+  - A returned field **replaces** the field: `{"scratch": {"scored": [...]}}` drops the
+    other scratch fields. Return full values: `gs.scratch.model_copy(update={...})`,
+    `gs.state.model_copy(update={...})`.
+  - Return values are validated only when the **next** node's input is built
+    (`ValidationError`, loc `state`); a bad value from the last node reaches `invoke()`'s
+    output unvalidated → validate the output (`GraphState.model_validate(out)`).
+  - Returned keys that are not GraphState fields are **silently dropped** (a typo such as
+    `"scrach"` is not an error).
+  - Objects pass by reference — no copy, no revalidation — starting with the caller's own
+    input (`GraphState(state=s).state is s`, pydantic `revalidate_instances="never"`). An
+    in-place mutation leaks to later nodes and to the caller; take `prev` for
+    `check_invariants` as `state.model_copy(deep=True)` before `invoke()`.
 - [x] Setting `recursion_limit` at invoke time: `invoke(..., config={"recursion_limit": n})`
       (smoke run above, 2026-10-05).
 - Gotchas:
