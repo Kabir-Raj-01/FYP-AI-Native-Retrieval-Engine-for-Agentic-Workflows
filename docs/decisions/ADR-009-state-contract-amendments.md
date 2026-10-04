@@ -333,6 +333,68 @@ the new `max_steps` test (TESTING.md §4, below) both assert this by constructio
   that computes them uses the longer names, then constructs `ActionScores(G=gain, C=cost,
   R=redundancy_signal, L=latency_signal, U=...)` at the boundary.
 
+## Addendum A — Week 7 implementation checkpoint (2026-10-05)
+> Draft by Kabir (with Claude Code) for review by Samay and Vishal together with the rest of
+> this ADR. Records what implementing `engine/state/` and the interfaces on branch
+> `k/foundations-week7` showed; nothing here is merged before this ADR is Accepted.
+
+**A1. Vector fields are serialized as `null`, not omitted.** A `field_serializer` (the
+mechanism chosen in "Also") cannot remove a key, only replace its value; verified on
+pydantic 2.13.5. Default dumps therefore contain `"vector": null` (and
+`"query_vector": null`) — no vector data, stable key set. `dump_with_vectors` strips
+`@computed_field` keys at **any** nesting depth (not only on a top-level `RetrievalState`),
+so `GraphState`/`IterationScratch` also round-trip.
+
+**A2. Datetime fields are `AwareDatetime`.** `RetrievalState.created_at/updated_at` and
+`TraceStep.timestamp` are typed `pydantic.AwareDatetime`, which rejects naive datetimes —
+the "UTC-aware" comments made enforceable. Same JSON shape.
+
+**A3. Invariant readings used by `check_invariants` (§5 of this ADR; STATE_SPEC §5).**
+- inv 1, tokens: "exceed by at most one call's usage" is not checkable (the size of a call
+  is unknown, and a planning step may make `planner.max_attempts` calls). Checked instead:
+  if `tokens_used > max_tokens`, the previous state was under the cap and the task is no
+  longer ACTIVE.
+- inv 8: `persist` bumps `version` (and `steps_used`) in memory, then calls
+  `check_invariants`, then `save`; the check is `new.version == prev.version + 1`.
+- inv 10: when `steps_used == max_steps` the task is STOPPED with `MAX_STEPS`,
+  `ALL_GAPS_RESOLVED` or `STAGNATION` — the monitor checks the latter two before
+  `MAX_STEPS` (ACTION_POLICY §6.4), so a literal "only MAX_STEPS" would reject valid runs.
+- Added: the fields the ownership matrix makes immutable after `TaskStore.create`
+  (`task_id`, `goal`, `created_at`, `budget.max_*`) must not change.
+- `check_invariants` reports every violated invariant in one `StateInvariantError`.
+
+**A4. Interface signatures (ARCHITECTURE §2 updated; pinned by
+`tests/unit/test_interfaces.py`).**
+- `TaskStore.create(goal, budget, task_id: str | None = None)` — the API and §6 of this ADR
+  make `task_id` caller-suppliable; a duplicate raises `TaskExists`.
+- `RetrieverAdapter.search(..., filters: SearchFilters | None = None, ...)` with
+  `SearchFilters = Mapping[str, str | int | None]` (a bare `dict` fails `mypy --strict`).
+- `TrajectoryMonitor.observe(state, decision, update: EvidenceUpdate | None)` — `None` on
+  TRANSFORM/STOP steps (§9).
+- `advance` is a `TrajectoryMonitor` method (ARCHITECTURE §2), not a free function (§4).
+
+**A5. Errors (ARCHITECTURE §8 updated).** Flat hierarchy under `EngineError`;
+`LLMOutputError` and `LLMBudgetExceeded` are not `LLMError` subclasses (a planner
+`except LLMError` must not swallow a `SCHEMA` failure or the per-run cap). New
+`TaskExists` (409 `TASK_EXISTS`) and `RunTimeout` (504 `RUN_TIMEOUT`); exceptions without
+an API_CONTRACT row map to 500 `INTERNAL_ERROR`.
+
+**A6. Open — needs Samay's decision before the monitor is built (Week 13).**
+- *Parent-gap resolution vs invariant 4.* ACTION_POLICY §6.2 has the monitor turn a
+  SUPERSEDED parent RESOLVED when all children are; invariant 4 requires a RESOLVED gap's
+  `resolved_by` to be a pinned item, and the ownership matrix lets only the EvidenceManager
+  resolve gaps. Recommended: the parent stays SUPERSEDED and the monitor computes an
+  effective status for its stop checks. Invariant 4 is implemented as written meanwhile.
+- *What `advance()` resets.* `AdvanceResult` says only `current_gap_id` is applied, yet has
+  `reset_stagnation`; ACTION_POLICY §6.3, the `LastResult` docstring and §9 say it also
+  resets `stagnation_count`, `transforms_in_streak` and `last_result`, while the ownership
+  matrix gives `last_result` only to `score_and_update`.
+
+**Doc edits to apply when this ADR is Accepted** (frozen contracts, not edited yet):
+STATE_SPEC §2 and §6 vector notes ("omitted" → "serialized as null"), STATE_SPEC §4/§6
+datetime annotations (`AwareDatetime`), STATE_SPEC §5 (A3 readings), API_CONTRACT intro
+paragraph ("`vector` fields are never serialised" → "are serialized as null").
+
 ## Alternatives considered
 - **Per-node graph state instead of `GraphState`/scratch** — passing `cache_hit`,
   `candidates`, etc. as extra top-level fields on `RetrievalState` itself, since
