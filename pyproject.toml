@@ -29,10 +29,20 @@ markers = [
   "llm: calls a real LLM",
   "e2e: end-to-end with fixture corpus",
 ]
+# langsmith (a langgraph dependency) auto-registers a pytest plugin we do not use; loading
+# it imports uuid_utils, whose native module Smart App Control blocks on some machines.
+addopts = "-p no:langsmith_plugin"
+
+[tool.coverage.report]
+# Abstract interface bodies are never executed by design.
+exclude_also = ["raise NotImplementedError", "@abstractmethod"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# ruff >= 0.16 also formats Python code blocks inside Markdown; the specs' snippets are
+# documentation, not code (same intent as the pre-commit hook's `types_or`).
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "SIM", "RUF"]
