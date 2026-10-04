@@ -21,10 +21,18 @@ hash goes into the manifest. The server loads the file named by `ENGINE_CONFIG`
 Validation at load: unknown keys rejected; `controller.weights` and
 `evidence.gain_weights` and `controller.gain_subweights` must be non-negative and sum
 to 1 (±1e-6); probabilities/thresholds in [0,1]; `retrieval.default_k ≤ retrieval.max_k`;
-`ambiguous_band.low < high`; any LLM role that will be used must have a non-null `model`;
-`budget_defaults.max_steps ≥ 1`, `budget_defaults.max_retrieval_calls ≥ 1`,
-`budget_defaults.max_llm_calls ≥ 0`, `budget_defaults.max_tokens ≥ 1` (ADR-009 §8 —
-`Budget` mirrors these bounds).
+`ambiguous_band.low < high`; `budget_defaults.max_steps ≥ 1`,
+`budget_defaults.max_retrieval_calls ≥ 1`, `budget_defaults.max_llm_calls ≥ 0`,
+`budget_defaults.max_tokens ≥ 1` (ADR-009 §8 — `Budget` mirrors these bounds);
+rapidfuzz thresholds (`int 0–100`) in [0,100]. Any LLM role that will be used must have a
+non-null `model`: because base.yaml ships with every model `null` until ADR-004, this is
+checked before first use, not at load — the code that builds a role's client calls
+`EngineConfig.require_llm_model(role)`, which raises `ConfigError`.
+
+`EngineConfig` declares no defaults of its own: every key must come from base.yaml (an
+experiment file only overrides), so a key missing from base.yaml is a load error. Errors
+are raised as `ConfigError`. `tests/unit/test_config_schema_sync.py` fails if the key
+tables below and base.yaml drift apart.
 
 **Frozen** = may change only via an ADR (see the ADR named). Changing an index-defining
 key (embedding/sparse/chunking) requires a new `qdrant.collection` name.
