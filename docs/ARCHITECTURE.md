@@ -133,9 +133,15 @@ same Planner.
 | Qdrant | `qdrant.url`, `qdrant.collection` | see RETRIEVAL_SPEC.md |
 
 ## 8. Error handling
-- Components raise typed exceptions from `engine/errors.py`: `BackendError`,
-  `LLMError`, `LLMBudgetExceeded`, `PlannerValidationError` (internal only — planner
-  falls back), `TaskNotFound`, `TaskConflict`, `TaskNotActive`, `ConfigError`.
+- Components raise typed exceptions from `engine/errors.py`, all subclasses of
+  `EngineError`: `BackendError`, `LLMError`, `LLMOutputError` (LLM_CLIENT_SPEC §5),
+  `LLMBudgetExceeded`, `PlannerValidationError` (internal only — planner falls back),
+  `TaskNotFound`, `TaskExists`, `TaskConflict`, `TaskNotActive`, `RunTimeout`,
+  `ConfigError`, `StateInvariantError` (ADR-009 §5; programming error). The hierarchy is
+  flat — `LLMOutputError` and `LLMBudgetExceeded` are not `LLMError` subclasses, so an
+  `except LLMError` never swallows a schema failure or the per-run cap. Each class carries
+  its API_CONTRACT error `code` and HTTP status; classes with no API_CONTRACT row map to
+  500 `INTERNAL_ERROR`.
 - A failure inside an iteration aborts the iteration **before** `persist`, so the stored
   state is the last fully completed step, and no `scratch.queued_cache_entries` are
   committed (no orphan cache entries — ADR-009 §9). The error is logged as an event and,
@@ -149,3 +155,4 @@ same Planner.
 |---|---|---|
 | 2026-09-25 | Initial architecture; sync core; TaskStore as single source of truth | ADR-002 |
 | 2026-09-28 | GraphState/scratch, TaskStore.save signature, plan_mode, ownership fixes, per-task lock, no fetch(), Reranker state\|None | ADR-009 |
+| 2026-10-04 | §8 error list completed from the specs (`LLMOutputError`, `StateInvariantError`) plus `TaskExists`/`RunTimeout` for API_CONTRACT's `TASK_EXISTS`/`RUN_TIMEOUT`; flat hierarchy under `EngineError` (Week 7 plan review) | — |
