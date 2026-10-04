@@ -1,0 +1,42 @@
+# Dependency NAMES only. After the first successful install, pin exact versions
+# (pip freeze > requirements.lock) and record them in docs/LIBRARY_NOTES.md.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retrieval-engine"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "fastapi", "uvicorn[standard]", "pydantic>=2", "httpx", "pyyaml", "jinja2",
+  "qdrant-client", "fastembed", "sentence-transformers", "numpy",
+  "langgraph", "anthropic", "openai", "tenacity", "rapidfuzz", "structlog", "python-dotenv",
+  "pandas", "scikit-learn", "scipy", "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "hypothesis", "ruff", "mypy", "types-PyYAML",
+       "pre-commit", "pip-audit", "detect-secrets"]
+
+[tool.setuptools.packages.find]
+include = ["engine*", "client*", "baselines*", "eval*", "data*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: needs a running local Qdrant (qdrant.exe) and real models",
+  "llm: calls a real LLM",
+  "e2e: end-to-end with fixture corpus",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy"]

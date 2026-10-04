@@ -1,0 +1,9 @@
+experiment:
+  name: dense_oneshot_dev
+  system: dense_oneshot         # dense_oneshot | hybrid_oneshot | fixed_iteration | controller_on
+  dataset: multihop
+  split: dev
+  subset: true                  # use data.dev_subset_size
+  budget_mode: equal           # equal | natural (EVAL_PROTOCOL §1, BASELINES_SPEC §3)
+  retrieval_budgets: [1]
+  notes: "E0 pipeline sanity"

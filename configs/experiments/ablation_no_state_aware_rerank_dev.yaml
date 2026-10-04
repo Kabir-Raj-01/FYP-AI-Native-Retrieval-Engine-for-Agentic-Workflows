@@ -1,0 +1,11 @@
+experiment:
+  name: ablation_no_state_aware_rerank_dev
+  system: controller_on
+  dataset: multihop
+  split: dev
+  subset: true
+  budget_mode: equal           # equal | natural (EVAL_PROTOCOL §1, BASELINES_SPEC §3)
+  retrieval_budgets: [3]  # one sub-run per budget B
+  notes: "E3 ablation — state-aware reranking off"
+ablation:
+  state_aware_rerank: false

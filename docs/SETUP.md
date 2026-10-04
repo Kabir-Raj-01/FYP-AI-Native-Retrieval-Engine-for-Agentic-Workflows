@@ -1,0 +1,130 @@
+# Development Setup (Windows)
+
+> Status: Stable · Owner: Kabir · Last updated: 2026-10-04
+
+The project is developed and run on **Windows only**. Every command in this repository is
+written for **PowerShell** and is run from the repository root with the virtual
+environment activated. §5 lists the command for every task.
+
+## 1. Prerequisites
+| Tool | Version | Notes |
+|---|---|---|
+| Windows | 10 or 11, 64-bit | |
+| PowerShell | 7.x recommended (Windows PowerShell 5.1 also works) | all commands below |
+| Git for Windows | recent | |
+| Python | 3.11.x, 64-bit (python.org installer, with the `py` launcher) | `py -3.11 --version` |
+| Qdrant | native Windows release (`qdrant-x86_64-pc-windows-msvc.zip`) | version pinned in LIBRARY_NOTES (§3) |
+| Node.js | per Claude Code docs | only if using Claude Code |
+| Disk | ~10 GB free | models + index + runs |
+| RAM | 8 GB minimum, 16 GB comfortable | |
+| GPU | optional (CUDA) | CPU is enough at MultiHop-RAG scale; slower ingestion |
+
+Keep the clone in a short path such as `C:\fyp\retrieval-engine` (see the long-path
+note in §7).
+
+## 2. First-time setup
+```powershell
+git clone <repo-url> retrieval-engine
+cd retrieval-engine
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -e ".[dev]"
+pre-commit install                   # hooks: .pre-commit-config.yaml
+Copy-Item .env.example .env          # then fill in values (below)
+```
+Start Qdrant (§3), then run the unit tests — they must pass on a fresh clone:
+```powershell
+pytest -m "not integration and not llm and not e2e"
+```
+
+### `.env` values
+`engine/config.py` loads `.env` with python-dotenv at start-up; a variable already set
+in the environment wins over `.env` (CONFIG_SCHEMA §1).
+
+| Variable | Needed for | Example |
+|---|---|---|
+| `LLM_API_KEY` | API-hosted LLM roles | your key (leave empty for local Ollama) |
+| `QDRANT_URL` | non-default Qdrant | `http://127.0.0.1:6333` |
+| `ENGINE_CONFIG` | server config file | `configs/base.yaml` |
+| `QDRANT_VERSION` | the pinned Qdrant release tag | e.g. `v1.x.y`, see LIBRARY_NOTES |
+| `ENGINE_API_TOKEN` | optional API auth | empty = disabled |
+| `HF_HOME` | model download cache | `C:\Users\<you>\.cache\huggingface` |
+
+Use `127.0.0.1` rather than `localhost` in URLs: on Windows `localhost` is tried as IPv6
+(`::1`) first, which adds a connection delay to every call and distorts latency numbers.
+
+### Local LLM option (no API cost)
+Install Ollama for Windows, run `ollama pull <model chosen in ADR-004>`, keep
+`provider: openai_compatible` and `base_url: http://127.0.0.1:11434/v1`. Verify with a
+one-line structured call: `python -m engine.llm.smoke --role planner`.
+
+## 3. Qdrant (native Windows binary)
+Install once — download the pinned release into `tools\qdrant\` (gitignored):
+```powershell
+$QdrantVersion = "<pinned tag from LIBRARY_NOTES, e.g. v1.x.y>"
+New-Item -ItemType Directory -Force tools\qdrant | Out-Null
+Invoke-WebRequest -Uri "https://github.com/qdrant/qdrant/releases/download/$QdrantVersion/qdrant-x86_64-pc-windows-msvc.zip" -OutFile tools\qdrant\qdrant.zip
+Expand-Archive tools\qdrant\qdrant.zip -DestinationPath tools\qdrant -Force
+```
+Start (every session) — REST on 127.0.0.1:6333, gRPC on 6334, data in `var\qdrant_storage`:
+```powershell
+$env:QDRANT__SERVICE__HOST = "127.0.0.1"
+$env:QDRANT__STORAGE__STORAGE_PATH = "var\qdrant_storage"
+$env:QDRANT__STORAGE__SNAPSHOTS_PATH = "var\qdrant_snapshots"
+Start-Process -FilePath .\tools\qdrant\qdrant.exe -WindowStyle Minimized
+Invoke-RestMethod http://127.0.0.1:6333       # prints the Qdrant version
+```
+Stop: `Stop-Process -Name qdrant`.
+
+## 4. First data run
+```powershell
+python -m data.download --dataset multihop          # source + checksums from ADR-003
+python -m data.ingest --dataset multihop            # chunk, embed, index, gold map, split
+python scripts\check_gold_mapping.py multihop       # must report ≥ 95 % mapped
+python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml   # first baseline numbers
+```
+
+## 5. Command reference
+| Task | Command |
+|---|---|
+| Install (editable, dev extras) | `pip install -e ".[dev]"` then `pre-commit install` |
+| Lint / format | `ruff check .` / `ruff format .` |
+| Type check | `mypy --strict engine` |
+| Unit tests + coverage | `pytest -m "not integration and not llm and not e2e" --cov=engine --cov-report=term-missing` |
+| Integration tests (Qdrant running) | `pytest -m integration` |
+| All tests | `pytest` |
+| Start / stop Qdrant | §3 / `Stop-Process -Name qdrant` |
+| Ingest a dataset | `python -m data.ingest --dataset multihop` |
+| Serve the API | `python -m uvicorn engine.api.app:app --host 127.0.0.1 --port 8000` |
+| Run an experiment | `python -m eval.run --config configs\experiments\<name>.yaml` |
+| Latency profile | `python scripts\latency_profile.py` (writes `configs\latency_profile.yaml`) |
+| Report for a run | `python -m eval.report --run <run_id>` |
+| Dependency audit | `pip-audit` |
+| Clean caches | `Remove-Item -Recurse -Force .pytest_cache, .mypy_cache, .ruff_cache -ErrorAction SilentlyContinue` |
+| Delete local state DBs | `Remove-Item -Confirm var\*.sqlite3` |
+
+## 6. Pinning versions
+After the first successful install + unit-test run on a clean machine:
+```powershell
+pip freeze | Out-File -Encoding utf8 requirements.lock
+```
+and copy exact versions of the core libraries into `LIBRARY_NOTES.md`. Everyone installs
+with `pip install -r requirements.lock -e ".[dev]"` from then on. Upgrades happen in a
+dedicated PR that re-runs all tests (`pytest`).
+
+## 7. Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `Activate.ps1 cannot be loaded … running scripts is disabled` | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, then reopen PowerShell |
+| `connection refused` on 127.0.0.1:6333 | Qdrant not running (§3); check `Get-Process qdrant`; port in use? `Get-NetTCPConnection -LocalPort 6333` |
+| Slow first request to the API, Qdrant or Ollama | a URL uses `localhost`; use `127.0.0.1` |
+| `qdrant.exe` or torch fails with a missing `VCRUNTIME140.dll` | install the Microsoft Visual C++ Redistributable (x64) |
+| "path too long" errors during install or model download | enable Win32 long paths (`LongPathsEnabled = 1`), run `git config --global core.longpaths true`, keep the repo in a short path |
+| Hugging Face warns about symlinks | harmless (models are copied instead); enabling Windows Developer Mode removes the warning |
+| Qdrant upsert error on point id | point ids must be UUIDs — use UUIDv5(chunk_id) (RETRIEVAL_SPEC §2) |
+| Embedding dimension mismatch | collection built with another model — new collection name |
+| Very slow ingestion on CPU | lower `embedding.batch_size`; ingest the dev subset first |
+| LLM JSON parse failures | check the model supports JSON output; lower temperature to 0; see LIBRARY_NOTES |
+| `database is locked` (SQLite) | WAL mode enabled? one TaskStore connection per worker thread |
+| mypy errors from third-party libs | add module to `[[tool.mypy.overrides]] ignore_missing_imports` in pyproject |

@@ -1,0 +1,9 @@
+experiment:
+  name: fixed_iteration_dev
+  system: fixed_iteration
+  dataset: multihop
+  split: dev
+  subset: true
+  budget_mode: equal           # equal | natural (EVAL_PROTOCOL §1, BASELINES_SPEC §3)
+  retrieval_budgets: [2, 3, 4]  # one sub-run per budget B (N = B hops)
+  notes: "E1 equal-budget baseline"

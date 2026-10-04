@@ -1,0 +1,8 @@
+# Normalise line endings: LF in the repository and in the working tree on every machine
+# (avoids CRLF churn from core.autocrlf=true on Windows).
+* text=auto eol=lf
+
+# Binary documents and images: never touch line endings.
+*.docx binary
+*.pdf binary
+*.png binary

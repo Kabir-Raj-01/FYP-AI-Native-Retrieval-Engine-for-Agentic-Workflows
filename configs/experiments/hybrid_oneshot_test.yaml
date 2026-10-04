@@ -1,0 +1,9 @@
+experiment:
+  name: hybrid_oneshot_test
+  system: hybrid_oneshot
+  dataset: multihop
+  split: test
+  subset: false
+  budget_mode: equal           # equal | natural (EVAL_PROTOCOL §1, BASELINES_SPEC §3)
+  retrieval_budgets: [1]  # one sub-run per budget B
+  notes: "E1 baseline, frozen config"

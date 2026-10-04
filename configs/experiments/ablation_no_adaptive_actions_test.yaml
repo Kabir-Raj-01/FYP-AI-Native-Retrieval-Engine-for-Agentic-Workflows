@@ -1,0 +1,13 @@
+experiment:
+  name: ablation_no_adaptive_actions_test
+  system: controller_on
+  dataset: multihop
+  split: test
+  subset: false
+  budget_mode: equal           # equal | natural (EVAL_PROTOCOL §1, BASELINES_SPEC §3)
+  retrieval_budgets: [3]  # one sub-run per budget B
+  notes: "E3 ablation — adaptive action selection off (fixed policy), frozen config"
+ablation:
+  adaptive_actions: false
+eval:
+  repeats: 3                    # final LLM-dependent test runs (EVAL_PROTOCOL §6)

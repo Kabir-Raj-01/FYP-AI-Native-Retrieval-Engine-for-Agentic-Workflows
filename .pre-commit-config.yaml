@@ -1,0 +1,26 @@
+# Pre-commit hooks (run on every `git commit`; install once with `pre-commit install`).
+# Keep the ruff hook rev equal to the ruff version pinned in requirements.lock.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-added-large-files
+        args: [--maxkb=2048]          # the official SRS/SDS PDFs are about 1 MB
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
+      - id: ruff-check
+        types_or: [python, pyi]     # never touch code blocks inside the Markdown specs
+      - id: ruff-format
+        types_or: [python, pyi]
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]

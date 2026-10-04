@@ -1,0 +1,56 @@
+# CI — see docs/TESTING.md §6. Windows runners only.
+# Pin action versions and QDRANT_VERSION (docs/LIBRARY_NOTES.md) once chosen.
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  unit:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11", cache: pip}
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy --strict engine
+      - run: pytest -m "not integration and not llm and not e2e" --cov=engine --cov-report=term-missing
+  integration:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      QDRANT_VERSION: latest          # replace with the pinned tag from docs/LIBRARY_NOTES.md, e.g. v1.x.y
+      QDRANT__SERVICE__HOST: 127.0.0.1
+      QDRANT__STORAGE__STORAGE_PATH: var\qdrant_storage
+      QDRANT__STORAGE__SNAPSHOTS_PATH: var\qdrant_snapshots
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11", cache: pip}
+      - run: pip install -e ".[dev]"
+      - name: Start Qdrant (native Windows binary)
+        run: |
+          $asset = "qdrant-x86_64-pc-windows-msvc.zip"
+          if ($env:QDRANT_VERSION -eq "latest") {
+            $url = "https://github.com/qdrant/qdrant/releases/latest/download/$asset"
+          } else {
+            $url = "https://github.com/qdrant/qdrant/releases/download/$env:QDRANT_VERSION/$asset"
+          }
+          New-Item -ItemType Directory -Force tools\qdrant | Out-Null
+          Invoke-WebRequest -Uri $url -OutFile tools\qdrant\qdrant.zip
+          Expand-Archive tools\qdrant\qdrant.zip -DestinationPath tools\qdrant -Force
+          Start-Process -FilePath tools\qdrant\qdrant.exe
+          for ($i = 0; $i -lt 30; $i++) {
+            try { Invoke-RestMethod http://127.0.0.1:6333 | Out-Null; exit 0 } catch { Start-Sleep -Seconds 2 }
+          }
+          Write-Error "Qdrant did not start"
+          exit 1
+      - run: pytest -m integration
+        env: {QDRANT_URL: "http://127.0.0.1:6333"}

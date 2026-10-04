@@ -1,0 +1,9 @@
+experiment:
+  name: controller_on_natural_dev
+  system: controller_on
+  dataset: multihop
+  split: dev
+  subset: true
+  budget_mode: natural           # equal | natural (EVAL_PROTOCOL §1, BASELINES_SPEC §3)
+  retrieval_budgets: []  # unused in natural mode (cap = eval.natural_max_retrieval_calls)
+  notes: "E2 natural policy, full engine (baselines: reuse E1 runs)"

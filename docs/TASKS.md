@@ -1,0 +1,119 @@
+# Tasks and Milestones
+
+> Status: Living document · Owner: All · Last updated: 2026-10-04
+> Mirrors the proposal's milestone plan (§4), Table II allocation and Fig. 2 Gantt chart.
+> Week 1 = 17 Aug 2026; dates are approximate — align with the department calendar.
+> Mark items `[x]` in the PR that completes them. Each item names its owner, FR and doc.
+> If the team uses GitHub Issues, put the issue number after each item and keep this file
+> as the milestone overview.
+
+Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob work
+
+## Week 6 (21–27 Sep) — Proposal defense ✅
+- [x] Proposal, literature review, requirements, methodology, architecture, plan
+
+## Week 7 (28 Sep–4 Oct) — Foundations and contracts
+- [ ] All: read all docs; resolve open questions in PR comments
+- [ ] K: repo skeleton, pyproject, Qdrant Windows binary setup, CI, pre-commit (SETUP, TESTING §6)
+- [ ] K: ADR-001 embedding + chunking + sparse method (accept) · ADR-003 dataset source, licence, split (draft)
+- [ ] S: `engine/state/models.py` exactly per STATE_SPEC; invariant tests skeleton
+- [ ] V: `engine/config.py` EngineConfig + loader + config tests (CONFIG_SCHEMA)
+- [ ] V: test fakes + conftest fixtures (TESTING §2)
+- [ ] All: all `interfaces.py` files with docstrings, bodies `NotImplementedError`
+- [ ] S+V: review ADR-009 and mark it Accepted (its amendments are already applied to
+      STATE_SPEC, ARCHITECTURE and API_CONTRACT) · review ADR-010
+- [ ] All: show ADR-011 (deviations from the proposal) to the supervisor; mark Accepted once approved
+- [ ] Tag `v0.1-skeleton`
+
+## Weeks 8–9 (5–18 Oct) — Vertical slice
+- [ ] K: download + ingestion pipeline, UUIDv5 point ids, Qdrant collection (FR1, DATA §3, RETRIEVAL_SPEC)
+- [ ] K: gold map + `check_gold_mapping.py` ≥ 95 % (DATA §4); split.json committed (DATA §5)
+- [ ] K: QdrantAdapter dense + sparse; Embedder (RETRIEVAL_SPEC §1–5)
+- [ ] K: controller-OFF direct path — `Engine.retrieve_direct` + `/retrieve/direct` endpoint (FR3, ARCHITECTURE §6, API_CONTRACT)
+- [ ] V: FastAPI app, `/health`, `/tasks` create/state (FR2, API_CONTRACT)
+- [ ] V: eval harness v0: dataset loader, dense_oneshot, metrics (Recall/Hit/MRR/CER), run folder + manifest (EVAL_PROTOCOL, OBSERVABILITY)
+- [ ] S: SQLite TaskStore (WAL, version check) + LangGraph skeleton with stub nodes; `Engine.step/run` loop with budget cap (ARCHITECTURE §3–4)
+- [ ] V: trace writer (TraceStep) shared by engine and baselines (OBSERVABILITY)
+
+## Week 10 (19–25 Oct) — Working prototype checkpoint
+- [ ] K+V: E0 — dense_oneshot results on the dev subset through the service
+- [ ] All: demo script + short progress slides
+- [ ] Tag `v0.2-week10`
+
+## Weeks 11–12 (26 Oct–8 Nov) — Baselines, state, planner → Mid-term
+- [ ] K: hybrid mode (prefetch + RRF); hybrid_oneshot baseline (BASELINES_SPEC)
+- [ ] K: retrieval instrumentation (latency, calls) in traces
+- [ ] V: LLMClient (providers, structured output, cache, caps) (LLM_CLIENT_SPEC); ADR-004 model choices
+- [ ] V: planner v1: INIT/REWRITE/SPLIT, validator, fallback, prompts (FR4, PLANNER_SPEC)
+- [ ] S: real `maybe_plan` node → gaps in state; explicit state updates per ownership matrix
+- [ ] V: cross-encoder relevance-only Reranker (used by baselines); ADR-005
+- [ ] All: early MultiHop-RAG results table (dense vs hybrid)
+- [ ] Tag `v0.3-midterm`
+
+## Week 13 (9–15 Nov) — Controller core
+> Per the proposal Gantt chart, cache/controller work starts alongside Weeks 11–12; this
+> week completes it so that Weeks 14–15 stay free for integration and testing.
+- [ ] V: fixed_iteration baseline (BASELINES_SPEC)
+- [ ] K: task-local cache v1 + REUSE + leakage test (FR5, CACHE_SPEC)
+- [ ] S: controller v1: preconditions, signals, utility, tie-break, fixed-policy ablation (FR6, ACTION_POLICY §2–4, §7) + worked-example test
+- [ ] S: EvidenceManager: acceptance, gap resolution, evidence gain (FR8, EVIDENCE_MANAGER_SPEC)
+- [ ] S: TrajectoryMonitor: stagnation, gap advancement, stop checks (ACTION_POLICY §6)
+- [ ] S: state-aware reranking prototype (FR7, RERANK_SPEC) — may run into FYP-II per Gantt
+- [ ] V: `/step`, `/run`, `/result`, `/trace` endpoints + RetrievalClient (FR11)
+
+## Weeks 14–15 (16–29 Nov) — Integration and test buffer (no new features)
+- [ ] All: end-to-end controller_on runs on dev subset; fix defects
+- [ ] All: read ≥ 20 trajectories by hand with `show_trace.py`; log failure categories
+- [ ] V: golden-trajectory and fault-injection tests
+- [ ] K: latency profile (`python scripts\latency_profile.py`)
+- [ ] Fallback if controller-ON slips: baselines + modular component demos remain the FYP-I demo
+
+## Week 16 (30 Nov–6 Dec) — FYP-I draft
+- [ ] V+All: E1 on dev subset (equal budget B ∈ {2,3,4}), preliminary; initial report/dashboard
+- [ ] All: FYP-I report draft (methodology ← docs/, design ← ARCHITECTURE + ADRs, results ← eval/runs)
+- [ ] Tag `v0.5-fyp1`
+
+## FYP-I final evaluation / defense (Dec–early Jan)
+- [ ] Live demo: same question controller-OFF vs ON, trace + stop reason; recorded backup video
+- [ ] Every member can explain every module
+- [ ] FYP-II plan slide
+
+---
+
+## FYP-II — January 2027: refinement
+- [ ] S: evidence manager + semantic novelty/redundancy refinement from FYP-I failure categories
+- [ ] S: reranking and stopping-policy refinement
+- [ ] V: planner guardrail refinement + planner failure analysis
+- [ ] K: cache/reuse refinement + experiments; backend robustness
+
+## February 2027: calibration and freeze
+- [ ] S+V: calibration per ACTION_POLICY §9 on dev; sensitivity tables (E4)
+- [ ] S: calibration ADR; mark keys Frozen; tag `v0.8-frozen-config`
+
+## March 2027: full MultiHop-RAG evaluation
+- [ ] V: E1 + E2 on test split, frozen config, repeats = 3; statistics (EVAL_PROTOCOL §5–6)
+- [ ] S+V: E3 ablations; interpretation
+- [ ] K: performance optimisation (batching, caching); reproducibility checks
+
+## March–April 2027: generalisation
+- [ ] K+V: HotpotQA ingestion (ADR for setting/sample) + E5
+- [ ] All: curated benchmark 40–60 tasks, double-annotated (DATA §7) + E6
+
+## April–May 2027: integration and packaging
+- [ ] V: LangGraph agent demo (AGENT_INTEGRATION_SPEC); optional MCP adapter
+- [ ] K: installable Python package (wheel) for the engine; Windows deployment + setup docs
+- [ ] V: automated test hardening; API/client docs final
+
+## May–June 2027: finalisation
+- [ ] All: code freeze (≥ 4 weeks before final defense); tag `v1.0`
+- [ ] K: reproducibility package tested on a teammate's clean machine
+- [ ] All: thesis, presentation, scripted demo + backup video, viva preparation
+
+## Stretch (only when the above is on schedule)
+- [ ] Adaptive-RAG-style router baseline · learned policy/classifier · AgenticRAGTracer-compatible diagnostics · cross-task cache experiment · extra retrieval adapters
+
+## Current status
+| Date | Note |
+|---|---|
+| 2026-09-25 | Documentation set complete; Week 7 starting. |
+| 2026-10-04 | Windows-only setup; audit against the proposal: owners per Table II, Week 13 controller core, ADR-010/011 added, ADR-003 partly filled, all experiment configs for E1–E3, pre-commit config. |
