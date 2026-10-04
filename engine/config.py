@@ -140,12 +140,26 @@ class RetrievalConfig(_Section):
         return self
 
 
+Sha256Hex = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+GitRevision = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
+
+
+class DataSource(_Section):
+    """A benchmark's raw files at a pinned Hugging Face dataset revision (ADR-003)."""
+
+    hf_repo: str
+    revision: GitRevision  # Frozen after ADR-003
+    files: dict[str, Sha256Hex]  # file name -> expected SHA-256 (lower-case hex)
+
+
 class DataConfig(_Section):  # split keys Frozen after ADR-003
     dev_fraction: UnitFloat
     split_seed: int
     dev_subset_size: int
     gold_fuzzy_threshold: Percent
     hotpot_sample_size: int
+    download_timeout_s: int
+    sources: dict[str, DataSource]  # dataset name -> source (data/download.py)
 
 
 class LLMPrice(_Section):

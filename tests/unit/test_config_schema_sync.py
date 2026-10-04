@@ -30,7 +30,10 @@ DESCRIBED_DEFAULTS = {
     "qdrant.id_namespace": "described as 'fixed UUID'",
     "eval.repeats": "described as '1 (3 for final test)'",
 }
-DESCRIBED_PREFIXES = ("controller.type_match.",)  # 'see base.yaml'
+DESCRIBED_PREFIXES = (
+    "controller.type_match.",  # 'see base.yaml'
+    "data.sources.multihop.files.",  # 'SHA-256 values in ADR-003'
+)
 
 _CELL_SPLIT = re.compile(r"(?<!\\)\|")
 

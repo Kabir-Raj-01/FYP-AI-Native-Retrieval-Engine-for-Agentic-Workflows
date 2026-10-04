@@ -1,6 +1,6 @@
 # Data Specification
 
-> Status: Draft (freeze after ADR-001 and ADR-003 are accepted) · Owner: Kabir · Last updated: 2026-10-04
+> Status: Draft (freeze after ADR-001 and ADR-003 are accepted) · Owner: Kabir · Last updated: 2026-10-05
 
 ## 1. Common task interface (`eval/datasets/base.py`)
 Every benchmark loads into the same shape so `eval/run.py` has no dataset branches.
@@ -24,11 +24,15 @@ with ≈2.5k multi-hop queries of four types — inference, comparison, temporal
   `MultiHopRAG.json` from the Hugging Face dataset `yixuantt/MultiHopRAG` (they are no
   longer in the GitHub repository); licence ODC-BY 1.0. Reference SHA-256 values are
   in ADR-003. Counts above are approximate; record the numbers you observe there.
-- **Field names** (verified from the official scripts): queries have `query`, `answer`,
-  `question_type` (null queries: `null_query`) and `evidence_list`, whose entries hold a
-  supporting `fact` plus source-article fields; corpus items carry `title`, `source` and
-  `published_at`. Confirm the corpus body field and the other three type labels on
-  download and update this section.
+- **Field names** (verified from the downloaded files, 2026-10-05; counts in ADR-003):
+  queries have `query`, `answer`, `question_type` (`inference_query`,
+  `comparison_query`, `temporal_query`, `null_query`) and `evidence_list`, whose entries
+  hold a supporting `fact` plus the source article's `title`, `url`, `source`,
+  `published_at`, `author`, `category`. Corpus items carry `title`, `body` (the article
+  text), `url`, `source`, `published_at`, `author`, `category` — no document id, so
+  `doc_id` = sha1 of `url` (§3; `url` is unique). Download:
+  `python -m data.download --dataset multihop` (pinned revision and checksums in
+  `data.sources.multihop`; files land in `data/raw/multihop/`).
 - **Null queries** have no answer in the corpus. They are kept: they test whether the
   engine stops without over-retrieving. Their gold evidence list is empty; they are
   excluded from recall metrics and included in answer accuracy and efficiency metrics.

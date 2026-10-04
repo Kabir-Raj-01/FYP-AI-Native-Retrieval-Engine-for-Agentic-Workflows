@@ -322,6 +322,45 @@ def test_enumerated_values_rejected_when_unknown(key: str, bad: str) -> None:
         EngineConfig.model_validate(with_value(key, bad))
 
 
+# ------------------------------------------------------------------------ data sources
+GOOD_SHA = "0" * 64
+GOOD_REV = "a" * 40
+
+
+def _source(**overrides: Any) -> dict[str, Any]:
+    source: dict[str, Any] = {
+        "hf_repo": "org/name",
+        "revision": GOOD_REV,
+        "files": {"f.json": GOOD_SHA},
+    }
+    source.update(overrides)
+    return source
+
+
+def test_valid_data_source_accepted() -> None:
+    cfg = EngineConfig.model_validate(with_value("data.sources", {"x": _source()}))
+    assert cfg.data.sources["x"].files == {"f.json": GOOD_SHA}
+
+
+@pytest.mark.parametrize("revision", ["main", "A" * 40, "a" * 39, "a" * 41])
+def test_revision_must_be_a_40_hex_commit(revision: str) -> None:
+    with pytest.raises(ValidationError, match="revision"):
+        EngineConfig.model_validate(with_value("data.sources", {"x": _source(revision=revision)}))
+
+
+@pytest.mark.parametrize("sha", ["A" * 64, "0" * 63, "g" * 64, ""])
+def test_file_checksum_must_be_lowercase_sha256_hex(sha: str) -> None:
+    source = _source(files={"f.json": sha})
+    with pytest.raises(ValidationError, match="files"):
+        EngineConfig.model_validate(with_value("data.sources", {"x": source}))
+
+
+def test_base_yaml_pins_the_multihop_source_from_adr_003() -> None:
+    source = load_config(environ={}).data.sources["multihop"]
+    assert source.hf_repo == "yixuantt/MultiHopRAG"
+    assert set(source.files) == {"corpus.json", "MultiHopRAG.json"}
+
+
 # --------------------------------------------------------------------- LLM role models
 @pytest.mark.parametrize("role", ["planner", "verifier", "generator"])
 def test_role_with_null_model_cannot_be_used(role: str) -> None:

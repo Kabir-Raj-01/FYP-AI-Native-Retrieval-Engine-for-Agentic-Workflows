@@ -55,6 +55,15 @@ data:                           # split keys FROZEN after ADR-003
   dev_subset_size: 300
   gold_fuzzy_threshold: 90      # rapidfuzz 0-100
   hotpot_sample_size: 1000
+  download_timeout_s: 60        # per HTTP request, data/download.py
+  sources:                      # raw benchmark files (data/download.py); FROZEN after ADR-003
+    multihop:
+      hf_repo: yixuantt/MultiHopRAG
+      # Public identifiers, not secrets: the pragma silences detect-secrets' hex-entropy check.
+      revision: 71ac0d0bd1f951d2d6b70311f7d2ae404e1ffa82  # HF dataset commit  # pragma: allowlist secret
+      files:                    # file name -> expected SHA-256 (ADR-003)
+        corpus.json: 20b61b5ab84de84a927420c5d265b7ec8d859ae49980699958a787ade9e4d28f  # pragma: allowlist secret
+        MultiHopRAG.json: 03cfb4926461f868684903aadc8024447bdda5bb3f6804741424cce338515bff  # pragma: allowlist secret
 
 llm:
   cache_enabled: true

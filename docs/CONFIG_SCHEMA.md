@@ -93,6 +93,16 @@ Only the dotted names in this section are config keys. Dotted names such as `cac
 | data.dev_subset_size | int | 300 |
 | data.gold_fuzzy_threshold | int 0–100 | 90 |
 | data.hotpot_sample_size | int | 1000 |
+| data.download_timeout_s | int | 60 |
+| data.sources.multihop.hf_repo | str | yixuantt/MultiHopRAG |
+| data.sources.multihop.revision | str (40-hex commit) | 71ac0d0bd1f951d2d6b70311f7d2ae404e1ffa82 |
+| data.sources.multihop.files.{corpus.json,MultiHopRAG.json} | str (64-hex SHA-256) | SHA-256 values in ADR-003 |
+
+`data.sources` maps a dataset name to its raw files at a pinned Hugging Face revision;
+`data/download.py` downloads `files` into `<paths.data_dir>/raw/<dataset>/` and refuses
+any file whose SHA-256 differs. `revision` and `files` are Frozen after ADR-003; a new
+source or revision needs an ADR-003 update. Validated: `revision` is 40 lower-case hex
+characters, each SHA-256 64.
 
 ### llm — models/prompts Frozen after ADR-004 (Owner: Vishal)
 | Key | Type | Default | Notes |

@@ -14,6 +14,8 @@ code below to prove it detects what it claims to.
 from __future__ import annotations
 
 import ast
+import functools
+import os
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,7 +23,19 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKIP_DIRS = {".venv", ".git", ".mypy_cache", ".ruff_cache", ".pytest_cache", "tools", "var"}
+SKIP_DIRS = {
+    ".venv",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytest_cache",
+    "tools",
+    "var",
+    "raw",
+    "processed",
+    "htmlcov",
+    "runs",
+}
 
 PROVIDER_SDKS = {"anthropic", "openai"}
 COMPONENT_PACKAGES = {
@@ -57,9 +71,12 @@ class Imported:
 
 
 def python_files(root: Path = REPO_ROOT) -> Iterator[Path]:
-    for path in root.rglob("*.py"):
-        if not SKIP_DIRS.intersection(path.relative_to(root).parts):
-            yield path
+    # os.walk with in-place pruning: never descends into .venv, data stores, caches.
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and d != "__pycache__"]
+        for name in filenames:
+            if name.endswith(".py"):
+                yield Path(dirpath) / name
 
 
 def imports_in(source: str, rel_path: str) -> Iterator[Imported]:
@@ -73,12 +90,17 @@ def imports_in(source: str, rel_path: str) -> Iterator[Imported]:
                 yield Imported(rel_path, f"{node.module}.{alias.name}", node.lineno)
 
 
-def all_imports() -> list[Imported]:
+@functools.cache
+def _scan_repository() -> tuple[Imported, ...]:
     out: list[Imported] = []
     for path in python_files():
         rel = path.relative_to(REPO_ROOT).as_posix()
         out.extend(imports_in(path.read_text(encoding="utf-8"), rel))
-    return out
+    return tuple(out)
+
+
+def all_imports() -> list[Imported]:
+    return list(_scan_repository())  # one scan per test session
 
 
 def _top(module: str) -> str:
