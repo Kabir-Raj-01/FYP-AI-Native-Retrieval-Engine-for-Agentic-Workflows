@@ -4,11 +4,15 @@
 
 ## 1. Interface (`engine/retrieval/interfaces.py`)
 ```python
+SearchFilters = Mapping[str, str | int | None]   # payload field -> value
+
 class RetrieverAdapter(ABC):
     def search(self, query: str, mode: RetrievalMode, k: int,
-               filters: dict | None = None, with_vectors: bool = True) -> list[Candidate]: ...
+               filters: SearchFilters | None = None, with_vectors: bool = True) -> list[Candidate]: ...
     def health(self) -> bool: ...
 ```
+`filters` was a bare `dict`; it is typed so the interface passes `mypy --strict` and
+follows CLAUDE.md rule 2 (Week 7).
 `fetch(chunk_ids)` is dropped from the interface (ADR-009 "Also") until a concrete
 caller needs it — nothing in the current controlled loop or baselines calls it.
 - `search` returns at most `k` candidates ordered by backend score, `rank` 0..k-1.

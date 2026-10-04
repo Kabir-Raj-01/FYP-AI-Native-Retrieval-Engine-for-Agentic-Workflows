@@ -33,14 +33,14 @@ All interfaces live in `engine/<module>/interfaces.py`. All models come from
 
 | Component | Interface (method signatures) | Spec |
 |---|---|---|
-| TaskStore | `create(goal, budget) -> RetrievalState` · `load(task_id) -> RetrievalState` · `save(state: RetrievalState, expected_version: int, cache_entries: Sequence[CacheEntry] = ()) -> None` (atomic: commits the state save and every entry in `cache_entries` in one transaction; raises `TaskConflict` if the stored version ≠ `expected_version`, in which case none of it is written) | STATE_SPEC |
+| TaskStore | `create(goal, budget, task_id=None) -> RetrievalState` (caller-supplied `task_id` per API_CONTRACT `CreateTaskRequest`; duplicate → `TaskExists`) · `load(task_id) -> RetrievalState` · `save(state: RetrievalState, expected_version: int, cache_entries: Sequence[CacheEntry] = ()) -> None` (atomic: commits the state save and every entry in `cache_entries` in one transaction; raises `TaskConflict` if the stored version ≠ `expected_version`, in which case none of it is written) | STATE_SPEC |
 | Planner | `plan(state, mode: PlanMode) -> PlanOutcome` | PLANNER_SPEC |
 | Cache | `lookup(task_id, query, need_type) -> CacheHit \| None` · `put(entry: CacheEntry) -> None` | CACHE_SPEC |
 | Controller | `select_action(state, cache_hit) -> ActionDecision` (sets `plan_mode` when `action == TRANSFORM`, ADR-009 §3) | ACTION_POLICY |
-| RetrieverAdapter | `search(query, mode, k, filters=None, with_vectors=True) -> list[Candidate]` (`fetch` dropped until a caller needs it, ADR-009 "Also") | RETRIEVAL_SPEC |
+| RetrieverAdapter | `search(query, mode, k, filters: SearchFilters \| None = None, with_vectors=True) -> list[Candidate]` · `health() -> bool` (`fetch` dropped until a caller needs it, ADR-009 "Also") | RETRIEVAL_SPEC |
 | Reranker | `rerank(query, candidates, state: RetrievalState \| None) -> list[ScoredCandidate]` (`None` → relevance-only, used by the direct path/baselines, ADR-009 "Also") | RERANK_SPEC |
 | EvidenceManager | `update(state, scored, step) -> EvidenceUpdate` | EVIDENCE_MANAGER_SPEC |
-| TrajectoryMonitor | `observe(state, decision, update) -> MonitorVerdict` · `advance(state) -> AdvanceResult` (ADR-009 §4) | ACTION_POLICY §6 |
+| TrajectoryMonitor | `observe(state, decision, update: EvidenceUpdate \| None) -> MonitorVerdict` (`None` on TRANSFORM/STOP steps) · `advance(state) -> AdvanceResult` (ADR-009 §4) | ACTION_POLICY §6 |
 | Embedder | `embed_queries(texts) -> ndarray` · `embed_passages(texts) -> ndarray` | RETRIEVAL_SPEC §5 |
 | LLMClient | `structured(role, messages, schema) -> LLMResult[T]` · `text(role, messages) -> LLMResult[str]` | LLM_CLIENT_SPEC |
 
@@ -156,3 +156,4 @@ same Planner.
 | 2026-09-25 | Initial architecture; sync core; TaskStore as single source of truth | ADR-002 |
 | 2026-09-28 | GraphState/scratch, TaskStore.save signature, plan_mode, ownership fixes, per-task lock, no fetch(), Reranker state\|None | ADR-009 |
 | 2026-10-04 | §8 error list completed from the specs (`LLMOutputError`, `StateInvariantError`) plus `TaskExists`/`RunTimeout` for API_CONTRACT's `TASK_EXISTS`/`RUN_TIMEOUT`; flat hierarchy under `EngineError` (Week 7 plan review) | — |
+| 2026-10-05 | §2: `TaskStore.create` gains `task_id=None`; `search` filters typed `SearchFilters = Mapping[str, str \| int \| None]`; `observe`'s `update` may be `None`; `advance` is a `TrajectoryMonitor` method. Signatures pinned by `tests/unit/test_interfaces.py` | needs ADR line (Week 7 checkpoint) |
