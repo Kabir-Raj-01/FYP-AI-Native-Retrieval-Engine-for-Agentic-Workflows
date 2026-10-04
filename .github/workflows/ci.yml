@@ -26,7 +26,7 @@ jobs:
       run:
         shell: pwsh
     env:
-      QDRANT_VERSION: latest          # replace with the pinned tag from docs/LIBRARY_NOTES.md, e.g. v1.x.y
+      QDRANT_VERSION: v1.19.1         # pinned in docs/LIBRARY_NOTES.md (matches qdrant-client 1.19.1)
       QDRANT__SERVICE__HOST: 127.0.0.1
       QDRANT__STORAGE__STORAGE_PATH: var\qdrant_storage
       QDRANT__STORAGE__SNAPSHOTS_PATH: var\qdrant_snapshots

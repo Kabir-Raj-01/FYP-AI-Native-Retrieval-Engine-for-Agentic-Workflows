@@ -19,7 +19,7 @@ it**. Rules:
 |---|---|---|---|
 | python | 3.11.9 (python.org, Authenticode-signed) | 2026-10-04 | https://docs.python.org/3.11/ |
 | qdrant-client | 1.19.1 | 2026-10-04 | https://qdrant.tech/documentation/ |
-| Qdrant server, Windows binary (`QDRANT_VERSION`) | | | https://github.com/qdrant/qdrant/releases |
+| Qdrant server, Windows binary (`QDRANT_VERSION`) | **v1.19.1** (`qdrant-x86_64-pc-windows-msvc.zip`, SHA-256 `9b6f69bd85f6abed4bc13f943099f55c6ffd55f5dd90388635320d8fbb569eb0`, matches the release's published digest) | 2026-10-05 | https://github.com/qdrant/qdrant/releases |
 | fastembed | 0.8.1 | 2026-10-04 | https://qdrant.github.io/fastembed/ |
 | sentence-transformers | 6.1.0 (torch 2.14.1) | 2026-10-04 | https://www.sbert.net/ |
 | langgraph | 1.2.12 (langsmith 0.14.4, uuid-utils **0.17.0**, see gotchas) | 2026-10-05 | https://langchain-ai.github.io/langgraph/ |
@@ -61,10 +61,23 @@ it**. Rules:
   already restricted ruff to Python files).
 
 ## Qdrant — things to verify and record
-- [ ] Creating a collection with a **named dense vector** and a **named sparse vector** on
-      the same collection. Verified snippet:
+- Server start (SETUP §3) verified 2026-10-05: `qdrant.exe` v1.19.1 is **not
+  Authenticode-signed**, but Smart App Control lets it run on Kabir's machine; it answers
+  `{"title":"qdrant - vector search engine","version":"1.19.1",...}` on 127.0.0.1:6333.
+- [x] Creating a collection with a **named dense vector** and a **named sparse vector** on
+      the same collection. Verified 2026-10-05 (qdrant-client 1.19.1, server 1.19.1):
+      ```python
+      c = QdrantClient(url="http://127.0.0.1:6333", timeout=10)
+      c.create_collection(
+          name,
+          vectors_config={"dense": models.VectorParams(size=4, distance=models.Distance.COSINE)},
+          sparse_vectors_config={"sparse": models.SparseVectorParams(modifier=models.Modifier.IDF)},
+      )
+      c.get_collection(name).config.params.sparse_vectors["sparse"].modifier  # -> idf
+      ```
 - [ ] Sparse vectors for BM25 — whether an IDF modifier must be set on the sparse vector
-      config when using fastembed's BM25 model. Verified snippet:
+      config when using fastembed's BM25 model. (Setting `Modifier.IDF` is accepted — above —
+      but whether fastembed's BM25 output expects it is still unverified.) Verified snippet:
 - [ ] Hybrid search via the Query API (`query_points` with `prefetch` for dense and sparse,
       fusion RRF). Verified snippet:
 - [ ] Returning vectors with results (`with_vectors` for a specific named vector) and
@@ -72,6 +85,8 @@ it**. Rules:
 - [ ] Point ids: UUID strings accepted; fetch by payload `chunk_id` with a keyword index
       (or `retrieve` by UUID). Verified snippet:
 - Gotchas:
+  - `qdrant.exe` writes a `.qdrant-initialized` marker into its **working directory**
+    (the repo root when started per SETUP §3); it is gitignored.
 
 ## fastembed (sparse BM25)
 - [ ] Encoding documents vs queries for BM25 (separate methods?) and output format →
