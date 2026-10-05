@@ -118,7 +118,7 @@ byte-order mark both in `Out-File -Encoding utf8` **and** when piping text into 
 program, so Python runs pip itself (verified 2026-10-05: the command reproduces the
 committed file byte-for-byte). Copy exact versions of the core
 libraries into `LIBRARY_NOTES.md`. Upgrades happen in a dedicated PR that re-runs all
-tests (`pytest`); keep `uuid-utils` off 0.17.1 (§7).
+tests (`pytest`); keep the Smart App Control holds listed in the lock's header (§7).
 
 ## 7. Troubleshooting
 | Symptom | Fix |
@@ -138,5 +138,6 @@ tests (`pytest`); keep `uuid-utils` off 0.17.1 (§7).
 | `DLL load failed … An Application Control policy has blocked this file` | Windows **Smart App Control** blocks some unsigned native modules. Do not turn Smart App Control off (it cannot be re-enabled without reinstalling Windows); use the fixes in the next rows. Details: LIBRARY_NOTES "Windows environment" |
 | …while importing `_sqlite3` (pre-commit, `pytest --cov` or any SQLite store fails) | the venv was built from an unsigned Python (e.g. uv-managed). Install the signed python.org build — `winget install --id Python.Python.3.11 -e --scope user` — delete `.venv` and recreate it with `py -3.11` |
 | …while importing `_uuid_utils` (`import langgraph` fails) | `uuid-utils` 0.17.1 is blocked; 0.12.0–0.17.0 and 1.0.0 load. `requirements.lock` holds 0.17.0; reinstall from the lock |
+| …in `sklearn\…` or `pandas\_libs\…` (also breaks `transformers` / `sentence-transformers`) | scikit-learn 1.9.1 and pandas 3.0.5/3.0.6 are blocked; the lock holds scikit-learn 1.9.0 and pandas 3.0.3. Reinstall from the lock. For a future upgrade, import every extension module of the new release in a scratch venv first (LIBRARY_NOTES) |
 | `py -3.11` → "No suitable Python runtime found" | only a non-python.org 3.11 is registered (`py -0p` shows e.g. `Astral/CPython3.11.16`); install python.org 3.11 as above |
 | `py.exe` → "The file cannot be accessed by the system" | `py` resolved to the Python install manager's app alias (`…\WindowsApps\py.exe`). Call the interpreter directly, e.g. `& "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe" -m venv .venv`, or disable the `py.exe` alias under Settings → Apps → Advanced app settings → App execution aliases |

@@ -1,8 +1,9 @@
 # Exact versions for: pip install -r requirements.lock -e ".[dev]"  (docs/SETUP.md section 6)
 # Generated 2026-10-05 with python.org Python 3.11.9 on Windows 11 by:
 #   python -m pip freeze --exclude-editable
-# uuid-utils is held at 0.17.0: 0.17.1's native module is blocked by Smart App Control
-# (docs/LIBRARY_NOTES.md, Windows gotchas).
+# Held below the newest release because Smart App Control blocks native modules of the
+# newest one (docs/LIBRARY_NOTES.md, Windows gotchas): uuid-utils 0.17.0 (not 0.17.1),
+# scikit-learn 1.9.0 (not 1.9.1), pandas 3.0.3 (not 3.0.5 / 3.0.6).
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anthropic==1.11.0
@@ -83,7 +84,7 @@ orjson==3.12.0
 ormsgpack==1.12.2
 packageurl-python==0.17.6
 packaging==26.3
-pandas==3.0.6
+pandas==3.0.3
 pathspec==1.1.1
 pillow==12.3.0
 pip-requirements-parser==32.0.1
@@ -115,7 +116,7 @@ requests-toolbelt==1.0.0
 rich==15.0.0
 ruff==0.16.10
 safetensors==0.8.0
-scikit-learn==1.9.1
+scikit-learn==1.9.0
 scipy==1.17.1
 sentence-transformers==6.1.0
 shellingham==1.5.4

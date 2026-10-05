@@ -33,6 +33,8 @@ it**. Rules:
 | tenacity | 9.1.4 | 2026-10-04 | https://tenacity.readthedocs.io/ |
 | python-dotenv | 1.2.4 | 2026-10-04 | https://saurabh-kumar.com/python-dotenv/ |
 | pyyaml / numpy | 6.0.3 / 2.4.6 | 2026-10-04 | |
+| scikit-learn / pandas | **1.9.0** / **3.0.3** (held, see gotchas) | 2026-10-05 | |
+| transformers (tokenizer for chunking) | 5.18.0 | 2026-10-04 | https://huggingface.co/docs/transformers |
 | pytest / pytest-cov / hypothesis / ruff / mypy | 9.1.1 / 7.1.0 / 6.168.3 / 0.16.10 / 2.4.0 | 2026-10-04 | |
 | pre-commit / detect-secrets | 4.6.2 / 1.5.0 | 2026-10-04 | |
 
@@ -51,6 +53,17 @@ it**. Rules:
   only 0.17.1 is blocked. `requirements.lock` holds 0.17.0 (newest allowed that loads).
   Do not upgrade it to 0.17.1. Other wheels' native modules (pydantic-core, numpy, torch,
   onnxruntime, rapidfuzz, PyYAML) load fine.
+- **scikit-learn 1.9.1 and pandas 3.0.5/3.0.6 are blocked too** (found 2026-10-05).
+  scikit-learn matters beyond its own use: `transformers` imports `sklearn.metrics`, so a
+  blocked scikit-learn also breaks `AutoTokenizer`, `sentence-transformers` and the
+  cross-encoder. Tested by importing **every** extension module of each release in a fresh
+  venv: scikit-learn 1.9.0, 1.8.0, 1.7.2 and pandas 3.0.3, 2.3.3 load fully;
+  scikit-learn 1.9.1 (5–32 modules blocked, varying between runs) and pandas 3.0.5/3.0.6
+  do not. `requirements.lock` holds scikit-learn 1.9.0 and pandas 3.0.3. Pattern: the
+  newest patch release of a package is the one blocked (low reputation of new binaries),
+  so re-test before any upgrade. A `LoadLibraryEx(DONT_RESOLVE_DLL_REFERENCES)` scan of
+  the venv reported false positives (e.g. mypy modules that import fine); trust real
+  imports only.
 - **`py` can resolve to the Python install manager's app alias**
   (`%LOCALAPPDATA%\Microsoft\WindowsApps\py.exe`), which may fail with "The file cannot be
   accessed by the system"; call the python.org interpreter by its path instead (SETUP §7).
