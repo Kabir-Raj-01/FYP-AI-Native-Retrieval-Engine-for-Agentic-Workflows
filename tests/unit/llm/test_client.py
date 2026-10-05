@@ -189,3 +189,27 @@ def test_role_and_provider_configuration_errors(llm_cfg: EngineConfig) -> None:
     llm_cfg.llm.planner.provider = "anthropic"
     with pytest.raises(ConfigError, match="LLM_API_KEY is not set"):
         ProviderLLMClient(llm_cfg, environ={}).text("planner", MESSAGES)
+
+
+def test_response_cache_survives_concurrent_first_use(tmp_path: Path) -> None:
+    import threading
+
+    from engine.llm.cache import LLMResponseCache
+
+    cache = LLMResponseCache(tmp_path / "llm.sqlite3")
+    barrier = threading.Barrier(6)
+    errors: list[Exception] = []
+
+    def worker(i: int) -> None:
+        barrier.wait()
+        try:
+            cache.put(f"k{i}", "text", {"input_tokens": 1, "output_tokens": 1})
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert errors == [] and cache.get("k3") is not None

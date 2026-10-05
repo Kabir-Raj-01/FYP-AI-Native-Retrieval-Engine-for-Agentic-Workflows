@@ -15,6 +15,7 @@ from typing import Any
 
 __all__ = ["LLMResponseCache"]
 
+_SETUP_LOCK = threading.Lock()
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS llm_cache (
   key           TEXT PRIMARY KEY,
@@ -35,8 +36,9 @@ class LLMResponseCache:
         if conn is None:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             conn = sqlite3.connect(self._path)
-            conn.execute("PRAGMA journal_mode = WAL")
-            conn.executescript(_SCHEMA)
+            with _SETUP_LOCK:  # first connections race on a fresh file (engine/state/sqlite.py)
+                conn.execute("PRAGMA journal_mode = WAL")
+                conn.executescript(_SCHEMA)
             self._local.conn = conn
         return conn
 

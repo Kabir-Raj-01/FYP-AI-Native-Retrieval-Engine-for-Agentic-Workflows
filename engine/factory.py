@@ -51,6 +51,7 @@ __all__ = [
     "build_sparse_encoder",
     "build_task_store",
     "build_trace_writer",
+    "prompt_hashes",
 ]
 
 
@@ -129,6 +130,13 @@ def build_monitor(cfg: EngineConfig) -> TrajectoryMonitor:
     from engine.monitor.trajectory import RuleTrajectoryMonitor
 
     return RuleTrajectoryMonitor(cfg)
+
+
+def prompt_hashes() -> dict[str, str]:
+    """``{template: sha256}`` of every planner prompt template (run manifest, OBSERVABILITY §5)."""
+    from engine.planner.prompting import prompt_hashes as planner_hashes
+
+    return planner_hashes()
 
 
 def build_trace_writer(cfg: EngineConfig, ctx: RunContext, root: Path) -> TraceWriter:

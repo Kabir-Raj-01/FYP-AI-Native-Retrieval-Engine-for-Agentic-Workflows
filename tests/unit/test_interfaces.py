@@ -154,7 +154,7 @@ def test_llm_transport_models_forbid_extra_fields() -> None:
         Message.model_validate({"role": "tool", "content": "x"})
 
 
-BUILDERS = [getattr(factory, name) for name in factory.__all__]
+BUILDERS = [getattr(factory, name) for name in factory.__all__ if name.startswith("build_")]
 
 
 def test_factory_has_a_builder_per_interface() -> None:

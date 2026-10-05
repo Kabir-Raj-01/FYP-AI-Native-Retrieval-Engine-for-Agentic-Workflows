@@ -38,6 +38,14 @@ it**. Rules:
 | pytest / pytest-cov / hypothesis / ruff / mypy | 9.1.1 / 7.1.0 / 6.168.3 / 0.16.10 / 2.4.0 | 2026-10-04 | |
 | pre-commit / detect-secrets | 4.6.2 / 1.5.0 | 2026-10-04 | |
 
+## SQLite (stdlib sqlite3, Python 3.11)
+- Gotcha (found 2026-10-05): several threads opening their **first** connections to a
+  fresh database file at the same moment fail with `database is locked` — the
+  `PRAGMA journal_mode = WAL` switch does not wait on the busy timeout (20/40 trials with 6
+  threads). `engine/state/sqlite.connect` and the LLM response cache therefore serialise
+  connection setup behind a process-wide lock; regression tests in
+  `tests/unit/state/test_sqlite.py` and `tests/unit/llm/test_client.py`.
+
 ## Windows environment — gotchas (verified 2026-10-04)
 - **Smart App Control blocks some unsigned native DLLs.** With Smart App Control on, the
   uv-managed CPython 3.11.16 failed `import sqlite3` ("DLL load failed … An Application

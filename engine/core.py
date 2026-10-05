@@ -40,6 +40,7 @@ from engine.graph.graph import run_iteration
 from engine.graph.nodes import Components, Context
 from engine.monitor.interfaces import TraceWriter
 from engine.monitor.logging import bound_contextvars, get_logger
+from engine.planner.interfaces import Planner
 from engine.rerank.interfaces import Reranker
 from engine.retrieval.interfaces import RetrieverAdapter
 from engine.state.models import (
@@ -212,6 +213,11 @@ class Engine:
     def state(self, task_id: str) -> RetrievalState:
         return self._parts().store.load(task_id)
 
+    @property
+    def planner(self) -> Planner:
+        """The controlled path's planner (the fixed_iteration baseline uses the same one)."""
+        return self._parts().planner
+
     def trace(self, task_id: str) -> list[TraceStep]:
         """Every TraceStep of ``task_id`` written so far (raises TaskNotFound first)."""
         self._parts().store.load(task_id)
@@ -229,22 +235,23 @@ class Engine:
             _, trace = self._iterate(self._load_active(task_id))
             return trace
 
-    def run(self, task_id: str) -> EvidenceBundle:
+    def run(self, task_id: str, timeout_s: float | None = None) -> EvidenceBundle:
         """Iterate until the task stops and return its bundle.
 
+        ``timeout_s`` defaults to ``api.run_timeout_s`` (the HTTP ``/run``); the eval
+        harness passes ``math.inf``.
+
         Raises:
-            RunTimeout: ``api.run_timeout_s`` passed; the state is the last completed step.
+            RunTimeout: the timeout passed; the state is the last completed step.
             (and as ``step``)
         """
+        limit = self._cfg.api.run_timeout_s if timeout_s is None else timeout_s
         with self._task_lock(task_id):
             state = self._load_active(task_id)
-            deadline = self._clock() + self._cfg.api.run_timeout_s
+            deadline = self._clock() + limit
             while state.status == TaskStatus.ACTIVE:
                 if self._clock() >= deadline:
-                    raise RunTimeout(
-                        f"task {task_id}: run exceeded {self._cfg.api.run_timeout_s} s",
-                        task_id=task_id,
-                    )
+                    raise RunTimeout(f"task {task_id}: run exceeded {limit} s", task_id=task_id)
                 state, _ = self._iterate(state)
             return self._bundle(state)
 

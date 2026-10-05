@@ -124,3 +124,37 @@ def test_unknown_schema_version_is_rejected(conn: sqlite3.Connection) -> None:
         )
     with pytest.raises(ValueError, match="schema_version 99"):
         read_cache_entries(conn, "t-1")
+
+
+def _first_connections_at_once(path: Path, n: int = 6) -> list[Exception]:
+    import threading
+
+    barrier = threading.Barrier(n)
+    errors: list[Exception] = []
+
+    def worker() -> None:
+        barrier.wait()
+        try:
+            conn = connect(path)
+            with conn:
+                conn.execute(
+                    "INSERT INTO tasks VALUES (?, 0, 'active', '{}', 'x', 'x')",
+                    (str(threading.get_ident()),),
+                )
+        except sqlite3.OperationalError as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker) for _ in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    return errors
+
+
+def test_concurrent_first_connections_to_a_fresh_file_do_not_lock(tmp_path: Path) -> None:
+    """Regression: threads opening their first connections at once got "database is
+    locked" from the WAL switch (seen in eval runs with max_workers > 1; 20/40 trials
+    failed before the setup lock in ``connect``)."""
+    for trial in range(10):
+        assert _first_connections_at_once(tmp_path / f"t{trial}.sqlite3") == []

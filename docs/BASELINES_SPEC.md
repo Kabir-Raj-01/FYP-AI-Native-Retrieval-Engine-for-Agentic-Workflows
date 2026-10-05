@@ -47,8 +47,20 @@ Identical with `mode=hybrid` (action SPARSE_HYBRID in the trace).
 4. Bundle = top `rerank.top_n_output` accepted items by relevance.
 This isolates "more retrieval" from "controlled retrieval".
 
+**As built (2026-10-05, `baselines/fixed_iteration.py`):** uses `Engine.planner` (the
+engine's own planner object) with a transient state per call; the REWRITE input is the
+last subgoal as gap `g0` with every query issued for it as history and the accepted items
+as evidence. Hop 1's TraceStep carries the INIT planning call; a hop with a REWRITE carries
+its plan events. Accepted items have `novelty = 1.0` and `final_score = relevance`. Action
+in the trace: DENSE for `fixed_iteration.mode = dense`, else SPARSE_HYBRID. Without a
+reranker every relevance is 0, so nothing is accepted.
+
 ### controller_on
 The full engine via `Engine.run` (in-process, same code path as the API).
+As built (`baselines/controller_on.py`): `max_retrieval_calls = B`, other caps from
+`budget_defaults`; each budget sub-run uses `Engine.for_run` (own `b<B>/state.sqlite3`
+and traces; models, LLM client and controlled components shared); no `api.run_timeout_s`
+(eval runs are not HTTP requests).
 
 ### adaptive_rag_router (stretch)
 A query-complexity classifier routes each question to: no retrieval, dense_oneshot, or

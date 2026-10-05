@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
@@ -27,6 +28,7 @@ __all__ = [
     "write_cache_entries",
 ]
 
+_SETUP_LOCK = threading.Lock()
 CACHE_ENTRY_SCHEMA_VERSION = 1  # CacheEntry.schema_version this code reads and writes
 
 # SDS §4.6, with IF NOT EXISTS so every component can ensure it.
@@ -53,12 +55,18 @@ CREATE INDEX IF NOT EXISTS idx_cache_task_query ON cache_entries(task_id, normal
 
 
 def connect(path: Path) -> sqlite3.Connection:
-    """Open ``path`` (creating parent folders and the schema) for use by one thread."""
+    """Open ``path`` (creating parent folders and the schema) for use by one thread.
+
+    Connection setup (switching to WAL, creating the schema) is serialised process-wide:
+    threads opening their first connections to a fresh file at the same moment otherwise
+    fail with "database is locked" — the WAL switch does not wait on the busy timeout.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA foreign_keys = ON")
-    ensure_schema(conn)
+    with _SETUP_LOCK:  # ponytail: one lock for every path; setup is rare and short
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA foreign_keys = ON")
+        ensure_schema(conn)
     return conn
 
 

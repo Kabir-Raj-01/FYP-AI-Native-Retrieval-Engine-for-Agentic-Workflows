@@ -12,10 +12,12 @@ import pytest
 from engine.config import EngineConfig, ExperimentConfig
 from engine.core import Engine
 from engine.errors import ConfigError
+from engine.state.models import Action
 from eval import run as eval_run
 from eval.datasets.base import Task
 from eval.datasets.multihop import load_tasks
-from tests.fakes import CorpusChunk, FakeEmbedder, FakeRetriever
+from tests.conftest import EngineFactory
+from tests.fakes import CorpusChunk, FakeController, FakeEmbedder, FakeReranker, FakeRetriever
 
 NOW = datetime(2026, 10, 5, 13, 30, 0, tzinfo=UTC)
 CLEAN = {"git_commit": "0123456789abcdef", "git_dirty": False}
@@ -187,7 +189,8 @@ def test_max_tasks_limits_the_run(
     ("change", "message"),
     [
         ({"split": "test", "subset": False}, "frozen-config tag"),
-        ({"system": "controller_on"}, "not implemented yet"),
+        ({"system": "controller_on"}, r"llm\.planner\.model is null"),
+        ({"system": "fixed_iteration"}, r"llm\.planner\.model is null"),
     ],
 )
 def test_refused_experiments(
@@ -198,8 +201,39 @@ def test_refused_experiments(
     message: str,
 ) -> None:
     run_cfg.experiment = experiment(**change)
+    run_cfg.llm.planner.model = None  # ADR-004 not filled in
     with pytest.raises(ConfigError, match=message):
         run(run_cfg, engine, mini_corpus)
+
+
+@pytest.mark.parametrize("system", ["controller_on", "fixed_iteration"])
+def test_controlled_systems_run_per_budget_with_their_own_state(
+    run_cfg: EngineConfig,
+    engine_with_fakes: EngineFactory,
+    mini_corpus: list[CorpusChunk],
+    system: str,
+) -> None:
+    run_cfg.experiment = experiment(name=f"{system}_dev", system=system, retrieval_budgets=[1, 2])
+    # DENSE then STOP: the scripted controller ignores the budget, the real one would not
+    controller = FakeController([Action.DENSE, Action.STOP])
+    fake = engine_with_fakes(reranker=FakeReranker(default=0.6), controller=controller)
+    run_dir = run(run_cfg, fake.engine, mini_corpus)
+    for b in (1, 2):  # same dataset task ids in both sub-runs: separate TaskStores
+        assert (run_dir / f"b{b}" / "state.sqlite3").exists() == (system == "controller_on")
+        metrics = json.loads((run_dir / f"b{b}" / "metrics.json").read_text("utf-8"))
+        assert metrics["tasks"] == 2
+    manifest = json.loads((run_dir / "manifest.json").read_text("utf-8"))
+    assert set(manifest["prompt_hashes"]) >= {"planner/init.j2", "planner/rewrite.j2"}
+    assert manifest["totals"]["llm_calls"] >= 4  # >= one INIT per task and sub-run
+    steps = [
+        json.loads(line)
+        for line in (run_dir / "b2" / "traces" / "multihop%3A0000.jsonl")
+        .read_text("utf-8")
+        .splitlines()
+    ]
+    assert steps[0]["system"] == system
+    if system == "fixed_iteration":
+        assert [s["step"] for s in steps] == [1, 2]  # exactly B retrieval hops
 
 
 def test_base_config_is_not_an_experiment(

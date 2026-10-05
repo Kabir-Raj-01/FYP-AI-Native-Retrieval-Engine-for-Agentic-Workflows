@@ -6,9 +6,12 @@ Writes ``<paths.runs_dir>/<run_id>/`` with ``run_id = YYYYMMDD-HHMMSS_<experimen
 ``manifest.json``, ``config.resolved.yaml``, ``events.jsonl`` and one ``b<B>/`` folder per
 retrieval budget (``traces/``, ``bundles/``, ``per_task.csv``, ``metrics.json``).
 
-v0 limits (recorded in the manifest): only ``dense_oneshot`` and ``hybrid_oneshot`` are
-implemented; the test split is refused (EVAL_PROTOCOL §1.2 requires the frozen-config tag);
-answers are not generated (ADR-004); without a reranker (ADR-005) runs are not reportable.
+Systems: ``dense_oneshot``, ``hybrid_oneshot``, ``fixed_iteration``, ``controller_on``. The
+last two need the planner's LLM (``llm.planner.model``, ADR-004) and run on
+``Engine.for_run``: per budget sub-run, its own TaskStore/cache (``b<B>/state.sqlite3``) and
+traces, sharing the models and the LLM client (per-run caps span the run). Limits: the
+test split is refused (EVAL_PROTOCOL §1.2 requires the frozen-config tag); answers are not
+generated (ADR-004); without a reranker (ADR-005) runs are not reportable.
 """
 
 from __future__ import annotations
@@ -30,7 +33,7 @@ from typing import Any
 import httpx
 import yaml
 
-from baselines import dense_oneshot, hybrid_oneshot
+from baselines import controller_on, dense_oneshot, fixed_iteration, hybrid_oneshot
 from baselines.base import BaselineContext
 from data.ingest import GOLD_MAP_FILE, SPLIT_FILE, git_state, processed_dir
 from engine import factory
@@ -48,7 +51,11 @@ __all__ = ["main", "run_experiment"]
 SYSTEMS: dict[str, Callable[[Task, BaselineContext], EvidenceBundle]] = {
     dense_oneshot.SYSTEM: dense_oneshot.run_task,
     hybrid_oneshot.SYSTEM: hybrid_oneshot.run_task,
+    fixed_iteration.SYSTEM: fixed_iteration.run_task,
+    controller_on.SYSTEM: controller_on.run_task,
 }
+# Systems that use the planner and the controlled components (Engine.for_run per sub-run).
+_CONTROLLED = frozenset({fixed_iteration.SYSTEM, controller_on.SYSTEM})
 # Distributions whose versions go into the manifest (OBSERVABILITY §5).
 _PACKAGES = (
     "pydantic",
@@ -141,6 +148,9 @@ def run_experiment(
     if exp.system not in SYSTEMS:
         raise ConfigError(f"system {exp.system!r} is not implemented yet (v0: {sorted(SYSTEMS)})")
     run_task = SYSTEMS[exp.system]
+    controlled = exp.system in _CONTROLLED
+    if controlled:
+        cfg.require_llm_model("planner")  # fail before any work (ADR-004)
     started = clock()
     created = now()
     repo = git()
@@ -174,6 +184,7 @@ def run_experiment(
         reasons.append(f"no reranker (ADR-005): {exp.system} ran without rerank")
 
     aborted: dict[str, Any] = {"aborted": False, "reason": None}
+    llm_calls = tokens = 0
     wall_time_s = 0.0
     ctx = RunContext(run_id=run_id, system=exp.system)
     log.info("run.started", experiment=exp.name, tasks=len(selected), budgets=budgets)
@@ -181,8 +192,9 @@ def run_experiment(
         for budget in budgets:
             sub = run_dir / f"b{budget}"
             traces = factory.build_trace_writer(cfg, ctx, sub)
+            sub_engine = engine.for_run(traces, sub / "state.sqlite3") if controlled else engine
             bctx = BaselineContext(
-                cfg=cfg, engine=engine, traces=traces, retrieval_budget=budget, now=now
+                cfg=cfg, engine=sub_engine, traces=traces, retrieval_budget=budget, now=now
             )
             with ThreadPoolExecutor(max_workers=cfg.eval.max_workers) as pool:
                 bundles = list(pool.map(_bound(run_task, bctx), selected))
@@ -197,6 +209,8 @@ def run_experiment(
                 )
                 for t, b in zip(selected, bundles, strict=True)
             ]
+            llm_calls += sum(b.trace_summary.llm_calls for b in bundles)
+            tokens += sum(b.trace_summary.tokens for b in bundles)
             _write_csv(sub / "per_task.csv", [r.row() for r in rows])
             _write_text(sub / "metrics.json", json.dumps(aggregate(rows), indent=1) + "\n")
             log.info("run.subrun_done", budget=budget, tasks=len(rows))
@@ -232,7 +246,7 @@ def run_experiment(
             "collection": cfg.qdrant.collection,
             "split_hash": _sha256(folder / SPLIT_FILE),
             "gold_map_hash": _sha256(folder / GOLD_MAP_FILE),
-            "prompt_hashes": {},  # no prompts in v0 (planner / generator not built)
+            "prompt_hashes": factory.prompt_hashes() if controlled else {},
             "models": {
                 "embedding": f"{cfg.embedding.model_name}@{cfg.embedding.revision}",
                 "sparse": f"{cfg.sparse.model_name}@{cfg.sparse.revision}",
@@ -246,7 +260,12 @@ def run_experiment(
             "cache_namespace": cfg.llm.cache_namespace,
             "n_tasks": len(selected),
             "aborted": aborted,
-            "totals": {"llm_calls": 0, "tokens": 0, "cost_usd": 0.0, "wall_time_s": wall_time_s},
+            "totals": {
+                "llm_calls": llm_calls,
+                "tokens": tokens,
+                "cost_usd": engine.llm_run_totals()["cost_usd"],
+                "wall_time_s": wall_time_s,
+            },
             "notes": exp.notes,
         }
         _write_text(run_dir / "manifest.json", json.dumps(manifest, indent=1) + "\n")

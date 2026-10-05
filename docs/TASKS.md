@@ -94,7 +94,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 ## Week 13 (9–15 Nov) — Controller core
 > Per the proposal Gantt chart, cache/controller work starts alongside Weeks 11–12; this
 > week completes it so that Weeks 14–15 stay free for integration and testing.
-- [ ] V: fixed_iteration baseline (BASELINES_SPEC)
+- [x] V: fixed_iteration baseline (BASELINES_SPEC)
+      — built by K (`baselines/fixed_iteration.py`); `eval.run` now runs all four systems
+      (`controller_on` and `fixed_iteration` need ADR-004's planner model)
 - [ ] K: task-local cache v1 + REUSE + leakage test (FR5, CACHE_SPEC)
       — cache v1 + leakage test done (`engine/cache/task_cache.py`, shared
       `engine/state/sqlite.py`, `engine/text.py`); REUSE needs the controller and the
