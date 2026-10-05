@@ -2,8 +2,7 @@
 
 Each builder takes the config and the components it depends on, and returns the module's
 interface type, so callers (``engine/core.py``, ``eval/run.py``, the baselines, ``data/``)
-never import a concrete class. Builders of modules not implemented yet raise
-NotImplementedError (docs/TASKS.md Weeks 8-13).
+never import a concrete class.
 
 Selection (config key -> implementation):
 - TaskStore         SQLite store at ``paths.state_db`` (``engine/state/store.py``)
@@ -12,7 +11,7 @@ Selection (config key -> implementation):
 - RetrieverAdapter  Qdrant at ``qdrant.url`` / ``qdrant.collection`` (dense, sparse, hybrid)
 - IndexWriter       Qdrant collection creation + upsert (ingestion only)
 - LLMClient         ``llm.<role>.provider``: ``anthropic`` | ``openai_compatible`` (``fake``: tests)
-- Planner           bounded LLM planner (``ablation.planner`` false -> no planner calls)    [todo]
+- Planner           bounded LLM planner (``ablation.planner`` false -> no planner calls)
 - Cache             task-local SQLite cache in ``paths.state_db`` (``ablation.cache``)
 - Controller        rule + utility policy (``ablation.adaptive_actions`` false -> fixed)
 - Reranker          cross-encoder ``rerank.cross_encoder_model`` + state-aware scoring
@@ -55,10 +54,6 @@ __all__ = [
 ]
 
 
-def _not_built(component: str) -> NotImplementedError:
-    return NotImplementedError(f"{component} is not implemented yet (see docs/TASKS.md)")
-
-
 def build_task_store(cfg: EngineConfig) -> TaskStore:
     from engine.state.store import SqliteTaskStore
 
@@ -98,7 +93,9 @@ def build_llm_client(cfg: EngineConfig) -> LLMClient:
 
 
 def build_planner(cfg: EngineConfig, llm: LLMClient) -> Planner:
-    raise _not_built("Planner")
+    from engine.planner.llm_planner import LLMPlanner
+
+    return LLMPlanner(cfg, llm)
 
 
 def build_cache(cfg: EngineConfig, embedder: Embedder) -> Cache:

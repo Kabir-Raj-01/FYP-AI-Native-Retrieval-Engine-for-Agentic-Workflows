@@ -162,32 +162,6 @@ def test_factory_has_a_builder_per_interface() -> None:
     assert returned == set(EXPECTED)
 
 
-IMPLEMENTED = {
-    "build_embedder",
-    "build_sparse_encoder",
-    "build_retriever",
-    "build_index_writer",
-    "build_cache",
-    "build_trace_writer",
-    "build_task_store",
-    "build_reranker",
-    "build_controller",
-    "build_evidence_manager",
-    "build_monitor",
-    "build_llm_client",
-}
-
-
-@pytest.mark.parametrize(
-    "builder", [b for b in BUILDERS if b.__name__ not in IMPLEMENTED], ids=lambda b: b.__name__
-)
-def test_unimplemented_factory_builders_are_stubs(builder: typing.Callable[..., object]) -> None:
-    cfg = load_config(environ={})
-    n_deps = len(inspect.signature(builder).parameters) - 1
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        builder(cfg, *([None] * n_deps))
-
-
 def test_implemented_builders_return_their_interfaces(monkeypatch: pytest.MonkeyPatch) -> None:
     from engine.embeddings import bm25, sentence_transformer
     from tests.unit.embeddings.test_wrappers import FakeFastEmbed, FakeSTModel
@@ -210,6 +184,8 @@ def test_implemented_builders_return_their_interfaces(monkeypatch: pytest.Monkey
     assert isinstance(factory.build_controller(cfg, embedder), Controller)
     assert isinstance(factory.build_evidence_manager(cfg, embedder, None), EvidenceManager)  # type: ignore[arg-type]
     assert isinstance(factory.build_monitor(cfg), TrajectoryMonitor)
-    assert isinstance(factory.build_llm_client(cfg), LLMClient)  # no provider built yet
+    llm = factory.build_llm_client(cfg)
+    assert isinstance(llm, LLMClient)  # no provider built yet
+    assert isinstance(factory.build_planner(cfg, llm), Planner)
     ctx = RunContext(run_id="r", system="controller_on")
     assert isinstance(factory.build_trace_writer(cfg, ctx, Path("unused")), TraceWriter)

@@ -212,6 +212,7 @@ class PlannerConfig(_Section):
     max_evidence_summaries: int
     entity_match_threshold: Percent
     rationale_max_chars: int
+    heuristic_max_tokens: int  # PLANNER_SPEC §6 heuristic(): "short" = at most this many tokens
 
 
 class CacheConfig(_Section):

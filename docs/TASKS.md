@@ -77,8 +77,11 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [ ] V: LLMClient (providers, structured output, cache, caps) (LLM_CLIENT_SPEC); ADR-004 model choices
       — client built by K (`engine/llm/`, branch `k/controlled-path`; tested with scripted
       providers, no network); ADR-004 model choices still open (Vishal)
-- [ ] V: planner v1: INIT/REWRITE/SPLIT, validator, fallback, prompts (FR4, PLANNER_SPEC)
-- [ ] S: real `maybe_plan` node → gaps in state; explicit state updates per ownership matrix
+- [x] V: planner v1: INIT/REWRITE/SPLIT, validator, fallback, prompts (FR4, PLANNER_SPEC)
+      — built by K (`engine/planner/`; injection test included); interpretations in
+      PLANNER_SPEC §7a. Needs ADR-004 (model) for live runs
+- [x] S: real `maybe_plan` node → gaps in state; explicit state updates per ownership matrix
+      — built by K with the graph (`engine/graph/nodes.py`), now driven by the real planner
 - [x] V: cross-encoder relevance-only Reranker (used by baselines); ADR-005
       — built by K (`engine/rerank/`, branch `k/controlled-path`) with the config default
       bge-reranker-base at the new `rerank.revision`; model choice still ADR-005 (Samay).

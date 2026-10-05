@@ -29,7 +29,9 @@ The unit-test command `pytest -m "not integration and not llm and not e2e"` runs
 - `mini_corpus.jsonl` — ~30 short handcrafted chunks covering 5 two-hop questions, with
   one exact-entity question, one paraphrase-heavy question and one null question.
 - `mini_tasks.jsonl` — those 5 questions with gold groups.
-- `planner_responses/*.json` — valid, hallucinated, malformed planner outputs.
+- `planner_responses/*.json` — valid, hallucinated, malformed planner outputs. (As built,
+  the planner tests script these inline in `tests/unit/planner/test_planner.py`; move them
+  to fixture files if other tests need them.)
 - `injection_doc.txt` — a chunk containing instructions aimed at the planner (SECURITY §3).
 
 ## 4. Required test categories

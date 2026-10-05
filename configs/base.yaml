@@ -117,6 +117,7 @@ planner:
   max_evidence_summaries: 8
   entity_match_threshold: 85    # rapidfuzz 0-100
   rationale_max_chars: 300      # truncates PlanResult.rationale (ADR-009 §10)
+  heuristic_max_tokens: 12      # need heuristic: a span in a text this short -> lexical
 
 cache:
   similarity_threshold: 0.92    # FROZEN after calibration ADR

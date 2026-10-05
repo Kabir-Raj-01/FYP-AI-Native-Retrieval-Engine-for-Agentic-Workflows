@@ -1,0 +1,17 @@
+{% set system %}{% include "_rules.j2" %}
+Task: retrieval for the current gap has stalled. Write exactly 1 subgoal that keeps the
+current gap's information need but uses a new query, different from every previous query.{% endset -%}
+Goal: {{ goal | untrusted }}
+
+Current gap: {{ gap | untrusted }}
+Previous queries for this gap:
+{% for q in previous %}- {{ q | untrusted }}
+{% endfor %}
+Other open gaps:
+{% for g in other_gaps %}- {{ g | untrusted }}
+{% else %}- (none)
+{% endfor %}
+{% include "_evidence.j2" %}
+{%- if retry_note %}
+
+{{ retry_note }}{% endif %}

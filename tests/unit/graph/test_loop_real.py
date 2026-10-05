@@ -88,3 +88,50 @@ def test_max_steps_runs_exactly_n_real_iterations_with_real_components(
     assert fake.engine.state("t-1").budget.steps_used == 3
     assert len(steps) == 3 and Action.STOP not in [t.action for t in steps]
     assert "budget_guard" not in [t.rule for t in steps]  # ADR-009 §12: never fires
+
+
+def test_the_real_planner_drives_the_loop(
+    cfg: EngineConfig, engine_with_fakes: EngineFactory
+) -> None:
+    from engine.errors import LLMError
+    from engine.planner.llm_planner import LLMPlanner
+    from engine.state.models import PlanStatus
+    from tests.fakes import FakeLLMClient
+
+    init = {
+        "subgoals": [
+            {
+                "description": "the drone's maker",
+                "query": "KX-41 drone developer",
+                "need_type": "lexical",
+            },
+            {
+                "description": "the lab's director",
+                "query": "Talvane lab director",
+                "need_type": "mixed",
+            },
+        ],
+        "referenced_entities": ["KX-41"],
+    }
+    llm = FakeLLMClient({"planner": [init, *[LLMError("down")] * 20]})
+    embedder = FakeEmbedder()
+    cfg.evidence.relevance_threshold = 0.3
+    fake = engine_with_fakes(
+        planner=LLMPlanner(cfg, llm),
+        controller=RuleUtilityController(
+            cfg, embedder, cfg.controller.default_latency_ms.model_dump()
+        ),
+        evidence=ThresholdEvidenceManager(cfg, embedder),
+        monitor=RuleTrajectoryMonitor(cfg),
+        reranker=StateAwareReranker(cfg, embedder, overlap_scorer),
+        embedder=embedder,
+    )
+    fake.engine.create_task(
+        "Who directs the research lab that built the KX-41 drone?", task_id="t-1"
+    )
+    bundle = fake.engine.run("t-1")
+    s = fake.engine.state("t-1")
+    assert [g.query for g in s.gaps[:2]] == ["KX-41 drone developer", "Talvane lab director"]
+    assert s.plan_events[0].status == PlanStatus.ACCEPTED
+    assert s.budget.llm_calls_used == sum(t.llm_calls for t in fake.parts.traces.read_steps("t-1"))
+    assert bundle.stop_reason is not None

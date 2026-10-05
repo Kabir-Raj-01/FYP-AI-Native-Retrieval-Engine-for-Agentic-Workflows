@@ -1,0 +1,9 @@
+{% set system %}{% include "_rules.j2" %}
+Task: break the goal into 1 to {{ max_subgoals }} subgoals that together cover what is needed
+to answer it.{% endset -%}
+Goal: {{ goal | untrusted }}
+
+{% include "_evidence.j2" %}
+{%- if retry_note %}
+
+{{ retry_note }}{% endif %}

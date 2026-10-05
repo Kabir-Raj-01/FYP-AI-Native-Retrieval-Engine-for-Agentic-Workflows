@@ -1,0 +1,18 @@
+{% set system %}{% include "_rules.j2" %}
+Task: retrieval for the current gap has stalled repeatedly. Split it into 2 to {{ max_subgoals }}
+narrower subgoals that together cover the current gap; every query must differ from the
+previous queries.{% endset -%}
+Goal: {{ goal | untrusted }}
+
+Current gap: {{ gap | untrusted }}
+Previous queries for this gap:
+{% for q in previous %}- {{ q | untrusted }}
+{% endfor %}
+Other open gaps:
+{% for g in other_gaps %}- {{ g | untrusted }}
+{% else %}- (none)
+{% endfor %}
+{% include "_evidence.j2" %}
+{%- if retry_note %}
+
+{{ retry_note }}{% endif %}

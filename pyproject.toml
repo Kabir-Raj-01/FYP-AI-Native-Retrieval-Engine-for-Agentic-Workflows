@@ -23,6 +23,9 @@ dev = ["pytest", "pytest-cov", "hypothesis", "ruff", "mypy", "types-PyYAML",
 [tool.setuptools.packages.find]
 include = ["engine*", "client*", "baselines*", "eval*", "data*"]
 
+[tool.setuptools.package-data]
+"engine.planner" = ["prompts/*.j2"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [

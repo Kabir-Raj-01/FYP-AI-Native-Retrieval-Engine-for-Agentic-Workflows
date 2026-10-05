@@ -141,6 +141,7 @@ characters, each SHA-256 64.
 | planner.max_evidence_summaries | int | 8 |
 | planner.entity_match_threshold | int 0–100 | 85 |
 | planner.rationale_max_chars | int | 300 |
+| planner.heuristic_max_tokens | int | 12 | need heuristic (PLANNER_SPEC §6): a text with an entity span and at most this many tokens is `lexical` |
 Truncates `PlanResult.rationale` (never rejects it) — ADR-009 §10.
 
 ### cache (Owner: Kabir)

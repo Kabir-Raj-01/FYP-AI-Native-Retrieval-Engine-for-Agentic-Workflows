@@ -313,4 +313,9 @@ it**. Rules:
     `TransportError` with tenacity (`max_transport_retries`), so the two do not compound.
 
 ## rapidfuzz
-- [ ] `fuzz.partial_ratio` scale 0–100 (thresholds in config use this scale). Verified:
+- [x] `fuzz.partial_ratio` scale 0–100 (thresholds in config use this scale). Verified
+      2026-10-05 on 3.14.6: `partial_ratio("kx-41", "the kx-41 inspection drone") == 100.0`,
+      an unrelated entity ≈ 32. Returns a float; the planner compares lower-cased text.
+- Jinja2 3.1.6: a template's top-level `{% set name %}…{% endset %}` is readable as an
+  attribute of `template.make_module(values)` and `str(module)` is the rendered body — the
+  planner templates export `system` this way (`engine/planner/prompting.py`).

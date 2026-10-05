@@ -99,6 +99,25 @@ change: re-run affected baselines and note it in `TASKS.md`/ADR if results are r
 Template structure: system message = role, rules, JSON schema, untrusted-data warning;
 user message = goal, gaps, previous queries, `<evidence>` block.
 
+## 7a. As built (2026-10-05)
+`engine/planner/llm_planner.py` (`LLMPlanner`), `validator.py`, `entities.py`,
+`prompting.py`, `prompts/{_rules,_evidence,init,rewrite,split}.j2`;
+`factory.build_planner`. Interpretations, for the owner's review:
+- Accounting: every attempt that was sent counts one LLM call, a failed one too (it may
+  have reached the provider); tokens come from successful replies only. An attempt is made
+  only while `llm_calls_used + calls < max_llm_calls`.
+- `ablation.planner` false → fallback without an LLM call; `ablation.gap_tracking` false →
+  INIT is the goal as one gap, also without an LLM call (ACTION_POLICY §6).
+- The fallback of REWRITE/SPLIT keeps the requested `mode` and has one subgoal; the
+  `execute` node applies a one-subgoal plan as a REWRITE.
+- UNDECLARED_ENTITY flags a span only when it is neither (case-insensitively) contained in a
+  declared entity nor groundable; the extractor drops the first word of a capitalised span
+  that starts a sentence. "Short" in `heuristic()` is the config key
+  `planner.heuristic_max_tokens` (12).
+- The retry note (attempt ≥ 2) is appended to the user message; the JSON schema is
+  appended to the system text by the LLM client. Template hashes:
+  `engine.planner.prompting.prompt_hashes()` (manifest `prompt_hashes`).
+
 ## 8. Tests
 - Hallucinated entity → `UNGROUNDED_ENTITY`, retry happens, second attempt used.
 - Entity present in a query but missing from `referenced_entities` → `UNDECLARED_ENTITY`.

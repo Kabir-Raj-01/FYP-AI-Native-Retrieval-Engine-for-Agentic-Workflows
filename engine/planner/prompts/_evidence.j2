@@ -1,0 +1,3 @@
+<evidence untrusted="true">
+{% for e in evidence %}<doc id="{{ e.id | untrusted }}">{{ e.summary | untrusted }}</doc>
+{% endfor %}</evidence>
