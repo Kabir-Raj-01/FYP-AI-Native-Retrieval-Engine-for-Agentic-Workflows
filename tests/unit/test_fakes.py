@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import numpy as np
 import pytest
 
-from engine.embeddings.interfaces import Embedder
+from engine.embeddings.interfaces import Embedder, SparseEncoder, SparseVector
 from engine.errors import BackendError, LLMError, LLMOutputError
 from engine.llm.interfaces import LLMClient, LLMResult, Message
 from engine.rerank.interfaces import Reranker
@@ -28,6 +28,7 @@ from tests.fakes import (
     FakeLLMClient,
     FakeReranker,
     FakeRetriever,
+    FakeSparseEncoder,
 )
 
 CORPUS = [
@@ -47,6 +48,7 @@ MESSAGES = [Message(role="system", content="rules"), Message(role="user", conten
         (FakeRetriever, RetrieverAdapter),
         (FakeReranker, Reranker),
         (FakeLLMClient, LLMClient),
+        (FakeSparseEncoder, SparseEncoder),
     ],
 )
 def test_fake_implements_the_interface(fake: type, interface: type) -> None:
@@ -246,3 +248,15 @@ def test_clock_converts_to_utc_and_rejects_bad_input() -> None:
         FakeClock(datetime(2026, 10, 4))
     with pytest.raises(ValueError, match="backwards"):
         FakeClock().advance(-1)
+
+
+# --------------------------------------------------------------------- sparse encoder
+def test_sparse_fake_counts_terms_for_documents_and_flags_terms_for_queries() -> None:
+    enc = FakeSparseEncoder()
+    doc = enc.encode_documents(["Drone drone KX-41"])[0]
+    query = enc.encode_queries(["drone kx-41"])[0]
+    assert isinstance(doc, SparseVector)
+    assert sorted(doc.values) == [1.0, 2.0]
+    assert query.values == [1.0, 1.0]
+    assert set(query.indices) == set(doc.indices)
+    assert enc.calls == [("documents", ["Drone drone KX-41"]), ("queries", ["drone kx-41"])]

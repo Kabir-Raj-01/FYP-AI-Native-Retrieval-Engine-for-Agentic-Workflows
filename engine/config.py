@@ -57,6 +57,9 @@ WEIGHT_SUM_TOLERANCE = 1e-6  # "sum to 1 (±1e-6)"
 UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]  # probabilities / thresholds in [0,1]
 NonNegFloat = Annotated[float, Field(ge=0.0)]  # weights
 Percent = Annotated[int, Field(ge=0, le=100)]  # rapidfuzz "int 0-100" thresholds
+Sha256Hex = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]  # lower-case hex
+GitRevision = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]  # commit sha (HF repos)
+PositiveFloat = Annotated[float, Field(gt=0.0)]
 
 LLMRole = Literal["planner", "verifier", "generator"]
 Device = Literal["cpu", "cuda"]
@@ -84,10 +87,12 @@ class PathsConfig(_Section):
     runs_dir: Path
     state_db: Path
     llm_cache_db: Path
+    model_cache_dir: Path  # fastembed model files (its default is %TEMP%)
 
 
 class EmbeddingConfig(_Section):  # Frozen after ADR-001
     model_name: str
+    revision: GitRevision  # Hugging Face commit of model_name (pinned weights)
     dimension: int
     query_prefix: str
     passage_prefix: str
@@ -99,12 +104,17 @@ class EmbeddingConfig(_Section):  # Frozen after ADR-001
 class SparseConfig(_Section):  # Frozen after ADR-001
     method: Literal["bm25"]
     model_name: str
+    revision: GitRevision  # Hugging Face commit of model_name
+    k1: NonNegFloat  # BM25 term-frequency saturation
+    b: UnitFloat  # BM25 length normalisation
+    avg_len: PositiveFloat  # BM25 average document length (words)
 
 
 class ChunkingConfig(_Section):  # Frozen after ADR-001
     chunk_size_tokens: int
     chunk_overlap_tokens: int
     tokenizer: str
+    tokenizer_revision: GitRevision  # Hugging Face commit of tokenizer
     sentence_aware: bool
 
 
@@ -122,6 +132,7 @@ class QdrantConfig(_Section):
     hnsw: HnswConfig
     search_ef: int
     timeout_s: int
+    upsert_batch_size: int  # points per upsert during indexing
 
 
 class RetrievalConfig(_Section):
@@ -138,10 +149,6 @@ class RetrievalConfig(_Section):
                 f"retrieval.default_k ({self.default_k}) must be <= retrieval.max_k ({self.max_k})"
             )
         return self
-
-
-Sha256Hex = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
-GitRevision = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
 
 
 class DataSource(_Section):

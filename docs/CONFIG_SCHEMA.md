@@ -50,11 +50,13 @@ Only the dotted names in this section are config keys. Dotted names such as `cac
 | paths.runs_dir | path | eval/runs | eval |
 | paths.state_db | path | var/state.sqlite3 | TaskStore, Cache |
 | paths.llm_cache_db | path | var/llm_cache.sqlite3 | LLMClient |
+| paths.model_cache_dir | path | var/models | fastembed model files (its own default is `%TEMP%`) |
 
 ### embedding / sparse / chunking — Frozen after ADR-001 (Owner: Kabir)
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | embedding.model_name | str | BAAI/bge-base-en-v1.5 | same model for index + all similarity |
+| embedding.revision | str (40-hex commit) | a5beb1e3e68b9ab74eb54cfd186867f64f240e1a | pinned Hugging Face commit of the model |
 | embedding.dimension | int | 768 | must match model |
 | embedding.query_prefix | str | BGE retrieval instruction | per model card |
 | embedding.passage_prefix | str | "" | per model card |
@@ -62,10 +64,15 @@ Only the dotted names in this section are config keys. Dotted names such as `cac
 | embedding.device | cpu\|cuda | cpu | |
 | embedding.lru_size | int | 4096 | in-process query-embedding cache |
 | sparse.method | bm25 | bm25 | |
-| sparse.model_name | str | Qdrant/bm25 | verify in LIBRARY_NOTES |
+| sparse.model_name | str | Qdrant/bm25 | fastembed BM25 (Qdrant vector needs `modifier=idf`) |
+| sparse.revision | str (40-hex commit) | 22b8d2af71a76161e18dd432d2cee0eefa66e412 | pinned; fastembed itself cannot pin, so the snapshot is fetched by revision |
+| sparse.k1 | float ≥ 0 | 1.2 | BM25 saturation |
+| sparse.b | float [0,1] | 0.75 | BM25 length normalisation |
+| sparse.avg_len | float > 0 | 256.0 | BM25 average document length (words; MultiHop chunks: 259.3) |
 | chunking.chunk_size_tokens | int | 384 | |
 | chunking.chunk_overlap_tokens | int | 48 | |
 | chunking.tokenizer | str | BAAI/bge-base-en-v1.5 | token counting for chunking |
+| chunking.tokenizer_revision | str (40-hex commit) | a5beb1e3e68b9ab74eb54cfd186867f64f240e1a | pinned |
 | chunking.sentence_aware | bool | true | |
 
 ### qdrant / retrieval (Owner: Kabir)
@@ -79,6 +86,7 @@ Only the dotted names in this section are config keys. Dotted names such as `cac
 | qdrant.hnsw.m / ef_construct | int | 16 / 128 | index build |
 | qdrant.search_ef | int | 128 | query time |
 | qdrant.timeout_s | int | 10 | → BackendError |
+| qdrant.upsert_batch_size | int | 256 | points per upsert during indexing |
 | retrieval.default_k | int | 20 | DENSE/SPARSE_HYBRID and baselines |
 | retrieval.expand_step_k | int | 20 | RERANK_EXPAND depth increment |
 | retrieval.max_k | int | 60 | depth ceiling |

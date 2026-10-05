@@ -12,6 +12,7 @@ dependencies = [
   "fastapi", "uvicorn[standard]", "pydantic>=2", "httpx", "pyyaml", "jinja2",
   "qdrant-client", "fastembed", "sentence-transformers", "numpy",
   "langgraph", "anthropic", "openai", "tenacity", "rapidfuzz", "structlog", "python-dotenv",
+  "huggingface-hub",  # pinned model snapshots (engine/embeddings/bm25.py)
   "pandas", "scikit-learn", "scipy", "matplotlib",
 ]
 

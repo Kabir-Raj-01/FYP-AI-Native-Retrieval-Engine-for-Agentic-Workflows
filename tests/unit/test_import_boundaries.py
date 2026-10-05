@@ -246,16 +246,48 @@ def test_client_checker() -> None:
     assert client_violations(_scan("from engine.config import load_config", "client/m.py"))
 
 
-# --------------------------------------------------------------------------------- TODO
-@pytest.mark.skip(
-    reason="TODO(Week 8): restrict sentence_transformers / fastembed / qdrant_client to their "
-    "modules (CLAUDE.md rule 6) once the Embedder and QdrantAdapter land and the allowed "
-    "modules are written into ARCHITECTURE §2"
+# ---------------------------------------------------- ML / backend libraries (CLAUDE.md 6)
+# Library -> path prefixes allowed to import it (ARCHITECTURE §2). Tests are exempt.
+LIBRARY_HOMES = {
+    "sentence_transformers": ("engine/embeddings/", "engine/rerank/"),
+    "fastembed": ("engine/embeddings/",),
+    "huggingface_hub": ("engine/embeddings/",),
+    "transformers": ("engine/embeddings/", "engine/rerank/", "data/"),  # data/: chunk tokenizer
+    "qdrant_client": ("engine/retrieval/",),
+}
+
+
+def library_violations(imports: list[Imported]) -> list[Imported]:
+    return [
+        i
+        for i in imports
+        if _top(i.module) in LIBRARY_HOMES
+        and not i.path.startswith("tests/")
+        and not i.path.startswith(LIBRARY_HOMES[_top(i.module)])
+    ]
+
+
+def test_ml_and_backend_libraries_only_in_their_modules() -> None:
+    assert library_violations(all_imports()) == []
+
+
+@pytest.mark.parametrize(
+    ("source", "path", "violates"),
+    [
+        ("from qdrant_client import QdrantClient", "data/index.py", True),
+        ("from qdrant_client import QdrantClient", "engine/retrieval/qdrant_adapter.py", False),
+        ("import sentence_transformers", "engine/core.py", True),
+        ("from sentence_transformers import CrossEncoder", "engine/rerank/cross.py", False),
+        ("from fastembed import SparseTextEmbedding", "data/ingest.py", True),
+        ("from transformers import AutoTokenizer", "data/ingest.py", False),
+        ("from qdrant_client import models", "tests/integration/test_x.py", False),
+    ],
 )
-def test_ml_and_backend_sdks_only_in_their_modules() -> None:  # pragma: no cover
-    raise AssertionError
+def test_library_checker(source: str, path: str, violates: bool) -> None:
+    assert bool(library_violations(_scan(source, path))) is violates
 
 
+# --------------------------------------------------------------------------------- TODO
 @pytest.mark.skip(
     reason="TODO(Weeks 8-9): STATE_SPEC §5 invariant 9 (no component keeps a reference to the "
     "state between calls) needs the graph nodes; define the static check with them"

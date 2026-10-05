@@ -12,9 +12,11 @@ paths:
   runs_dir: eval/runs
   state_db: var/state.sqlite3
   llm_cache_db: var/llm_cache.sqlite3
+  model_cache_dir: var/models     # fastembed model files (its own default is %TEMP%)
 
 embedding:                      # FROZEN after ADR-001
   model_name: BAAI/bge-base-en-v1.5
+  revision: a5beb1e3e68b9ab74eb54cfd186867f64f240e1a  # HF commit, pinned 2026-10-05  # pragma: allowlist secret
   dimension: 768
   query_prefix: "Represent this sentence for searching relevant passages: "
   passage_prefix: ""
@@ -24,12 +26,17 @@ embedding:                      # FROZEN after ADR-001
 
 sparse:                         # FROZEN after ADR-001
   method: bm25
-  model_name: Qdrant/bm25       # fastembed sparse model id — verify (LIBRARY_NOTES)
+  model_name: Qdrant/bm25       # fastembed sparse model id (verified, LIBRARY_NOTES)
+  revision: 22b8d2af71a76161e18dd432d2cee0eefa66e412  # HF commit, pinned 2026-10-05  # pragma: allowlist secret
+  k1: 1.2                       # BM25 term-frequency saturation (fastembed default)
+  b: 0.75                       # BM25 length normalisation (fastembed default)
+  avg_len: 256.0                # BM25 average document length in words (chunks: 259.3)
 
 chunking:                       # FROZEN after ADR-001
   chunk_size_tokens: 384
   chunk_overlap_tokens: 48
   tokenizer: BAAI/bge-base-en-v1.5
+  tokenizer_revision: a5beb1e3e68b9ab74eb54cfd186867f64f240e1a  # HF commit  # pragma: allowlist secret
   sentence_aware: true
 
 qdrant:
@@ -41,6 +48,7 @@ qdrant:
   hnsw: {m: 16, ef_construct: 128}
   search_ef: 128
   timeout_s: 10
+  upsert_batch_size: 256        # points per upsert during indexing
 
 retrieval:
   default_k: 20

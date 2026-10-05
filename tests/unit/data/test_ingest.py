@@ -261,7 +261,7 @@ def test_main_runs_ingest_with_the_configured_tokenizer(
     calls: list[tuple[str, str]] = []
 
     class FakeHF(WhitespaceTokenizer):
-        def __init__(self, name: str) -> None:
+        def __init__(self, name: str, revision: str) -> None:
             self.name = name
 
     def fake_ingest(cfg: EngineConfig, dataset: str, tok: object, *, tokenizer_name: str) -> None:
@@ -279,7 +279,7 @@ def test_main_returns_1_on_errors(
 ) -> None:
     (raw_dir(ing_cfg, "multihop") / "corpus.json").unlink()
     monkeypatch.setattr(ingest_module, "load_config", lambda path: ing_cfg)
-    monkeypatch.setattr(ingest_module, "HFTokenizer", lambda name: WhitespaceTokenizer())
+    monkeypatch.setattr(ingest_module, "HFTokenizer", lambda name, rev: WhitespaceTokenizer())
     monkeypatch.setattr(WhitespaceTokenizer, "name", "ws", raising=False)
     assert ingest_module.main(["--dataset", "multihop"]) == 1
     assert "missing" in capsys.readouterr().err

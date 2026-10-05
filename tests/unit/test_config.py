@@ -242,6 +242,7 @@ UNIT_INTERVAL_KEYS = [
     "evidence.verify_margin",
     "data.dev_fraction",
     "data.gold_min_coverage",
+    "sparse.b",
     "eval.redundancy_cos",
 ]
 
@@ -360,6 +361,25 @@ def test_base_yaml_pins_the_multihop_source_from_adr_003() -> None:
     source = load_config(environ={}).data.sources["multihop"]
     assert source.hf_repo == "yixuantt/MultiHopRAG"
     assert set(source.files) == {"corpus.json", "MultiHopRAG.json"}
+
+
+@pytest.mark.parametrize(
+    "key", ["embedding.revision", "sparse.revision", "chunking.tokenizer_revision"]
+)
+@pytest.mark.parametrize("bad", ["main", "A" * 40, "a" * 39])
+def test_model_revisions_must_be_40_hex_commits(key: str, bad: str) -> None:
+    EngineConfig.model_validate(with_value(key, "b" * 40))
+    with pytest.raises(ValidationError, match="revision"):
+        EngineConfig.model_validate(with_value(key, bad))
+
+
+@pytest.mark.parametrize(
+    ("key", "valid", "invalid"), [("sparse.avg_len", 0.5, 0.0), ("sparse.k1", 0.0, -0.1)]
+)
+def test_bm25_parameter_bounds(key: str, valid: float, invalid: float) -> None:
+    EngineConfig.model_validate(with_value(key, valid))
+    with pytest.raises(ValidationError):
+        EngineConfig.model_validate(with_value(key, invalid))
 
 
 # --------------------------------------------------------------------- LLM role models

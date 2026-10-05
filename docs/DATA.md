@@ -65,8 +65,9 @@ with ≈2.5k multi-hop queries of four types — inference, comparison, temporal
    MultiHop-RAG task ids are `multihop:<index>` (0-based position in the pinned queries
    file, zero-padded to 4 digits; the file has no ids).
 5. **Embed** passages with the Embedder (batch `embedding.batch_size`); encode sparse
-   vectors with the configured sparse encoder.
-6. **Upsert** to Qdrant in batches; idempotent (same point ids).
+   vectors with the configured sparse encoder (RETRIEVAL_SPEC §5).
+6. **Upsert** to Qdrant in batches (`qdrant.upsert_batch_size`); idempotent (same point
+   ids); resumable.
 7. **Write** `data/processed/<dataset>/chunks.jsonl` — one line per chunk:
    `{chunk_id, doc_id, text, metadata: {title, source, url, published_at, author,
    category, dataset, char_start, char_end, n_tokens}}` (the same shape as
@@ -76,9 +77,17 @@ with ≈2.5k multi-hop queries of four types — inference, comparison, temporal
    with steps 5–6).
 8. **Build gold map** (§4) and **split** (§5).
 
-Status (2026-10-05): steps 1–4, 7 and 8 are implemented; steps 5–6 (embedding, sparse
-encoding, Qdrant upsert) come with the Embedder and the Qdrant adapter. Two runs from the
-same raw files and config produce byte-identical outputs (manifest timestamp aside).
+Status (2026-10-05): all steps are implemented. Steps 5–6 run with
+`python -m data.ingest --dataset multihop --index` (`data/index.py`): passages are
+embedded with the Embedder (`embedding.batch_size`) and BM25-encoded with the
+SparseEncoder, then upserted through the IndexWriter in batches of
+`qdrant.upsert_batch_size`; the components come from `engine.factory`, so `data/` never
+imports a model library or the Qdrant client. Indexing is resumable (chunks already in the
+collection are skipped) and refuses a collection holding chunk ids that are not in
+`chunks.jsonl` (an older chunking needs a new collection name, ADR-001). The manifest gains
+an `index` section (collection, counts, duration, model names and revisions, BM25
+parameters). Two step-1 runs from the same raw files and config produce byte-identical
+outputs (manifest timestamp aside).
 
 ## 4. Gold-evidence mapping
 Output: `data/processed/<dataset>/gold_map.json` = `{task_id: [[chunk_id, ...], ...]}`

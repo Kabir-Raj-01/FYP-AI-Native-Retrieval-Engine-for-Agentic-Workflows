@@ -91,27 +91,69 @@ it**. Rules:
 - [ ] Sparse vectors for BM25 — whether an IDF modifier must be set on the sparse vector
       config when using fastembed's BM25 model. (Setting `Modifier.IDF` is accepted — above —
       but whether fastembed's BM25 output expects it is still unverified.) Verified snippet:
-- [ ] Hybrid search via the Query API (`query_points` with `prefetch` for dense and sparse,
-      fusion RRF). Verified snippet:
-- [ ] Returning vectors with results (`with_vectors` for a specific named vector) and
-      payload. Verified snippet:
-- [ ] Point ids: UUID strings accepted; fetch by payload `chunk_id` with a keyword index
-      (or `retrieve` by UUID). Verified snippet:
+- [x] Hybrid search via the Query API — verified 2026-10-05 (client + server 1.19.1, and
+      in-memory mode), as used by `engine/retrieval/qdrant_adapter.py`:
+      ```python
+      client.query_points(collection,
+          prefetch=[models.Prefetch(query=dense_vec, using="dense", limit=n),
+                    models.Prefetch(query=models.SparseVector(indices=..., values=...),
+                                    using="sparse", limit=n)],
+          query=models.FusionQuery(fusion=models.Fusion.RRF), limit=k,
+          with_payload=True, with_vectors=["dense"])
+      ```
+      Dense: `query=dense_vec, using="dense", search_params=models.SearchParams(hnsw_ef=..)`;
+      sparse: `query=models.SparseVector(...), using="sparse"`. Filters:
+      `query_filter=models.Filter(must=[models.FieldCondition(key=..., match=models.MatchValue(value=...))])`
+      (and `filter=` on each `Prefetch`).
+- [x] Returning vectors with results: `with_vectors=["dense"]` → `point.vector["dense"]`
+      (a dict keyed by vector name); payload via `with_payload=True`. Verified 2026-10-05.
+- [x] Point ids: UUID strings accepted (`str(uuid5(namespace, chunk_id))`); `retrieve(ids=[...])`
+      by UUID and `scroll(limit=, offset=, with_payload=["chunk_id"])` (returns
+      `(records, next_offset)`, `None` when done). Keyword payload index:
+      `create_payload_index(name, field_name="chunk_id", field_schema=models.PayloadSchemaType.KEYWORD)`.
+      Verified 2026-10-05.
 - Gotchas:
+  - In-memory mode (`QdrantClient(":memory:")`, used by the unit tests) searches exactly:
+    `search_params` has no effect and payload indexes are ignored (both warn with
+    `UserWarning`). Server behaviour is checked by `pytest -m integration`.
+  - HNSW `m`/`ef_construct` go in `create_collection(hnsw_config=models.HnswConfigDiff(...))`.
+  - A refused connection surfaces as `qdrant_client.http.exceptions.ResponseHandlingException`
+    wrapping `httpx.ConnectError`; the client also warns "Failed to obtain server version".
   - `qdrant.exe` writes a `.qdrant-initialized` marker into its **working directory**
     (the repo root when started per SETUP §3); it is gitignored.
 
 ## fastembed (sparse BM25)
-- [ ] Encoding documents vs queries for BM25 (separate methods?) and output format →
-      Qdrant `SparseVector(indices, values)`. Verified snippet:
+- [x] Verified 2026-10-05 on fastembed 0.8.1, `Qdrant/bm25` @ `22b8d2af…`:
+      `SparseTextEmbedding("Qdrant/bm25", cache_dir=..., specific_model_path=snapshot, k=, b=, avg_len=)`;
+      `embed(docs)` → document vectors (term-frequency weights, e.g. 1.52), `query_embed(q)`
+      → query vectors with weight 1.0 per term. Each item is a `SparseEmbedding` with numpy
+      `indices` (int64 term hashes) and `values` (float64) → convert to
+      `models.SparseVector(indices=list, values=list)`. 4,441 chunks encode in ≈ 10 s.
+- [x] IDF: the installed `Bm25` docstring says "This model is expected to be used with
+      `modifier="idf"` in the sparse vector index of Qdrant" — IDF is computed server-side.
 - Gotchas:
+  - fastembed's default cache is `%TEMP%\fastembed_cache` (Disk Cleanup can delete it);
+    pass `cache_dir` (`paths.model_cache_dir`).
+  - fastembed cannot pin a model revision (it always resolves the repo's current sha);
+    download the pinned snapshot with `huggingface_hub.snapshot_download(repo_id, revision=,
+    cache_dir=, allow_patterns=["*.json", "*.txt"])` and pass `specific_model_path`.
 
 ## sentence-transformers
-- [ ] Embedder: `SentenceTransformer(model).encode(texts, normalize_embeddings=True)`;
-      where the BGE query instruction goes. Verified snippet:
+- [x] Embedder, verified 2026-10-05 on 6.1.0 (torch 2.14.1, CPU):
+      `SentenceTransformer(name, device="cpu", revision=sha)`;
+      `encode(texts, batch_size=, normalize_embeddings=True, convert_to_numpy=True,
+      show_progress_bar=False)` → float32 `(n, 768)`, unit norm. The BGE query instruction
+      is prepended to the text; this equals `encode(texts, prompt=prefix)` (checked
+      numerically). The model ships empty `prompts` (`{'query': '', 'document': ''}`).
+      Throughput on an i7-1185G7 (4 cores, no GPU): ≈ 0.9 chunks/s at ~344 tokens,
+      independent of batch size 8–64.
 - [ ] CrossEncoder: does `predict` return logits or probabilities for the chosen reranker
       (depends on model and library version)? Relevance must end in [0,1]. Verified:
 - Gotchas:
+  - 6.x renamed `get_sentence_embedding_dimension()` to `get_embedding_dimension()` (the
+    old name still works but emits a `FutureWarning`).
+  - Expect a CPU cross-encoder of base size to need tens of seconds for 20–60 candidates on
+    this laptop class (same per-token cost as the embedder) — see ADR-005.
 
 ## LangGraph
 - [x] `StateGraph` with a Pydantic model as state; nodes returning partial updates;

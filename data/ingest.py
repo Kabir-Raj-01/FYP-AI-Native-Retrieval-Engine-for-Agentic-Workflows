@@ -1,6 +1,8 @@
-"""Ingestion pipeline (DATA.md §3), step 1 of 2: chunks, gold map, split.
+"""Ingestion pipeline (DATA.md §3).
 
-    python -m data.ingest --dataset multihop [--config PATH]
+    python -m data.ingest --dataset multihop [--config PATH] [--index]
+
+Step 1 (always): chunks, gold map, split.
 
 Writes to ``<paths.data_dir>/processed/<dataset>/``:
 - ``chunks.jsonl``        one chunk per line: chunk_id, doc_id, text, metadata
@@ -9,8 +11,10 @@ Writes to ``<paths.data_dir>/processed/<dataset>/``:
 - ``split.json``          dev / test / dev_subset task ids (DATA §5)
 - ``ingest_manifest.json`` config hash, git commit, counts, coverage, output hashes
 
-Embedding, sparse encoding and the Qdrant upsert (DATA §3 steps 5-6) are step 2 (Week 8).
-Every output except the manifest is a deterministic function of the raw files and config.
+Step 2 (``--index``): embed, sparse-encode and upsert the chunks into ``qdrant.collection``
+(DATA §3 steps 5-6; ``data/index.py``, resumable), then add an ``index`` section to the
+manifest. Every step-1 output except the manifest is a deterministic function of the raw
+files and config.
 """
 
 from __future__ import annotations
@@ -33,8 +37,9 @@ from data.download import DownloadError, raw_dir, verify_raw_files
 from data.gold import ChunkRef, GoldResult, build_gold_map
 from data.ids import chunk_id_for
 from data.split import Split, stratified_split
+from engine import factory
 from engine.config import EngineConfig, load_config
-from engine.errors import ConfigError
+from engine.errors import BackendError, ConfigError
 
 __all__ = ["HFTokenizer", "IngestResult", "ingest", "main", "processed_dir"]
 
@@ -49,11 +54,12 @@ MANIFEST_FILE = "ingest_manifest.json"
 class HFTokenizer:
     """``chunking.tokenizer`` loaded with transformers' fast tokenizer (offsets, no specials)."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, revision: str) -> None:
         from transformers import AutoTokenizer  # heavy import, only for real runs
 
         self.name = name
-        self._tok = AutoTokenizer.from_pretrained(name)
+        self.revision = revision
+        self._tok = AutoTokenizer.from_pretrained(name, revision=revision)
         self._tok.model_max_length = sys.maxsize  # we count long texts; never truncate/warn
 
     def offsets(self, text: str) -> list[Span]:
@@ -214,6 +220,7 @@ def ingest(
         "raw_files_sha256": raw_hashes,
         "chunking": {
             "tokenizer": tokenizer_name,
+            "tokenizer_revision": cfg.chunking.tokenizer_revision,
             "chunk_size_tokens": size,
             "chunk_overlap_tokens": overlap,
             "sentence_aware": cfg.chunking.sentence_aware,
@@ -243,7 +250,6 @@ def ingest(
             "dev_subset_sha256": _sha256_bytes("\n".join(split.dev_subset).encode("utf-8")),
         },
         "outputs_sha256": hashes,
-        "not_yet": "embedding, sparse encoding and Qdrant upsert (DATA §3 steps 5-6)",
     }
     _write_text(out / MANIFEST_FILE, _json_text(manifest))
     log(f"wrote {out}")
@@ -254,15 +260,54 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m data.ingest", description=__doc__)
     parser.add_argument("--dataset", required=True, choices=SUPPORTED_DATASETS)
     parser.add_argument("--config", type=Path, default=None, help="config file (default: base)")
+    parser.add_argument(
+        "--index",
+        action="store_true",
+        help="also embed, sparse-encode and upsert into qdrant.collection",
+    )
     args = parser.parse_args(argv)
     try:
         cfg = load_config(args.config)
-        tokenizer = HFTokenizer(cfg.chunking.tokenizer)
-        ingest(cfg, args.dataset, tokenizer, tokenizer_name=tokenizer.name)
-    except (ConfigError, DownloadError, ValueError) as exc:
+        tokenizer = HFTokenizer(cfg.chunking.tokenizer, cfg.chunking.tokenizer_revision)
+        result = ingest(cfg, args.dataset, tokenizer, tokenizer_name=tokenizer.name)
+        if args.index:
+            run_index(cfg, result)
+    except (ConfigError, DownloadError, BackendError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     return 0
+
+
+def run_index(
+    cfg: EngineConfig, result: IngestResult, *, log: Callable[[str], None] = print
+) -> dict[str, Any]:
+    """Step 2 with factory-built components; records it in the manifest and returns it."""
+    from data.index import index_chunks  # step-2 code only when asked for
+
+    embedder = factory.build_embedder(cfg)
+    sparse = factory.build_sparse_encoder(cfg)
+    writer = factory.build_index_writer(cfg)
+    report = index_chunks(cfg, result.out_dir / CHUNKS_FILE, embedder, sparse, writer, log=log)
+    section = {
+        "collection": report.collection,
+        "points_expected": report.chunks,
+        "already_indexed": report.already_indexed,
+        "upserted": report.upserted,
+        "seconds": round(report.seconds, 1),
+        "embedding_model": cfg.embedding.model_name,
+        "embedding_revision": cfg.embedding.revision,
+        "sparse_model": cfg.sparse.model_name,
+        "sparse_revision": cfg.sparse.revision,
+        "sparse_params": {"k1": cfg.sparse.k1, "b": cfg.sparse.b, "avg_len": cfg.sparse.avg_len},
+        "qdrant_url": cfg.qdrant.url,
+    }
+    manifest = {**result.manifest, "index": section}
+    _write_text(result.out_dir / MANIFEST_FILE, _json_text(manifest))
+    log(
+        f"indexed {report.upserted} new points into {report.collection} "
+        f"({report.seconds / 60:.1f} min)"
+    )
+    return section
 
 
 if __name__ == "__main__":

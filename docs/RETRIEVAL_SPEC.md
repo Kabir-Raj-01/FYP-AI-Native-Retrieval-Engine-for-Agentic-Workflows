@@ -1,6 +1,6 @@
 # Retrieval Adapter and Qdrant Backend
 
-> Status: Stable · Owner: Kabir · Last updated: 2026-10-04 · Related: DATA.md, LIBRARY_NOTES.md, ADR-009
+> Status: Stable · Owner: Kabir · Last updated: 2026-10-05 · Related: DATA.md, LIBRARY_NOTES.md, ADR-001, ADR-009
 
 ## 1. Interface (`engine/retrieval/interfaces.py`)
 ```python
@@ -25,15 +25,40 @@ caller needs it — nothing in the current controlled loop or baselines calls it
 This interface is the only thing the engine knows about the backend. Adding another
 backend (stretch) = one new class + a factory entry.
 
+Implementation: `engine/retrieval/qdrant_adapter.py` (`QdrantAdapter`, built by
+`factory.build_retriever(cfg, embedder, sparse_encoder)`). Client failures
+(`ResponseHandlingException`, `UnexpectedResponse`, `httpx.HTTPError`, `OSError`) become
+`BackendError`; a point without `chunk_id`/`doc_id`/`text` in its payload, or without its
+dense vector when `with_vectors=True`, is a malformed response (`BackendError`). `k < 1`
+raises `ValueError`. `health()` = the collection exists (False on any backend error).
+
+### Write side: `IndexWriter` (ingestion only; ADR-001)
+```python
+class IndexPoint(BaseModel):          # transport type of this interface, not task state
+    chunk_id: str; doc_id: str; text: str
+    metadata: dict[str, str | int | None] = {}
+    dense: list[float]; sparse: SparseVector
+
+class IndexWriter(ABC):
+    def ensure_collection(self) -> None: ...   # create, or verify an existing one
+    def existing_ids(self) -> set[str]: ...    # chunk_ids already stored (resume)
+    def upsert(self, points: Sequence[IndexPoint]) -> None: ...
+```
+`engine/retrieval/qdrant_index.py` (`QdrantIndexWriter`, `factory.build_index_writer`).
+`ensure_collection` refuses (`ConfigError`) an existing collection whose dense size,
+distance or sparse IDF modifier differ — an index change needs a new collection name.
+Upserts go in batches of `qdrant.upsert_batch_size`. Only `engine/retrieval` imports
+`qdrant_client` (import-boundary test).
+
 ## 2. Qdrant collection layout
 | Item | Value (config key) |
 |---|---|
 | Collection | `qdrant.collection` (one per dataset, e.g. `multihop_v1`) |
 | Dense named vector | `qdrant.dense_vector_name` (`dense`), size = `embedding.dimension`, distance Cosine |
-| Sparse named vector | `qdrant.sparse_vector_name` (`sparse`), BM25-style with IDF modifier (verify in LIBRARY_NOTES) |
-| HNSW | `qdrant.hnsw.m`, `qdrant.hnsw.ef_construct`; search-time `qdrant.search_ef` |
+| Sparse named vector | `qdrant.sparse_vector_name` (`sparse`), BM25 with `modifier=idf` — required: fastembed's BM25 carries only the term-frequency part and expects Qdrant to apply IDF (verified, LIBRARY_NOTES) |
+| HNSW | collection-level `qdrant.hnsw.m`, `qdrant.hnsw.ef_construct`; search-time `qdrant.search_ef` (dense mode) |
 | Point ID | UUIDv5(namespace = `qdrant.id_namespace`, name = chunk_id). **Qdrant point IDs must be unsigned ints or UUIDs** — the string chunk_id is stored in the payload. |
-| Payload | `chunk_id, doc_id, text, title, source, url, published_at, char_start, char_end, dataset` |
+| Payload | `chunk_id, doc_id, text` plus the chunk's metadata flattened: `title, source, url, published_at, author, category, dataset, char_start, char_end, n_tokens` (DATA §3 step 7) |
 | Payload indexes | keyword index on `chunk_id`, `doc_id` (needed by filters; also ready for a future `fetch`) |
 
 Collection name is versioned: any change to embedding model, chunking or sparse method
@@ -71,10 +96,37 @@ class Embedder(ABC):
   model card and record them in ADR-001.
 - In-process LRU cache (`embedding.lru_size`) for repeated query/gap texts.
 - Gap descriptions and queries are embedded as *queries*; chunks as *passages*.
+- Implementation: `engine/embeddings/sentence_transformer.py` (sentence-transformers,
+  `embedding.model_name` at the pinned `embedding.revision`; `factory.build_embedder`).
+  The constructor fails with `ConfigError` if the model's dimension differs from
+  `embedding.dimension`. CPU throughput on a 4-core laptop (i7-1185G7): ≈ 0.9 chunks/s for
+  ~344-token chunks, so a full MultiHop-RAG index build takes ≈ 80 min; a short query
+  takes well under a second.
+
+### Sparse encoder (`engine/embeddings/interfaces.py`; ADR-001)
+```python
+class SparseVector(BaseModel):        # transport type, not task state
+    indices: list[int]; values: list[float]
+
+class SparseEncoder(ABC):
+    def encode_documents(self, texts: list[str]) -> list[SparseVector]: ...
+    def encode_queries(self, texts: list[str]) -> list[SparseVector]: ...
+```
+`engine/embeddings/bm25.py` (`FastEmbedBM25Encoder`, `factory.build_sparse_encoder`):
+fastembed `Qdrant/bm25` with `sparse.k1`, `sparse.b`, `sparse.avg_len`. fastembed cannot
+pin a revision, so the pinned `sparse.revision` snapshot is downloaded with
+`huggingface_hub.snapshot_download` into `paths.model_cache_dir` and passed as
+`specific_model_path`. Documents get term-frequency weights, queries weight 1 per term;
+IDF is applied by Qdrant.
 
 ## 6. Tests
 - Unit: a `FakeRetriever` (TESTING.md) implements the interface over an in-memory corpus.
+  `QdrantAdapter` and `QdrantIndexWriter` are unit-tested against Qdrant's in-memory client
+  (`QdrantClient(":memory:")`, exact search) with `FakeEmbedder` and `FakeSparseEncoder`
+  (`tests/unit/retrieval/test_qdrant.py`).
 - Integration (needs local Qdrant, `qdrant.exe`): create a tiny collection from
   `tests/fixtures/mini_corpus.jsonl`; assert dense/sparse/hybrid each return the expected
   top-1 for three handcrafted queries (one semantic, one exact-entity, one mixed);
   `search` round-trips payloads and vectors; timeouts raise `BackendError`.
+  Implemented in `tests/integration/test_qdrant_live.py` with the real pinned models; an
+  unreachable server (connection refused) stands in for the timeout case.

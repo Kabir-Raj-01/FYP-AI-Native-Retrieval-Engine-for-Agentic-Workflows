@@ -18,13 +18,13 @@ from engine import factory
 from engine.cache.interfaces import Cache
 from engine.config import load_config
 from engine.controller.interfaces import Controller
-from engine.embeddings.interfaces import Embedder
+from engine.embeddings.interfaces import Embedder, SparseEncoder
 from engine.evidence.interfaces import EvidenceManager
 from engine.llm.interfaces import LLMClient, LLMResult, Message
 from engine.monitor.interfaces import TrajectoryMonitor
 from engine.planner.interfaces import Planner
 from engine.rerank.interfaces import Reranker
-from engine.retrieval.interfaces import RetrieverAdapter
+from engine.retrieval.interfaces import IndexWriter, RetrieverAdapter
 from engine.state.interfaces import TaskStore
 
 EXPECTED: dict[type[ABC], dict[str, str]] = {
@@ -65,6 +65,15 @@ EXPECTED: dict[type[ABC], dict[str, str]] = {
         "dimension": "property -> int",
         "embed_queries": "(self, texts: list[str]) -> Vectors",
         "embed_passages": "(self, texts: list[str]) -> Vectors",
+    },
+    SparseEncoder: {
+        "encode_documents": "(self, texts: list[str]) -> list[SparseVector]",
+        "encode_queries": "(self, texts: list[str]) -> list[SparseVector]",
+    },
+    IndexWriter: {
+        "ensure_collection": "(self) -> None",
+        "existing_ids": "(self) -> set[str]",
+        "upsert": "(self, points: Sequence[IndexPoint]) -> None",
     },
     LLMClient: {
         "structured": "(self, role: str, messages: list[Message], schema: type[SchemaT])"
@@ -144,9 +153,32 @@ def test_factory_has_a_builder_per_interface() -> None:
     assert returned == set(EXPECTED)
 
 
-@pytest.mark.parametrize("builder", BUILDERS, ids=lambda b: b.__name__)
-def test_factory_builders_are_stubs(builder: typing.Callable[..., object]) -> None:
+IMPLEMENTED = {"build_embedder", "build_sparse_encoder", "build_retriever", "build_index_writer"}
+
+
+@pytest.mark.parametrize(
+    "builder", [b for b in BUILDERS if b.__name__ not in IMPLEMENTED], ids=lambda b: b.__name__
+)
+def test_unimplemented_factory_builders_are_stubs(builder: typing.Callable[..., object]) -> None:
     cfg = load_config(environ={})
     n_deps = len(inspect.signature(builder).parameters) - 1
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         builder(cfg, *([None] * n_deps))
+
+
+def test_implemented_builders_return_their_interfaces(monkeypatch: pytest.MonkeyPatch) -> None:
+    from engine.embeddings import bm25, sentence_transformer
+    from tests.unit.embeddings.test_wrappers import FakeFastEmbed, FakeSTModel
+
+    cfg = load_config(environ={})
+    monkeypatch.setattr(
+        sentence_transformer, "_load_model", lambda c: FakeSTModel(dim=cfg.embedding.dimension)
+    )
+    monkeypatch.setattr(bm25, "_load_model", lambda c, d: FakeFastEmbed())
+    embedder = factory.build_embedder(cfg)
+    sparse = factory.build_sparse_encoder(cfg)
+    assert isinstance(embedder, Embedder)
+    assert isinstance(sparse, SparseEncoder)
+    # Qdrant clients connect lazily, so building them needs no running server.
+    assert isinstance(factory.build_retriever(cfg, embedder, sparse), RetrieverAdapter)
+    assert isinstance(factory.build_index_writer(cfg), IndexWriter)
