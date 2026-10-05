@@ -72,7 +72,7 @@ def state_factory(cfg: EngineConfig) -> StateFactory:
 
 @pytest.fixture
 def tmp_state_db(tmp_path: Path) -> Path:
-    """Path for a throwaway SQLite state DB (not created; the TaskStore is Weeks 8-9)."""
+    """Path for a throwaway SQLite state DB (not created until a store or cache connects)."""
     return tmp_path / "state.sqlite3"
 
 

@@ -169,6 +169,7 @@ IMPLEMENTED = {
     "build_index_writer",
     "build_cache",
     "build_trace_writer",
+    "build_task_store",
 }
 
 
@@ -199,5 +200,6 @@ def test_implemented_builders_return_their_interfaces(monkeypatch: pytest.Monkey
     assert isinstance(factory.build_retriever(cfg, embedder, sparse), RetrieverAdapter)
     assert isinstance(factory.build_index_writer(cfg), IndexWriter)
     assert isinstance(factory.build_cache(cfg, embedder), Cache)  # connects lazily
+    assert isinstance(factory.build_task_store(cfg), TaskStore)  # connects lazily
     ctx = RunContext(run_id="r", system="controller_on")
     assert isinstance(factory.build_trace_writer(cfg, ctx, Path("unused")), TraceWriter)

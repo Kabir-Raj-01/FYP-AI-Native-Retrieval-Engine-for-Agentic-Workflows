@@ -47,6 +47,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       — built by K: `python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml`;
       dense_oneshot without rerank until ADR-005
 - [ ] S: SQLite TaskStore (WAL, version check) + LangGraph skeleton with stub nodes; `Engine.step/run` loop with budget cap (ARCHITECTURE §3–4)
+      — TaskStore built by K (`engine/state/store.py`: version-checked save, cache entries in
+      the same transaction, foreign-task entries refused); graph + loop next (branch
+      `k/controlled-path`)
 - [x] V: trace writer (TraceStep) shared by engine and baselines (OBSERVABILITY)
       — built by K: `engine/monitor/trace.py` (JSONL traces + bundles, context stamping,
       step-order check, `summarize`); events.jsonl + manifest stay with the eval harness

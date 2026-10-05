@@ -6,7 +6,7 @@ never import a concrete class. Builders of modules not implemented yet raise
 NotImplementedError (docs/TASKS.md Weeks 8-13).
 
 Selection (config key -> implementation):
-- TaskStore         SQLite store at ``paths.state_db`` (``engine/state/store.py``)        [todo]
+- TaskStore         SQLite store at ``paths.state_db`` (``engine/state/store.py``)
 - Embedder          sentence-transformers ``embedding.model_name`` @ ``embedding.revision``
 - SparseEncoder     fastembed BM25 ``sparse.model_name`` @ ``sparse.revision``
 - RetrieverAdapter  Qdrant at ``qdrant.url`` / ``qdrant.collection`` (dense, sparse, hybrid)
@@ -60,7 +60,9 @@ def _not_built(component: str) -> NotImplementedError:
 
 
 def build_task_store(cfg: EngineConfig) -> TaskStore:
-    raise _not_built("TaskStore")
+    from engine.state.store import SqliteTaskStore
+
+    return SqliteTaskStore(cfg)
 
 
 def build_embedder(cfg: EngineConfig) -> Embedder:
