@@ -67,6 +67,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 > week completes it so that Weeks 14–15 stay free for integration and testing.
 - [ ] V: fixed_iteration baseline (BASELINES_SPEC)
 - [ ] K: task-local cache v1 + REUSE + leakage test (FR5, CACHE_SPEC)
+      — cache v1 + leakage test done (`engine/cache/task_cache.py`, shared
+      `engine/state/sqlite.py`, `engine/text.py`); REUSE needs the controller and the
+      `execute`/`score_and_update` nodes (Week 13, S)
 - [ ] S: controller v1: preconditions, signals, utility, tie-break, fixed-policy ablation (FR6, ACTION_POLICY §2–4, §7) + worked-example test
 - [ ] S: EvidenceManager: acceptance, gap resolution, evidence gain (FR8, EVIDENCE_MANAGER_SPEC)
 - [ ] S: TrajectoryMonitor: stagnation, gap advancement, stop checks (ACTION_POLICY §6)

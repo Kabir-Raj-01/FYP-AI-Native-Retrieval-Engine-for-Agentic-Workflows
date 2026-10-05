@@ -1,6 +1,8 @@
 # Task-Local Cache and REUSE
 
-> Status: Stable · Owner: Kabir · Last updated: 2026-09-28 · Related: ACTION_POLICY.md §3, ADR-009
+> Status: Stable · Owner: Kabir · Last updated: 2026-10-05 · Related: ACTION_POLICY.md §3, ADR-009
+> Implementation: `engine/cache/task_cache.py` (`TaskCache`), `engine/text.py` (`normalize`),
+> `engine/state/sqlite.py` (schema + entry write rules shared with the TaskStore).
 
 ## 1. Purpose
 Avoid backend calls when the pending query asks for something this task already
@@ -11,6 +13,10 @@ would leak results between benchmark items.
 `normalize(q)`: Unicode NFC → lowercase → strip punctuation except inside tokens with
 digits (keeps "3.5", "COVID-19") → collapse whitespace → trim. Used for exact matching
 and for duplicate-query checks in the planner and controller.
+Precisely (`engine/text.py`): punctuation = Unicode category `P*`. In a whitespace token
+that contains a digit, only leading/trailing punctuation is removed (`"(2023),"` →
+`2023`, `covid-19` and `3.5` kept); in any other token each punctuation character becomes
+a space (`state-of-the-art` → `state of the art`, `U.S.` → `u s`).
 
 ## 3. Lookup (`Cache.lookup(task_id, query, need_type) -> CacheHit | None`)
 1. If `ablation.cache` is false → None.
@@ -21,6 +27,12 @@ and for duplicate-query checks in the planner and controller.
 5. **Compatibility:** an entry is usable only if its mode can serve the need:
    `dense` entries serve semantic/mixed; `sparse` serve lexical; `hybrid` serve all.
 6. Return the best compatible hit, or None. Emit `cache.hit` / `cache.miss`.
+
+Compatibility filters both exact and semantic matches. Exact matching is tried first and
+needs no embedding. Semantic similarity is the cosine of `Embedder.embed_queries([query])`
+with the stored `query_vector`; the threshold is inclusive (`≥`). Ties prefer the entry
+with more candidates, then the newest (`created_at_step`), then `entry_id`. Producers must
+compute `query_vector` with `Embedder.embed_queries` (the same model and query prefix).
 
 ## 4. Put
 After every fresh DENSE / SPARSE_HYBRID / RERANK_EXPAND retrieval, `score_and_update`
@@ -35,8 +47,14 @@ itself, not a save-then-separately-committed write). If the iteration fails befo
 `persist`, `save` is never called, so no entry is written and a retried step can never
 REUSE a result from a step that was never actually saved. If `save` raises
 `TaskConflict` (stale version), none of it is written either. Max
-`cache.max_entries_per_task`; beyond that, the oldest non-exact entry is dropped (logged
-`cache.evict`).
+`cache.max_entries_per_task`; beyond that, the oldest entry is dropped (lowest
+`created_at_step`, then `entry_id`; logged `cache.evict`). ("Oldest non-exact entry" in
+earlier drafts could not be implemented: exact/semantic is a property of a hit, not of an
+entry.) "The deeper result wins": a new entry with the same task, normalised query and mode
+replaces the stored one only if it has at least as many candidates; otherwise the stored
+entry is kept (logged `cache.put` with `kept`). These rules live in
+`engine/state/sqlite.write_cache_entries`, used by `Cache.put` and by `TaskStore.save`
+inside its transaction.
 
 ## 5. REUSE semantics
 - REUSE feeds the hit's stored candidates through the normal rerank → evidence path,
@@ -53,8 +71,14 @@ REUSE a result from a step that was never actually saved. If `save` raises
   `RetrievalRecord` at all — it is visible only as the `cache.hit` event.
 
 ## 6. Persistence
-Entries live in the `cache_entries` table of `paths.state_db` (ARCHITECTURE §7), so a
-task can continue after a restart. The cache table is never read by a different task.
+Entries live in the `cache_entries` table of `paths.state_db` (ARCHITECTURE §7, schema
+SDS §4.6), so a task can continue after a restart. The cache table is never read by a
+different task (every read is `WHERE task_id = ?`). Foreign keys are enforced: an entry for
+an unknown task is rejected (`TaskNotFound` from `Cache.put`). Rows whose `schema_version`
+this code does not know raise an error instead of being misread (ADR-009 §6). With
+`ablation.cache` false, `lookup` returns None without touching the database; `put` still
+writes (the ablation disables the policy, not the data). One SQLite connection per
+thread.
 
 ## 7. Tests
 - Exact normalised match → hit 1.0; paraphrase above threshold → semantic hit; below → miss.

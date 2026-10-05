@@ -60,6 +60,7 @@ SHARED_MODULES = {
     "engine.state.serialization",
     "engine.state.invariants",
     "engine.monitor.logging",  # the shared event logger (OBSERVABILITY §3), not a component
+    "engine.state.sqlite",  # shared SQLite schema + cache-table rules (TaskStore and Cache)
 }
 CLIENT_ALLOWED = {"engine.state.models", "engine.api.schemas"}
 

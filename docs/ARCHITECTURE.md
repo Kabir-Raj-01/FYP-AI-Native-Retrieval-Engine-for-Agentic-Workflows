@@ -142,7 +142,7 @@ same Planner.
 | Store | Location (config key) | Content |
 |---|---|---|
 | Task state | `paths.state_db` | table `tasks(task_id PK, version, status, state_json, created_at, updated_at)` |
-| Cache | `paths.state_db` | table `cache_entries(task_id, entry_id, entry_json)`, index on task_id |
+| Cache | `paths.state_db` | table `cache_entries(task_id → tasks, entry_id, normalized_query, mode, entry_json, created_at_step)`, PK (task_id, entry_id), index (task_id, normalized_query) — SDS §4.6; schema and entry write rules in the shared `engine/state/sqlite.py` (WAL, foreign keys on, one connection per thread), used by both Cache and TaskStore |
 | LLM response cache | `paths.llm_cache_db` | `llm_cache(key PK, response_json, usage_json, created_at)` |
 | Traces / runs | `paths.runs_dir` | see OBSERVABILITY.md |
 | Qdrant | `qdrant.url`, `qdrant.collection` | see RETRIEVAL_SPEC.md |
@@ -172,5 +172,6 @@ same Planner.
 | 2026-09-28 | GraphState/scratch, TaskStore.save signature, plan_mode, ownership fixes, per-task lock, no fetch(), Reranker state\|None | ADR-009 |
 | 2026-10-04 | §8 error list completed from the specs (`LLMOutputError`, `StateInvariantError`) plus `TaskExists`/`RunTimeout` for API_CONTRACT's `TASK_EXISTS`/`RUN_TIMEOUT`; flat hierarchy under `EngineError` (Week 7 plan review) | — |
 | 2026-10-05 | §2: `TaskStore.create` gains `task_id=None`; `search` filters typed `SearchFilters = Mapping[str, str \| int \| None]`; `observe`'s `update` may be `None`; `advance` is a `TrajectoryMonitor` method. Signatures pinned by `tests/unit/test_interfaces.py` | needs ADR line (Week 7 checkpoint) |
+| 2026-10-05 | §7: cache table per SDS §4.6; shared `engine/state/sqlite.py` and `engine/text.py` (`normalize`) | — |
 | 2026-10-05 | §6: `retrieve_direct` returns `DirectResult`; `Engine` constructor and `from_config`; API shell with `/v1/health`, `/v1/retrieve/direct` | ADR-012 (Proposed) |
 | 2026-10-05 | §2: `SparseEncoder` and `IndexWriter` added (transport types `SparseVector`, `IndexPoint` live in their interface modules); `build_retriever` takes the sparse encoder | ADR-001 (Proposed) |

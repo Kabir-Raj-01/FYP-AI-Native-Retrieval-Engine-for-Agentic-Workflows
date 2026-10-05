@@ -153,7 +153,13 @@ def test_factory_has_a_builder_per_interface() -> None:
     assert returned == set(EXPECTED)
 
 
-IMPLEMENTED = {"build_embedder", "build_sparse_encoder", "build_retriever", "build_index_writer"}
+IMPLEMENTED = {
+    "build_embedder",
+    "build_sparse_encoder",
+    "build_retriever",
+    "build_index_writer",
+    "build_cache",
+}
 
 
 @pytest.mark.parametrize(
@@ -182,3 +188,4 @@ def test_implemented_builders_return_their_interfaces(monkeypatch: pytest.Monkey
     # Qdrant clients connect lazily, so building them needs no running server.
     assert isinstance(factory.build_retriever(cfg, embedder, sparse), RetrieverAdapter)
     assert isinstance(factory.build_index_writer(cfg), IndexWriter)
+    assert isinstance(factory.build_cache(cfg, embedder), Cache)  # connects lazily

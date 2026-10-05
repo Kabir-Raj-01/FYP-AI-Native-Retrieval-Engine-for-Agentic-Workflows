@@ -13,7 +13,7 @@ Selection (config key -> implementation):
 - IndexWriter       Qdrant collection creation + upsert (ingestion only)
 - LLMClient         ``llm.<role>.provider``: ``anthropic`` | ``openai_compatible`` | ``fake`` [todo]
 - Planner           bounded LLM planner (``ablation.planner`` false -> no planner calls)    [todo]
-- Cache             task-local SQLite cache in ``paths.state_db`` (``ablation.cache``)       [todo]
+- Cache             task-local SQLite cache in ``paths.state_db`` (``ablation.cache``)
 - Controller        rule + utility policy (``ablation.adaptive_actions`` false -> fixed)    [todo]
 - Reranker          cross-encoder ``rerank.cross_encoder_model`` + state-aware scoring     [todo]
 - EvidenceManager   thresholds ``evidence.*``; verifier when ``llm.verifier.enabled``      [todo]
@@ -93,7 +93,9 @@ def build_planner(cfg: EngineConfig, llm: LLMClient) -> Planner:
 
 
 def build_cache(cfg: EngineConfig, embedder: Embedder) -> Cache:
-    raise _not_built("Cache")
+    from engine.cache.task_cache import TaskCache
+
+    return TaskCache(cfg, embedder)
 
 
 def build_controller(cfg: EngineConfig, embedder: Embedder) -> Controller:
