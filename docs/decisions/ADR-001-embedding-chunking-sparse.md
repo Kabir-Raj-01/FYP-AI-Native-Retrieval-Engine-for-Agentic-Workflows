@@ -76,6 +76,21 @@ Before accepting: ingest the dev subset with this setting, run `check_gold_mappi
   entity-heavy news questions; dense is functional (Hit@10 0.82), and RRF fusion lands
   slightly below BM25 alone. Worth examining in E0/E1 (e.g. the BGE-large or e5 alternative
   above, or RRF weighting) before this ADR is accepted.
+- 2026-10-05 — **exploratory** fusion probe, same dev subset (265 tasks; dev only, one-off
+  script): Recall@10 / CER@10 — current RRF (Qdrant default k = 2, prefetch 60)
+  0.589 / 0.291; prefetch 20 or 100 ≈ 0.59 / 0.29 (depth does not matter); RRF k = 10 or 60
+  ≈ 0.60 / 0.28–0.29; DBSF 0.604 / 0.294; weighted RRF dense : sparse = 0.75 / 0.5 / 0.25 : 1
+  → 0.596 / 0.602 / **0.620** and CER 0.302 / 0.328 / **0.340**; union of the top-5 dense and
+  top-5 sparse lists 0.536 / 0.242. Reading: the dense model is the weak component on
+  MultiHop-RAG — its results add little that BM25 does not already find, so fusion
+  settings move Recall@10 by at most ≈ ±0.03, and only down-weighting dense beats BM25 alone
+  (+0.012 Recall, +0.015 CER: within noise for 265 tasks, and chosen as the best of 11
+  variants on the same data). Implications, for the team: (1) no change to the current RRF
+  defaults is justified by this; (2) the larger lever is the dense model itself (the e5 /
+  BGE-large alternatives) — evaluate with E0 before accepting this ADR; (3) weighted RRF is
+  available in Qdrant 1.19 (`models.RrfQuery(rrf=models.Rrf(k=..., weights=[...]))`); using
+  it would need new config keys and a dev-split calibration with a significance test, not a
+  one-off pick.
 - NFR-P1 (direct dense retrieval, k = 20, CPU, 127.0.0.1): median 104 ms, p90 127 ms over
   24 uncached queries (`tests/integration/test_direct_live.py`) — within the ≤ 200 ms target.
 
