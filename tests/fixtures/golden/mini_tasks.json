@@ -1,0 +1,93 @@
+{
+ "mini:q1": {
+  "actions": [
+   "SPARSE_HYBRID",
+   "REUSE",
+   "DENSE",
+   "STOP"
+  ],
+  "evidence": [
+   "bc5a912576d34d9d",
+   "ad8346278eedc3cc"
+  ],
+  "rules": [
+   "utility_argmax",
+   "utility_argmax",
+   "utility_argmax",
+   "min_utility"
+  ],
+  "stop_reason": "LOW_MARGINAL_UTILITY"
+ },
+ "mini:q2": {
+  "actions": [
+   "SPARSE_HYBRID",
+   "REUSE",
+   "DENSE",
+   "STOP"
+  ],
+  "evidence": [],
+  "rules": [
+   "utility_argmax",
+   "utility_argmax",
+   "utility_argmax",
+   "min_utility"
+  ],
+  "stop_reason": "LOW_MARGINAL_UTILITY"
+ },
+ "mini:q3": {
+  "actions": [
+   "SPARSE_HYBRID",
+   "REUSE",
+   "DENSE",
+   "STOP"
+  ],
+  "evidence": [
+   "5f6fd02a66615478"
+  ],
+  "rules": [
+   "utility_argmax",
+   "utility_argmax",
+   "utility_argmax",
+   "min_utility"
+  ],
+  "stop_reason": "LOW_MARGINAL_UTILITY"
+ },
+ "mini:q4": {
+  "actions": [
+   "SPARSE_HYBRID",
+   "REUSE",
+   "DENSE",
+   "STOP"
+  ],
+  "evidence": [
+   "d2fd2e2770666474",
+   "33a03bd984a49367"
+  ],
+  "rules": [
+   "utility_argmax",
+   "utility_argmax",
+   "utility_argmax",
+   "min_utility"
+  ],
+  "stop_reason": "LOW_MARGINAL_UTILITY"
+ },
+ "mini:q5": {
+  "actions": [
+   "SPARSE_HYBRID",
+   "REUSE",
+   "DENSE",
+   "STOP"
+  ],
+  "evidence": [
+   "c221e9e6a6f71ba6",
+   "d2fd2e2770666474"
+  ],
+  "rules": [
+   "utility_argmax",
+   "utility_argmax",
+   "utility_argmax",
+   "min_utility"
+  ],
+  "stop_reason": "LOW_MARGINAL_UTILITY"
+ }
+}

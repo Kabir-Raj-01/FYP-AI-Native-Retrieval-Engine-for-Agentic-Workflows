@@ -141,7 +141,10 @@ class RuleUtilityController(Controller):
         left = b.retrieval_calls_used < b.max_retrieval_calls
         stagnated = state.stagnation_count >= 1
         eligible: set[Action] = set()
-        if cfg.ablation.cache and hit is not None:
+        # REUSE at most once per pending query, like the searches' not-Issued rule: reusing
+        # the same entry again for the same query returns the same candidates (decided
+        # 2026-10-05 after the golden test showed REUSE looping to MAX_STEPS)
+        if cfg.ablation.cache and hit is not None and not was(Action.REUSE):
             eligible.add(Action.REUSE)
         for a in _SEARCH:
             switch = a in preferred or stagnated or any(was(p) for p in preferred)

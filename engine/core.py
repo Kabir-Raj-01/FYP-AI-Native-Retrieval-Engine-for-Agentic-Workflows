@@ -31,6 +31,7 @@ from engine.embeddings.interfaces import Embedder
 from engine.errors import (
     BackendError,
     ConfigError,
+    LLMBudgetExceeded,
     LLMError,
     RunTimeout,
     TaskConflict,
@@ -57,8 +58,9 @@ from engine.state.models import (
 __all__ = ["Engine"]
 
 # After these the task stays ACTIVE and the caller may retry (ARCHITECTURE §8); any other
-# exception from an iteration marks the task FAILED / ERROR.
-_RETRYABLE = (BackendError, LLMError, TaskConflict)
+# exception from an iteration marks the task FAILED / ERROR. LLMBudgetExceeded is the
+# per-run cap: it aborts the run (LLM_CLIENT_SPEC §8), but the task itself is not broken.
+_RETRYABLE = (BackendError, LLMError, LLMBudgetExceeded, TaskConflict)
 
 
 class Engine:

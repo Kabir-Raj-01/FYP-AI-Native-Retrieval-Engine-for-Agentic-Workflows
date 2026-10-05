@@ -122,7 +122,11 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 ## Weeks 14–15 (16–29 Nov) — Integration and test buffer (no new features)
 - [ ] All: end-to-end controller_on runs on dev subset; fix defects
 - [ ] All: read ≥ 20 trajectories by hand with `show_trace.py`; log failure categories
-- [ ] V: golden-trajectory and fault-injection tests
+- [x] V: golden-trajectory and fault-injection tests
+      — built by K: `tests/e2e/test_golden.py` (+ `tests/fixtures/golden/mini_tasks.json`),
+      `tests/unit/graph/test_faults.py`, OpenAPI snapshot `tests/fixtures/openapi.json`;
+      `scripts/show_trace.py`. The golden test found a REUSE loop (fixed, ACTION_POLICY §6
+      "As built"). Coverage: 98 % overall, ≥ 94 % per target package
 - [ ] K: latency profile (`python scripts\latency_profile.py`)
       — script done and `configs/latency_profile.yaml` generated (REUSE 3.8, DENSE 139,
       SPARSE_HYBRID 154, RERANK_EXPAND 168 ms median); re-run for TRANSFORM once the

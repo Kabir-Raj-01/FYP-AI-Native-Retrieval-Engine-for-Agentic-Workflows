@@ -24,6 +24,6 @@ repos:
     hooks:
       - id: detect-secrets
         args: [--baseline, .secrets.baseline]
-        # generated files (gold maps, splits, latency profile): hex ids / commit hashes,
-        # no secrets, and no place for an inline allowlist comment
-        exclude: ^(data/processed/|configs/latency_profile\.yaml$)
+        # generated files (gold maps, splits, latency profile, golden trajectories): hex ids /
+        # commit hashes, no secrets, and no place for an inline allowlist comment
+        exclude: ^(data/processed/|configs/latency_profile\.yaml$|tests/fixtures/golden/)

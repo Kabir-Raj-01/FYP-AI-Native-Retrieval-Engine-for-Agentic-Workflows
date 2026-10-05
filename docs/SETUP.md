@@ -93,6 +93,8 @@ python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml   # first
 | Type check | `mypy --strict engine` |
 | Unit tests + coverage | `pytest -m "not integration and not llm and not e2e" --cov=engine --cov-report=term-missing` |
 | Integration tests (Qdrant running) | `pytest -m integration` |
+| Golden trajectories (fixture corpus, no Qdrant) | `pytest -m e2e` (rewrite: `$env:UPDATE_GOLDEN = "1"`, explain why in the PR) |
+| Show a trajectory | `python scripts\show_trace.py <run_id> <task_id> [--budget B]` |
 | All tests | `pytest` |
 | Start / stop Qdrant | §3 / `Stop-Process -Name qdrant` |
 | Ingest a dataset | `python -m data.ingest --dataset multihop` |

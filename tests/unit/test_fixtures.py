@@ -81,7 +81,7 @@ def test_injection_doc_contains_planner_directed_instructions() -> None:
 
 def test_fixture_files_are_utf8_with_lf_endings() -> None:
     fixtures = Path(__file__).parents[1] / "fixtures"
-    for path in fixtures.iterdir():
+    for path in (p for p in fixtures.rglob("*") if p.is_file()):
         raw = path.read_bytes()
         raw.decode("utf-8")
         assert b"\r\n" not in raw, path.name

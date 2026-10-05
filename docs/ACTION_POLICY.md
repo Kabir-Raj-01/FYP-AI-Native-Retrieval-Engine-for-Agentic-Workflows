@@ -162,6 +162,12 @@ interpretations awaiting the owner's review —
 - "Failed queries" of a gap (REWRITE vs SPLIT) = the gap's `query_history` queries that
   appear in `retrieval_history`; state keeps no per-query gain. SPLIT needs ≥ 2 of them and
   `live gaps + 1 ≤ planner.max_gaps`.
+- REUSE is eligible at most once per pending query (not Issued(REUSE, pending_query)),
+  like the searches' not-Issued rule. Without it the golden test showed every mini task
+  looping one search + 7 REUSEs of the same cached entry to MAX_STEPS: rejected candidates
+  never enter E_t, so REUSE's gain stayed near 1 at zero cost, and a gap is only exhausted
+  after a TRANSFORM, which REUSE always out-scored (decided 2026-10-05 with the user, for
+  Samay's review).
 - RERANK_EXPAND's "last_result exists for the current gap's pending query" =
   `normalize(last_result.query) == normalize(pending_query)`; the band is inclusive.
 - §6.2 / §6.3 follow ADR-009 addendum A6 as decided on 2026-10-05: a SUPERSEDED parent keeps

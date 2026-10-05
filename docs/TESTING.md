@@ -65,7 +65,9 @@ The unit-test command `pytest -m "not integration and not llm and not e2e"` runs
    corpus, the action sequence and stop reason per task match a stored snapshot
    (`tests/fixtures/golden/*.json`). Snapshot updates require a PR comment explaining why.
 5. **Fault injection:** retriever raises on step 2 → stored state equals state after step
-   1; LLM raises during TRANSFORM → same; API returns the mapped error code; **no orphan
+   1; LLM raises during TRANSFORM → same (as built: an `LLMError` is absorbed by the
+   planner's fallback, PLANNER_SPEC §6, so the step completes; the per-run cap
+   `LLMBudgetExceeded` propagates and leaves the stored state — `tests/unit/graph/test_faults.py`); API returns the mapped error code; **no orphan
    cache entries after a failed step** (ADR-009 §9) — a fresh `CacheEntry` queued in
    `scratch.queued_cache_entries` before the failure is never committed, so a subsequent
    retry's `Cache.lookup` cannot return it.

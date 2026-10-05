@@ -298,3 +298,15 @@ def test_latency_profile_file_or_defaults(cfg: EngineConfig, tmp_path: Path) -> 
     profile.write_text("latency_ms: {DENSE: 140}\n", encoding="utf-8")
     with pytest.raises(ConfigError, match="exactly the keys"):
         load_latency_ms(cfg)
+
+
+def test_reuse_only_once_per_pending_query(cfg: EngineConfig) -> None:
+    hit = CacheHit(entry=make_cache_entry(), similarity=1.0, match="exact")
+    reused = RetrievalRecord(
+        step=2, action=Action.REUSE, mode=RetrievalMode.DENSE, query="q0", k=2,
+        candidate_ids=[], new_candidate_ids=[], cache_hit=True, latency_ms=0.0,
+    )  # fmt: skip
+    s = state(retrieval_history=[issued(Action.DENSE, "q0"), reused])
+    assert Action.REUSE not in controller(cfg).select_action(s, hit).eligible
+    other = state(query="a new query", retrieval_history=[issued(Action.DENSE, "q0"), reused])
+    assert Action.REUSE in controller(cfg).select_action(other, hit).eligible

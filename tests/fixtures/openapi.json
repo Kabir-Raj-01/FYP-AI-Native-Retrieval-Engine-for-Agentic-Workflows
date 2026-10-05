@@ -1,0 +1,1883 @@
+{
+ "components": {
+  "schemas": {
+   "Action": {
+    "enum": [
+     "REUSE",
+     "DENSE",
+     "SPARSE_HYBRID",
+     "TRANSFORM",
+     "RERANK_EXPAND",
+     "STOP"
+    ],
+    "title": "Action",
+    "type": "string"
+   },
+   "ActionDecision": {
+    "additionalProperties": false,
+    "properties": {
+     "action": {
+      "$ref": "#/components/schemas/Action"
+     },
+     "eligible": {
+      "items": {
+       "$ref": "#/components/schemas/Action"
+      },
+      "title": "Eligible",
+      "type": "array"
+     },
+     "plan_mode": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PlanMode"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "rule": {
+      "title": "Rule",
+      "type": "string"
+     },
+     "scores": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/ActionScores"
+      },
+      "propertyNames": {
+       "$ref": "#/components/schemas/Action"
+      },
+      "title": "Scores",
+      "type": "object"
+     },
+     "stop_reason": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/StopReason"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "required": [
+     "action",
+     "eligible",
+     "scores",
+     "rule"
+    ],
+    "title": "ActionDecision",
+    "type": "object"
+   },
+   "ActionScores": {
+    "additionalProperties": false,
+    "properties": {
+     "C": {
+      "title": "C",
+      "type": "number"
+     },
+     "G": {
+      "title": "G",
+      "type": "number"
+     },
+     "L": {
+      "title": "L",
+      "type": "number"
+     },
+     "R": {
+      "title": "R",
+      "type": "number"
+     },
+     "U": {
+      "title": "U",
+      "type": "number"
+     }
+    },
+    "required": [
+     "G",
+     "C",
+     "R",
+     "L",
+     "U"
+    ],
+    "title": "ActionScores",
+    "type": "object"
+   },
+   "Budget": {
+    "additionalProperties": false,
+    "properties": {
+     "llm_calls_used": {
+      "default": 0,
+      "title": "Llm Calls Used",
+      "type": "integer"
+     },
+     "max_llm_calls": {
+      "minimum": 0.0,
+      "title": "Max Llm Calls",
+      "type": "integer"
+     },
+     "max_retrieval_calls": {
+      "minimum": 1.0,
+      "title": "Max Retrieval Calls",
+      "type": "integer"
+     },
+     "max_steps": {
+      "minimum": 1.0,
+      "title": "Max Steps",
+      "type": "integer"
+     },
+     "max_tokens": {
+      "minimum": 1.0,
+      "title": "Max Tokens",
+      "type": "integer"
+     },
+     "reranker_calls_used": {
+      "default": 0,
+      "title": "Reranker Calls Used",
+      "type": "integer"
+     },
+     "retrieval_calls_used": {
+      "default": 0,
+      "title": "Retrieval Calls Used",
+      "type": "integer"
+     },
+     "steps_used": {
+      "default": 0,
+      "title": "Steps Used",
+      "type": "integer"
+     },
+     "tokens_used": {
+      "default": 0,
+      "title": "Tokens Used",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "max_steps",
+     "max_retrieval_calls",
+     "max_llm_calls",
+     "max_tokens"
+    ],
+    "title": "Budget",
+    "type": "object"
+   },
+   "BudgetRequest": {
+    "properties": {
+     "max_llm_calls": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Llm Calls"
+     },
+     "max_retrieval_calls": {
+      "anyOf": [
+       {
+        "minimum": 1.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Retrieval Calls"
+     },
+     "max_steps": {
+      "anyOf": [
+       {
+        "minimum": 1.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Steps"
+     },
+     "max_tokens": {
+      "anyOf": [
+       {
+        "minimum": 1.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Tokens"
+     }
+    },
+    "title": "BudgetRequest",
+    "type": "object"
+   },
+   "Candidate": {
+    "additionalProperties": false,
+    "properties": {
+     "chunk_id": {
+      "title": "Chunk Id",
+      "type": "string"
+     },
+     "doc_id": {
+      "title": "Doc Id",
+      "type": "string"
+     },
+     "metadata": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "default": {},
+      "title": "Metadata",
+      "type": "object"
+     },
+     "mode": {
+      "$ref": "#/components/schemas/RetrievalMode"
+     },
+     "rank": {
+      "title": "Rank",
+      "type": "integer"
+     },
+     "retrieval_score": {
+      "title": "Retrieval Score",
+      "type": "number"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     },
+     "vector": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vector"
+     }
+    },
+    "required": [
+     "chunk_id",
+     "doc_id",
+     "text",
+     "retrieval_score",
+     "rank",
+     "mode"
+    ],
+    "title": "Candidate",
+    "type": "object"
+   },
+   "CreateTaskRequest": {
+    "properties": {
+     "budget": {
+      "$ref": "#/components/schemas/BudgetRequest",
+      "default": {}
+     },
+     "goal": {
+      "minLength": 1,
+      "title": "Goal",
+      "type": "string"
+     },
+     "task_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Task Id"
+     }
+    },
+    "required": [
+     "goal"
+    ],
+    "title": "CreateTaskRequest",
+    "type": "object"
+   },
+   "CreateTaskResponse": {
+    "properties": {
+     "state": {
+      "$ref": "#/components/schemas/RetrievalState"
+     },
+     "task_id": {
+      "title": "Task Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "task_id",
+     "state"
+    ],
+    "title": "CreateTaskResponse",
+    "type": "object"
+   },
+   "DirectRequest": {
+    "properties": {
+     "k": {
+      "anyOf": [
+       {
+        "minimum": 1.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "K"
+     },
+     "mode": {
+      "$ref": "#/components/schemas/RetrievalMode",
+      "default": "dense"
+     },
+     "query": {
+      "minLength": 1,
+      "title": "Query",
+      "type": "string"
+     },
+     "rerank": {
+      "default": false,
+      "title": "Rerank",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "query"
+    ],
+    "title": "DirectRequest",
+    "type": "object"
+   },
+   "DirectResponse": {
+    "properties": {
+     "candidates": {
+      "items": {
+       "$ref": "#/components/schemas/Candidate"
+      },
+      "title": "Candidates",
+      "type": "array"
+     },
+     "latency_ms": {
+      "title": "Latency Ms",
+      "type": "number"
+     },
+     "relevances": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Relevances"
+     }
+    },
+    "required": [
+     "candidates",
+     "relevances",
+     "latency_ms"
+    ],
+    "title": "DirectResponse",
+    "type": "object"
+   },
+   "EvidenceBundle": {
+    "additionalProperties": false,
+    "properties": {
+     "evidence": {
+      "items": {
+       "$ref": "#/components/schemas/EvidenceItem"
+      },
+      "title": "Evidence",
+      "type": "array"
+     },
+     "gaps": {
+      "items": {
+       "$ref": "#/components/schemas/EvidenceGap"
+      },
+      "title": "Gaps",
+      "type": "array"
+     },
+     "goal": {
+      "title": "Goal",
+      "type": "string"
+     },
+     "stop_reason": {
+      "$ref": "#/components/schemas/StopReason"
+     },
+     "system": {
+      "title": "System",
+      "type": "string"
+     },
+     "task_id": {
+      "title": "Task Id",
+      "type": "string"
+     },
+     "trace_summary": {
+      "$ref": "#/components/schemas/TraceSummary"
+     }
+    },
+    "required": [
+     "task_id",
+     "system",
+     "goal",
+     "evidence",
+     "gaps",
+     "stop_reason",
+     "trace_summary"
+    ],
+    "title": "EvidenceBundle",
+    "type": "object"
+   },
+   "EvidenceGap": {
+    "additionalProperties": false,
+    "properties": {
+     "closed_at_step": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Closed At Step"
+     },
+     "created_at_step": {
+      "title": "Created At Step",
+      "type": "integer"
+     },
+     "description": {
+      "title": "Description",
+      "type": "string"
+     },
+     "gap_id": {
+      "title": "Gap Id",
+      "type": "string"
+     },
+     "need_type": {
+      "$ref": "#/components/schemas/NeedType"
+     },
+     "parent_gap_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Gap Id"
+     },
+     "query": {
+      "title": "Query",
+      "type": "string"
+     },
+     "resolved_by": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolved By"
+     },
+     "status": {
+      "$ref": "#/components/schemas/GapStatus",
+      "default": "open"
+     }
+    },
+    "required": [
+     "gap_id",
+     "description",
+     "query",
+     "need_type",
+     "created_at_step"
+    ],
+    "title": "EvidenceGap",
+    "type": "object"
+   },
+   "EvidenceItem": {
+    "additionalProperties": false,
+    "properties": {
+     "added_at_step": {
+      "title": "Added At Step",
+      "type": "integer"
+     },
+     "chunk_id": {
+      "title": "Chunk Id",
+      "type": "string"
+     },
+     "doc_id": {
+      "title": "Doc Id",
+      "type": "string"
+     },
+     "evidence_id": {
+      "title": "Evidence Id",
+      "type": "string"
+     },
+     "final_score": {
+      "title": "Final Score",
+      "type": "number"
+     },
+     "metadata": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "default": {},
+      "title": "Metadata",
+      "type": "object"
+     },
+     "novelty": {
+      "title": "Novelty",
+      "type": "number"
+     },
+     "pinned": {
+      "default": false,
+      "title": "Pinned",
+      "type": "boolean"
+     },
+     "query": {
+      "title": "Query",
+      "type": "string"
+     },
+     "relevance": {
+      "title": "Relevance",
+      "type": "number"
+     },
+     "source_action": {
+      "$ref": "#/components/schemas/Action"
+     },
+     "summary": {
+      "title": "Summary",
+      "type": "string"
+     },
+     "supports_gap_ids": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Supports Gap Ids",
+      "type": "array"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     },
+     "vector": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vector"
+     }
+    },
+    "required": [
+     "evidence_id",
+     "chunk_id",
+     "doc_id",
+     "text",
+     "summary",
+     "relevance",
+     "novelty",
+     "final_score",
+     "source_action",
+     "query",
+     "added_at_step"
+    ],
+    "title": "EvidenceItem",
+    "type": "object"
+   },
+   "EvidenceUpdate": {
+    "additionalProperties": false,
+    "properties": {
+     "accepted": {
+      "items": {
+       "$ref": "#/components/schemas/EvidenceItem"
+      },
+      "title": "Accepted",
+      "type": "array"
+     },
+     "evicted": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Evicted",
+      "type": "array"
+     },
+     "evidence_gain": {
+      "title": "Evidence Gain",
+      "type": "number"
+     },
+     "gap_resolutions": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "default": {},
+      "title": "Gap Resolutions",
+      "type": "object"
+     },
+     "item_changes": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/ItemChange"
+      },
+      "default": {},
+      "title": "Item Changes",
+      "type": "object"
+     },
+     "rejected": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "title": "Rejected",
+      "type": "object"
+     },
+     "resolved_gap_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Resolved Gap Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "accepted",
+     "rejected",
+     "evicted",
+     "resolved_gap_ids",
+     "evidence_gain"
+    ],
+    "title": "EvidenceUpdate",
+    "type": "object"
+   },
+   "GapStatus": {
+    "enum": [
+     "open",
+     "resolved",
+     "superseded",
+     "exhausted"
+    ],
+    "title": "GapStatus",
+    "type": "string"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "title": "Detail",
+      "type": "array"
+     }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+   },
+   "HealthResponse": {
+    "description": "``GET /v1/health`` body: ``{status, qdrant: bool, version, config_hash}``.",
+    "properties": {
+     "config_hash": {
+      "title": "Config Hash",
+      "type": "string"
+     },
+     "qdrant": {
+      "title": "Qdrant",
+      "type": "boolean"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "version": {
+      "title": "Version",
+      "type": "string"
+     }
+    },
+    "required": [
+     "status",
+     "qdrant",
+     "version",
+     "config_hash"
+    ],
+    "title": "HealthResponse",
+    "type": "object"
+   },
+   "ItemChange": {
+    "additionalProperties": false,
+    "properties": {
+     "pinned": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pinned"
+     },
+     "supports_gap_ids": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supports Gap Ids"
+     }
+    },
+    "title": "ItemChange",
+    "type": "object"
+   },
+   "LastResult": {
+    "additionalProperties": false,
+    "description": "Compact view of the most recent candidate-producing action (for RERANK_EXPAND).\n\nWritten by score_and_update (needs top_relevances, which only exist post-rerank), not\nexecute (ADR-009 \u00a74). Never reset except by monitor.advance() on gap advancement\n(ADR-009 \u00a79) \u2014 a TRANSFORM/STOP step leaves the prior value intact.",
+    "properties": {
+     "candidate_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Candidate Ids",
+      "type": "array"
+     },
+     "depth": {
+      "title": "Depth",
+      "type": "integer"
+     },
+     "mode": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RetrievalMode"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "query": {
+      "title": "Query",
+      "type": "string"
+     },
+     "step": {
+      "title": "Step",
+      "type": "integer"
+     },
+     "top_relevances": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Top Relevances",
+      "type": "array"
+     }
+    },
+    "required": [
+     "step",
+     "query",
+     "depth",
+     "candidate_ids",
+     "top_relevances"
+    ],
+    "title": "LastResult",
+    "type": "object"
+   },
+   "NeedType": {
+    "enum": [
+     "semantic",
+     "lexical",
+     "mixed"
+    ],
+    "title": "NeedType",
+    "type": "string"
+   },
+   "PlanEvent": {
+    "additionalProperties": false,
+    "properties": {
+     "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+     },
+     "mode": {
+      "$ref": "#/components/schemas/PlanMode"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     },
+     "status": {
+      "$ref": "#/components/schemas/PlanStatus"
+     },
+     "step": {
+      "title": "Step",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "step",
+     "mode",
+     "attempt",
+     "status"
+    ],
+    "title": "PlanEvent",
+    "type": "object"
+   },
+   "PlanMode": {
+    "enum": [
+     "init",
+     "rewrite",
+     "split"
+    ],
+    "title": "PlanMode",
+    "type": "string"
+   },
+   "PlanStatus": {
+    "enum": [
+     "accepted",
+     "rejected",
+     "fallback"
+    ],
+    "title": "PlanStatus",
+    "type": "string"
+   },
+   "QueryRecord": {
+    "additionalProperties": false,
+    "properties": {
+     "gap_id": {
+      "title": "Gap Id",
+      "type": "string"
+     },
+     "need_type": {
+      "$ref": "#/components/schemas/NeedType"
+     },
+     "query": {
+      "title": "Query",
+      "type": "string"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "step": {
+      "title": "Step",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "step",
+     "gap_id",
+     "query",
+     "need_type",
+     "source"
+    ],
+    "title": "QueryRecord",
+    "type": "object"
+   },
+   "RetrievalMode": {
+    "enum": [
+     "dense",
+     "sparse",
+     "hybrid"
+    ],
+    "title": "RetrievalMode",
+    "type": "string"
+   },
+   "RetrievalRecord": {
+    "additionalProperties": false,
+    "properties": {
+     "action": {
+      "$ref": "#/components/schemas/Action"
+     },
+     "cache_hit": {
+      "title": "Cache Hit",
+      "type": "boolean"
+     },
+     "candidate_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Candidate Ids",
+      "type": "array"
+     },
+     "k": {
+      "title": "K",
+      "type": "integer"
+     },
+     "latency_ms": {
+      "title": "Latency Ms",
+      "type": "number"
+     },
+     "mode": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RetrievalMode"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "new_candidate_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "New Candidate Ids",
+      "type": "array"
+     },
+     "query": {
+      "title": "Query",
+      "type": "string"
+     },
+     "step": {
+      "title": "Step",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "step",
+     "action",
+     "query",
+     "k",
+     "candidate_ids",
+     "new_candidate_ids",
+     "cache_hit",
+     "latency_ms"
+    ],
+    "title": "RetrievalRecord",
+    "type": "object"
+   },
+   "RetrievalState": {
+    "additionalProperties": false,
+    "properties": {
+     "action_gain_ema": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "default": {},
+      "propertyNames": {
+       "$ref": "#/components/schemas/Action"
+      },
+      "title": "Action Gain Ema",
+      "type": "object"
+     },
+     "budget": {
+      "$ref": "#/components/schemas/Budget"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     },
+     "current_gap_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Gap Id"
+     },
+     "current_need_type": {
+      "$ref": "#/components/schemas/NeedType",
+      "readOnly": true
+     },
+     "current_subgoal": {
+      "readOnly": true,
+      "title": "Current Subgoal",
+      "type": "string"
+     },
+     "evidence": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/EvidenceItem"
+      },
+      "title": "Evidence",
+      "type": "array"
+     },
+     "gaps": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/EvidenceGap"
+      },
+      "title": "Gaps",
+      "type": "array"
+     },
+     "goal": {
+      "title": "Goal",
+      "type": "string"
+     },
+     "last_decision": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ActionDecision"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "last_result": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LastResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "last_update": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/EvidenceUpdate"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "needs_initial_plan": {
+      "default": true,
+      "title": "Needs Initial Plan",
+      "type": "boolean"
+     },
+     "pending_query": {
+      "readOnly": true,
+      "title": "Pending Query",
+      "type": "string"
+     },
+     "plan_events": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/PlanEvent"
+      },
+      "title": "Plan Events",
+      "type": "array"
+     },
+     "query_history": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/QueryRecord"
+      },
+      "title": "Query History",
+      "type": "array"
+     },
+     "retrieval_history": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/RetrievalRecord"
+      },
+      "title": "Retrieval History",
+      "type": "array"
+     },
+     "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+     },
+     "seen_candidate_ids": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Seen Candidate Ids",
+      "type": "array"
+     },
+     "stagnation_count": {
+      "default": 0,
+      "title": "Stagnation Count",
+      "type": "integer"
+     },
+     "status": {
+      "$ref": "#/components/schemas/TaskStatus",
+      "default": "active"
+     },
+     "stop_reason": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/StopReason"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "task_id": {
+      "title": "Task Id",
+      "type": "string"
+     },
+     "transforms_in_streak": {
+      "default": 0,
+      "title": "Transforms In Streak",
+      "type": "integer"
+     },
+     "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+     },
+     "version": {
+      "default": 0,
+      "title": "Version",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "task_id",
+     "goal",
+     "budget",
+     "created_at",
+     "updated_at",
+     "current_subgoal",
+     "pending_query",
+     "current_need_type"
+    ],
+    "title": "RetrievalState",
+    "type": "object"
+   },
+   "StepResponse": {
+    "properties": {
+     "action": {
+      "$ref": "#/components/schemas/Action"
+     },
+     "budget": {
+      "$ref": "#/components/schemas/Budget"
+     },
+     "done": {
+      "title": "Done",
+      "type": "boolean"
+     },
+     "new_evidence": {
+      "items": {
+       "$ref": "#/components/schemas/EvidenceItem"
+      },
+      "title": "New Evidence",
+      "type": "array"
+     },
+     "open_gaps": {
+      "items": {
+       "$ref": "#/components/schemas/EvidenceGap"
+      },
+      "title": "Open Gaps",
+      "type": "array"
+     },
+     "step": {
+      "title": "Step",
+      "type": "integer"
+     },
+     "stop_reason": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/StopReason"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "task_id": {
+      "title": "Task Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "task_id",
+     "step",
+     "action",
+     "done",
+     "stop_reason",
+     "new_evidence",
+     "open_gaps",
+     "budget"
+    ],
+    "title": "StepResponse",
+    "type": "object"
+   },
+   "StopReason": {
+    "enum": [
+     "ALL_GAPS_RESOLVED",
+     "STAGNATION",
+     "LOW_MARGINAL_UTILITY",
+     "MAX_STEPS",
+     "MAX_RETRIEVAL_CALLS",
+     "MAX_LLM_CALLS",
+     "MAX_TOKENS",
+     "ONE_SHOT_COMPLETE",
+     "FIXED_ITERATIONS_COMPLETE",
+     "ERROR"
+    ],
+    "title": "StopReason",
+    "type": "string"
+   },
+   "TaskStatus": {
+    "enum": [
+     "active",
+     "stopped",
+     "failed"
+    ],
+    "title": "TaskStatus",
+    "type": "string"
+   },
+   "TraceStep": {
+    "additionalProperties": false,
+    "properties": {
+     "accepted_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Accepted Ids",
+      "type": "array"
+     },
+     "action": {
+      "$ref": "#/components/schemas/Action"
+     },
+     "budget_after": {
+      "$ref": "#/components/schemas/Budget"
+     },
+     "cache_hit": {
+      "title": "Cache Hit",
+      "type": "boolean"
+     },
+     "candidate_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Candidate Ids",
+      "type": "array"
+     },
+     "current_gap_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Gap Id"
+     },
+     "eligible_actions": {
+      "items": {
+       "$ref": "#/components/schemas/Action"
+      },
+      "title": "Eligible Actions",
+      "type": "array"
+     },
+     "evicted_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Evicted Ids",
+      "type": "array"
+     },
+     "evidence_gain": {
+      "title": "Evidence Gain",
+      "type": "number"
+     },
+     "k": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "K"
+     },
+     "latency_ms": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "title": "Latency Ms",
+      "type": "object"
+     },
+     "llm_calls": {
+      "title": "Llm Calls",
+      "type": "integer"
+     },
+     "mode": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RetrievalMode"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "new_candidate_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "New Candidate Ids",
+      "type": "array"
+     },
+     "plan_events": {
+      "items": {
+       "$ref": "#/components/schemas/PlanEvent"
+      },
+      "title": "Plan Events",
+      "type": "array"
+     },
+     "query": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Query"
+     },
+     "rejected": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "title": "Rejected",
+      "type": "object"
+     },
+     "resolved_gap_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Resolved Gap Ids",
+      "type": "array"
+     },
+     "rule": {
+      "title": "Rule",
+      "type": "string"
+     },
+     "run_id": {
+      "title": "Run Id",
+      "type": "string"
+     },
+     "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+     },
+     "stagnation_count": {
+      "title": "Stagnation Count",
+      "type": "integer"
+     },
+     "step": {
+      "title": "Step",
+      "type": "integer"
+     },
+     "stop_reason": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/StopReason"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "system": {
+      "title": "System",
+      "type": "string"
+     },
+     "task_id": {
+      "title": "Task Id",
+      "type": "string"
+     },
+     "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+     },
+     "tokens": {
+      "title": "Tokens",
+      "type": "integer"
+     },
+     "utility_scores": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/ActionScores"
+      },
+      "propertyNames": {
+       "$ref": "#/components/schemas/Action"
+      },
+      "title": "Utility Scores",
+      "type": "object"
+     }
+    },
+    "required": [
+     "run_id",
+     "task_id",
+     "system",
+     "step",
+     "action",
+     "rule",
+     "eligible_actions",
+     "utility_scores",
+     "cache_hit",
+     "candidate_ids",
+     "new_candidate_ids",
+     "accepted_ids",
+     "rejected",
+     "evicted_ids",
+     "resolved_gap_ids",
+     "evidence_gain",
+     "plan_events",
+     "stagnation_count",
+     "latency_ms",
+     "llm_calls",
+     "tokens",
+     "budget_after",
+     "timestamp"
+    ],
+    "title": "TraceStep",
+    "type": "object"
+   },
+   "TraceSummary": {
+    "additionalProperties": false,
+    "properties": {
+     "actions": {
+      "items": {
+       "$ref": "#/components/schemas/Action"
+      },
+      "title": "Actions",
+      "type": "array"
+     },
+     "cache_hits": {
+      "title": "Cache Hits",
+      "type": "integer"
+     },
+     "llm_calls": {
+      "title": "Llm Calls",
+      "type": "integer"
+     },
+     "reranker_calls": {
+      "title": "Reranker Calls",
+      "type": "integer"
+     },
+     "retrieval_calls": {
+      "title": "Retrieval Calls",
+      "type": "integer"
+     },
+     "steps": {
+      "title": "Steps",
+      "type": "integer"
+     },
+     "tokens": {
+      "title": "Tokens",
+      "type": "integer"
+     },
+     "total_latency_ms": {
+      "title": "Total Latency Ms",
+      "type": "number"
+     }
+    },
+    "required": [
+     "steps",
+     "retrieval_calls",
+     "cache_hits",
+     "llm_calls",
+     "tokens",
+     "reranker_calls",
+     "total_latency_ms",
+     "actions"
+    ],
+    "title": "TraceSummary",
+    "type": "object"
+   },
+   "ValidationError": {
+    "properties": {
+     "ctx": {
+      "title": "Context",
+      "type": "object"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "title": "Location",
+      "type": "array"
+     },
+     "msg": {
+      "title": "Message",
+      "type": "string"
+     },
+     "type": {
+      "title": "Error Type",
+      "type": "string"
+     }
+    },
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError",
+    "type": "object"
+   }
+  }
+ },
+ "info": {
+  "title": "AI-Native Retrieval Engine",
+  "version": "v1"
+ },
+ "openapi": "3.1.0",
+ "paths": {
+  "/v1/health": {
+   "get": {
+    "description": "Always 200 while the process is alive; ``status`` reports the backend.",
+    "operationId": "health_v1_health_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HealthResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Health"
+   }
+  },
+  "/v1/retrieve/direct": {
+   "post": {
+    "operationId": "retrieve_direct_v1_retrieve_direct_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DirectRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DirectResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Retrieve Direct"
+   }
+  },
+  "/v1/tasks": {
+   "post": {
+    "operationId": "create_task_v1_tasks_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CreateTaskRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CreateTaskResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Create Task"
+   }
+  },
+  "/v1/tasks/{task_id}/result": {
+   "get": {
+    "operationId": "result_v1_tasks__task_id__result_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "task_id",
+      "required": true,
+      "schema": {
+       "title": "Task Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EvidenceBundle"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Result"
+   }
+  },
+  "/v1/tasks/{task_id}/run": {
+   "post": {
+    "operationId": "run_v1_tasks__task_id__run_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "task_id",
+      "required": true,
+      "schema": {
+       "title": "Task Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EvidenceBundle"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Run"
+   }
+  },
+  "/v1/tasks/{task_id}/state": {
+   "get": {
+    "operationId": "state_v1_tasks__task_id__state_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "task_id",
+      "required": true,
+      "schema": {
+       "title": "Task Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RetrievalState"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "State"
+   }
+  },
+  "/v1/tasks/{task_id}/step": {
+   "post": {
+    "operationId": "step_v1_tasks__task_id__step_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "task_id",
+      "required": true,
+      "schema": {
+       "title": "Task Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StepResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Step"
+   }
+  },
+  "/v1/tasks/{task_id}/trace": {
+   "get": {
+    "operationId": "trace_v1_tasks__task_id__trace_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "task_id",
+      "required": true,
+      "schema": {
+       "title": "Task Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/TraceStep"
+         },
+         "title": "Response Trace V1 Tasks  Task Id  Trace Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Trace"
+   }
+  }
+ }
+}

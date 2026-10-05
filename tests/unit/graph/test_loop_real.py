@@ -76,6 +76,7 @@ def test_max_steps_runs_exactly_n_real_iterations_with_real_components(
     w.alpha, w.beta, w.gamma, w.delta = 1.0, 0.0, 0.0, 0.0
     cfg.controller.min_utility = 0.0
     cfg.evidence.relevance_threshold = 1.0  # nothing resolves, so only the step cap stops
+    cfg.monitor.max_transforms_per_streak = 3  # and no gap can be exhausted within 3 steps
     fake = real_engine(cfg, engine_with_fakes)
     fake.engine.create_task(
         "Linden Bay tram expansion council harbour",

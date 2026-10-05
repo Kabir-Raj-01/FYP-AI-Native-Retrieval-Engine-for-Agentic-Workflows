@@ -174,7 +174,9 @@ same Planner.
   state is the last fully completed step, and no `scratch.queued_cache_entries` are
   committed (no orphan cache entries — ADR-009 §9). The error is logged as an event and,
   via the API, mapped to the error codes in API_CONTRACT.md. The task stays `ACTIVE`
-  (caller may retry) unless the error is non-retryable, in which case the `Engine`
+  (caller may retry; as built: `BackendError`, `LLMError`, `TaskConflict`, and
+  `LLMBudgetExceeded` — the per-run cap aborts the run, not the task) unless the error is
+  non-retryable, in which case the `Engine`
   facade sets `status = FAILED`, `stop_reason = ERROR` directly via `TaskStore`, outside
   any graph node (STATE_SPEC §4 ownership matrix; ADR-009 §4).
 
