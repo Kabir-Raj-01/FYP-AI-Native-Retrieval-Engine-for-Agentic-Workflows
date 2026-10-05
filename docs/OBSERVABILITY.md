@@ -82,4 +82,7 @@ totals {llm_calls, tokens, cost_usd, wall_time_s}`.
 - `scripts/show_trace.py <run_id> <task_id>` — pretty-prints a trajectory (actions,
   queries, accepted evidence, gap changes, stop reason).
 - `scripts/latency_profile.py` — runs each action type on dev-subset queries, writes
-  median latency per action to `configs/latency_profile.yaml`.
+  median latency per action to `configs/latency_profile.yaml` (format and definitions:
+  ACTION_POLICY §4). Each query uses its own throwaway task in a temporary database, so the
+  REUSE timing reflects a small per-task cache. The generated file is committed with the
+  commit it was measured on (`git_commit` in the file).

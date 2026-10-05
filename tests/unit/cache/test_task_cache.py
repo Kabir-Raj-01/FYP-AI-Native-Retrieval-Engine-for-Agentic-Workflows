@@ -210,3 +210,23 @@ def test_each_thread_gets_its_own_connection(cache: TaskCache, embedder: FakeEmb
     with ThreadPoolExecutor(max_workers=4) as pool:
         hits = list(pool.map(lambda _: cache.lookup("t-1", ACQ, NeedType.SEMANTIC), range(20)))
     assert all(h is not None and h.match == "exact" for h in hits)
+
+
+def test_exact_hit_reads_only_matching_rows(
+    cache: TaskCache, embedder: FakeEmbedder, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stored(cache, embedder, entry_id="a")
+    stored(cache, embedder, query=UNRELATED, entry_id="b", step=2)
+    calls: list[str | None] = []
+    real = state_sqlite.read_cache_entries
+
+    def spy(conn: object, task_id: str, normalized_query: str | None = None) -> object:
+        calls.append(normalized_query)
+        return real(conn, task_id, normalized_query)  # type: ignore[arg-type]
+
+    monkeypatch.setattr("engine.cache.task_cache.read_cache_entries", spy)
+    assert cache.lookup("t-1", ACQ, NeedType.SEMANTIC) is not None
+    assert calls == [normalize(ACQ)]  # the full-task read happens only on an exact miss
+    calls.clear()
+    cache.lookup("t-1", PARAPHRASE, NeedType.SEMANTIC)
+    assert calls == [normalize(PARAPHRASE), None]

@@ -76,12 +76,24 @@ def _load(entry_json: str) -> CacheEntry:
     return entry
 
 
-def read_cache_entries(conn: sqlite3.Connection, task_id: str) -> list[CacheEntry]:
-    """Every entry of ``task_id`` (oldest first). Never reads another task's rows."""
-    rows = conn.execute(
-        "SELECT entry_json FROM cache_entries WHERE task_id = ? ORDER BY created_at_step, entry_id",
-        (task_id,),
-    ).fetchall()
+def read_cache_entries(
+    conn: sqlite3.Connection, task_id: str, normalized_query: str | None = None
+) -> list[CacheEntry]:
+    """Entries of ``task_id`` (oldest first), optionally only those with
+    ``normalized_query`` (uses the (task_id, normalized_query) index). Never reads another
+    task's rows."""
+    if normalized_query is None:
+        rows = conn.execute(
+            "SELECT entry_json FROM cache_entries WHERE task_id = ? "
+            "ORDER BY created_at_step, entry_id",
+            (task_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT entry_json FROM cache_entries WHERE task_id = ? AND normalized_query = ? "
+            "ORDER BY created_at_step, entry_id",
+            (task_id, normalized_query),
+        ).fetchall()
     return [_load(row[0]) for row in rows]
 
 

@@ -5,7 +5,8 @@ Lookup for (task_id, query, need_type), in order:
 2. Only this task's entries are read (SQL ``WHERE task_id = ?``) — never another task's.
 3. Only entries whose mode can serve the need: dense -> semantic/mixed, sparse -> lexical,
    hybrid -> all.
-4. Exact: an entry whose ``normalized_query`` equals ``normalize(query)`` -> similarity 1.0.
+4. Exact: an entry whose ``normalized_query`` equals ``normalize(query)`` -> similarity 1.0
+   (an indexed SQL lookup; no other entry is loaded and nothing is embedded).
 5. Semantic: cosine of ``Embedder.embed_queries([query])`` with each ``query_vector``; the
    best one at or above ``cache.similarity_threshold``.
 Ties prefer more candidates, then the newest entry, then ``entry_id``.
@@ -67,10 +68,18 @@ class TaskCache(Cache):
         if not self._cfg.ablation.cache:
             self._log.info("cache.miss", task_id=task_id, query=query, reason="ablation")
             return None
-        compatible = [
-            e for e in read_cache_entries(self._conn(), task_id) if need_type in SERVES[e.mode]
+        conn = self._conn()
+        normalized = normalize(query)
+        exact = [
+            e for e in read_cache_entries(conn, task_id, normalized) if need_type in SERVES[e.mode]
         ]
-        hit = self._exact(compatible, normalize(query)) or self._semantic(compatible, query)
+        hit = self._exact(exact, normalized)
+        compatible: list[CacheEntry] = []
+        if hit is None:  # only now load every entry of the task (semantic match)
+            compatible = [
+                e for e in read_cache_entries(conn, task_id) if need_type in SERVES[e.mode]
+            ]
+            hit = self._semantic(compatible, query)
         if hit is None:
             self._log.info(
                 "cache.miss",

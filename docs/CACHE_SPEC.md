@@ -29,7 +29,9 @@ a space (`state-of-the-art` → `state of the art`, `U.S.` → `u s`).
 6. Return the best compatible hit, or None. Emit `cache.hit` / `cache.miss`.
 
 Compatibility filters both exact and semantic matches. Exact matching is tried first and
-needs no embedding. Semantic similarity is the cosine of `Embedder.embed_queries([query])`
+needs no embedding; it is an indexed SQL lookup on (task_id, normalized_query), so an exact
+hit loads only the matching rows (≈ 4 ms on CPU) — the whole task's entries (each with its
+candidates' vectors) are loaded only when the semantic match is needed. Semantic similarity is the cosine of `Embedder.embed_queries([query])`
 with the stored `query_vector`; the threshold is inclusive (`≥`). Ties prefer the entry
 with more candidates, then the newest (`created_at_step`), then `entry_id`. Producers must
 compute `query_vector` with `Embedder.embed_queries` (the same model and query prefix).

@@ -81,6 +81,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [ ] All: read ≥ 20 trajectories by hand with `show_trace.py`; log failure categories
 - [ ] V: golden-trajectory and fault-injection tests
 - [ ] K: latency profile (`python scripts\latency_profile.py`)
+      — script done and `configs/latency_profile.yaml` generated (REUSE 3.8, DENSE 139,
+      SPARSE_HYBRID 154, RERANK_EXPAND 168 ms median); re-run for TRANSFORM once the
+      planner exists
 - [ ] Fallback if controller-ON slips: baselines + modular component demos remain the FYP-I demo
 
 ## Week 16 (30 Nov–6 Dec) — FYP-I draft
