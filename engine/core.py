@@ -21,7 +21,9 @@ import threading
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager, suppress
+from dataclasses import replace
 from datetime import UTC, datetime
+from pathlib import Path
 
 from engine import factory
 from engine.config import EngineConfig
@@ -85,6 +87,8 @@ class Engine:
         self._guard = threading.Lock()
         # ponytail: one Lock per task id, never removed; prune if a server runs for weeks
         self._task_locks: dict[str, threading.Lock] = {}
+        self._template: Components | None = None  # shared parts for for_run()
+        self._llm: object | None = None  # the LLM client, once built (run totals)
 
     @classmethod
     def from_config(cls, cfg: EngineConfig, traces: TraceWriter | None = None) -> Engine:
@@ -96,11 +100,42 @@ class Engine:
         embedder = factory.build_embedder(cfg)
         sparse = factory.build_sparse_encoder(cfg)
         retriever = factory.build_retriever(cfg, embedder, sparse)
-        try:
-            reranker: Reranker | None = factory.build_reranker(cfg, embedder)
-        except NotImplementedError:  # Reranker arrives with ADR-005 (Weeks 11-12)
-            reranker = None
+        reranker = factory.build_reranker(cfg, embedder)  # the model loads on first use
         return cls(cfg, retriever=retriever, reranker=reranker, embedder=embedder, traces=traces)
+
+    def for_run(self, traces: TraceWriter, state_db: Path) -> Engine:
+        """An Engine for one eval sub-run: the same retriever, reranker, embedder, LLM client,
+        planner, controller, evidence manager and monitor (so per-run LLM caps span the
+        run), with its own TaskStore + cache at ``state_db`` and its own ``traces``."""
+        with self._guard:
+            if self._template is None:
+                self._template = self._controlled or self._build_controlled(traces)
+            base = self._template
+        cfg = self._cfg.model_copy(deep=True)
+        cfg.paths.state_db = state_db
+        parts = replace(
+            base,
+            store=factory.build_task_store(cfg),
+            cache=factory.build_cache(cfg, base.embedder),
+            traces=traces,
+        )
+        child = Engine(
+            self._cfg,
+            retriever=self._retriever,
+            reranker=self._reranker,
+            embedder=self._embedder,
+            traces=traces,
+            controlled=parts,
+            clock=self._clock,
+            now=self._now,
+        )
+        child._llm = self._llm
+        return child
+
+    def llm_run_totals(self) -> dict[str, float]:
+        """Real LLM requests and spend of this process's LLM client (run manifest)."""
+        totals = getattr(self._llm, "run_totals", None)
+        return dict(totals) if totals is not None else {"llm_calls": 0, "cost_usd": 0.0}
 
     @property
     def cfg(self) -> EngineConfig:
@@ -177,6 +212,11 @@ class Engine:
     def state(self, task_id: str) -> RetrievalState:
         return self._parts().store.load(task_id)
 
+    def trace(self, task_id: str) -> list[TraceStep]:
+        """Every TraceStep of ``task_id`` written so far (raises TaskNotFound first)."""
+        self._parts().store.load(task_id)
+        return self._parts().traces.read_steps(task_id)
+
     def step(self, task_id: str) -> TraceStep:
         """Run exactly one iteration and return its TraceStep.
 
@@ -218,14 +258,15 @@ class Engine:
     def _parts(self) -> Components:
         with self._guard:
             if self._controlled is None:
-                self._controlled = self._build_controlled()
+                self._controlled = self._build_controlled(self._traces)
             return self._controlled
 
-    def _build_controlled(self) -> Components:
+    def _build_controlled(self, traces: TraceWriter | None) -> Components:
         cfg = self._cfg
-        if self._embedder is None or self._traces is None or self._reranker is None:
+        if self._embedder is None or traces is None or self._reranker is None:
             raise ConfigError("the controlled path needs an embedder, a reranker and traces")
         llm = factory.build_llm_client(cfg)
+        self._llm = llm
         return Components(
             store=factory.build_task_store(cfg),
             cache=factory.build_cache(cfg, self._embedder),
@@ -236,7 +277,7 @@ class Engine:
             evidence=factory.build_evidence_manager(cfg, self._embedder, llm),
             monitor=factory.build_monitor(cfg),
             embedder=self._embedder,
-            traces=self._traces,
+            traces=traces,
         )
 
     @contextmanager

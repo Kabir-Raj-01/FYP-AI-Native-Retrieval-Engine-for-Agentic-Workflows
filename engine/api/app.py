@@ -8,8 +8,9 @@ The Engine is built once at start-up (lifespan) from the config named by
 status (``engine/errors.py``); request-validation failures are 422 ``VALIDATION_ERROR``;
 anything else is 500 ``INTERNAL_ERROR`` without internals in the message.
 
-This version serves ``/v1/health`` and ``/v1/retrieve/direct``; the ``/v1/tasks`` routes
-are added with the controlled path (TASKS Weeks 8-9).
+Controlled tasks (``/v1/tasks``) keep their state in ``paths.state_db`` and their traces
+and bundles under ``paths.runs_dir/server/`` (run_id ``server``, system ``controller_on``),
+where ``GET /v1/tasks/{id}/trace`` reads them back.
 """
 
 from __future__ import annotations
@@ -22,11 +23,13 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from engine.api.routers import direct, health
+from engine import factory
+from engine.api.routers import direct, health, tasks
 from engine.config import config_hash, load_config
 from engine.core import Engine
 from engine.errors import EngineError
 from engine.monitor.logging import configure_logging, get_logger
+from engine.state.models import RunContext
 
 __all__ = ["app", "create_app", "error_body"]
 
@@ -42,7 +45,13 @@ def create_app(engine: Engine | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        built = engine if engine is not None else Engine.from_config(load_config())
+        if engine is not None:
+            built = engine
+        else:
+            cfg = load_config()
+            server = RunContext(run_id="server", system="controller_on")
+            traces = factory.build_trace_writer(cfg, server, cfg.paths.runs_dir / "server")
+            built = Engine.from_config(cfg, traces=traces)
         configure_logging(built.cfg.logging)
         app.state.engine = built
         app.state.config_hash = config_hash(built.cfg)
@@ -75,6 +84,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
 
     app.include_router(health.router, prefix="/v1")
     app.include_router(direct.router, prefix="/v1")
+    app.include_router(tasks.router, prefix="/v1")
     return app
 
 

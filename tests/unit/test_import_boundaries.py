@@ -62,6 +62,7 @@ SHARED_MODULES = {
     "engine.state.invariants",
     "engine.monitor.logging",  # the shared event logger (OBSERVABILITY §3), not a component
     "engine.state.sqlite",  # shared SQLite schema + cache-table rules (TaskStore and Cache)
+    "engine.api.schemas",  # the HTTP request/response models (CLAUDE.md rule 2); client uses them
 }
 CLIENT_ALLOWED = {"engine.state.models", "engine.api.schemas"}
 # The Engine facade runs the controlled path itself (ARCHITECTURE §1: core sits directly over

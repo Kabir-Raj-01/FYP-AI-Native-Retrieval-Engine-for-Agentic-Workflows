@@ -8,12 +8,12 @@ from fastapi.exceptions import RequestValidationError
 from engine.api.schemas import DirectRequest, DirectResponse
 from engine.core import Engine
 
-__all__ = ["router"]
+__all__ = ["invalid", "router"]
 
 router = APIRouter()
 
 
-def _invalid(field: str, message: str) -> RequestValidationError:
+def invalid(field: str, message: str) -> RequestValidationError:
     return RequestValidationError([{"loc": ("body", field), "msg": message, "type": "value_error"}])
 
 
@@ -23,11 +23,11 @@ def retrieve_direct(body: DirectRequest, request: Request) -> DirectResponse:
     cfg = engine.cfg
     # Request limits come from configuration (ADR-010) -> 422 VALIDATION_ERROR.
     if len(body.query) > cfg.api.query_max_chars:
-        raise _invalid("query", f"longer than api.query_max_chars ({cfg.api.query_max_chars})")
+        raise invalid("query", f"longer than api.query_max_chars ({cfg.api.query_max_chars})")
     if body.k is not None and body.k > cfg.retrieval.max_k:
-        raise _invalid("k", f"greater than retrieval.max_k ({cfg.retrieval.max_k})")
+        raise invalid("k", f"greater than retrieval.max_k ({cfg.retrieval.max_k})")
     if body.rerank and not engine.has_reranker:
-        raise _invalid("rerank", "rerank is not available yet (ADR-005)")
+        raise invalid("rerank", "this server has no reranker")
 
     result = engine.retrieve_direct(body.query, body.mode, body.k, body.rerank)
     if result.scored is not None:

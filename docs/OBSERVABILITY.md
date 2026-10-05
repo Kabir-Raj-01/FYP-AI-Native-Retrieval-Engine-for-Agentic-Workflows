@@ -91,9 +91,10 @@ listed in the thesis appendix.
 `<task_id>` in file names is percent-encoded (`multihop:0001` → `multihop%3A0001.jsonl`):
 Windows forbids `:` in file names; `urllib.parse.unquote` restores the id. Files are UTF-8
 with LF line endings. Run-id creation, `events.jsonl` (the event log written to a file),
-`config.resolved.yaml` and the manifest belong to the eval harness (`eval/run.py`); where the
-API server keeps its traces (for `GET /v1/tasks/{id}/trace`) is decided with the `/tasks`
-routes.
+`config.resolved.yaml` and the manifest belong to the eval harness (`eval/run.py`). The API
+server writes its traces and bundles under `paths.runs_dir/server/` (`traces/`, `bundles/`)
+with `run_id = "server"`, `system = "controller_on"`; `GET /v1/tasks/{id}/trace` reads them
+back (decided 2026-10-05 with the `/tasks` routes, user-approved; owner to confirm).
 
 ## 5. Manifest (`manifest.json`)
 `run_id, experiment, system, dataset, split, created_at, git_commit, git_dirty (must be

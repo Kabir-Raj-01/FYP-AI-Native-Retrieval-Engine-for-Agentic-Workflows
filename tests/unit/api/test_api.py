@@ -159,7 +159,7 @@ def test_rerank_without_a_reranker_is_422(client: TestClient) -> None:
     error = assert_error(
         client.post(URL, json={"query": "x", "rerank": True}), 422, "VALIDATION_ERROR"
     )
-    assert "rerank is not available" in str(error["message"])
+    assert "has no reranker" in str(error["message"])
 
 
 # -------------------------------------------------------------------- error mapping

@@ -42,7 +42,8 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [x] K: controller-OFF direct path — `Engine.retrieve_direct` + `/retrieve/direct` endpoint (FR3, ARCHITECTURE §6, API_CONTRACT)
       — with a minimal app shell (`/v1/health`); `rerank=true` → 422 until the Reranker
       (ADR-005); NFR-P1 median 104 ms; merge waits for ADR-012
-- [ ] V: FastAPI app, `/health`, `/tasks` create/state (FR2, API_CONTRACT)
+- [x] V: FastAPI app, `/health`, `/tasks` create/state (FR2, API_CONTRACT)
+      — `/v1/tasks` routes built by K (`engine/api/routers/tasks.py`, branch `k/controlled-path`)
 - [x] V: eval harness v0: dataset loader, dense_oneshot, metrics (Recall/Hit/MRR/CER), run folder + manifest (EVAL_PROTOCOL, OBSERVABILITY)
       — built by K: `python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml`;
       dense_oneshot without rerank until ADR-005
@@ -112,7 +113,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [ ] S: state-aware reranking prototype (FR7, RERANK_SPEC) — may run into FYP-II per Gantt
       — built by K with the Reranker (`engine/rerank/state_aware.py`; FR7 constructed case
       reproduced exactly); weights stay Draft until the calibration ADR
-- [ ] V: `/step`, `/run`, `/result`, `/trace` endpoints + RetrievalClient (FR11)
+- [x] V: `/step`, `/run`, `/result`, `/trace` endpoints + RetrievalClient (FR11)
+      — built by K (`engine/api/routers/tasks.py`, `client/`); server traces in
+      `paths.runs_dir/server/` (OBSERVABILITY §4)
 
 ## Weeks 14–15 (16–29 Nov) — Integration and test buffer (no new features)
 - [ ] All: end-to-end controller_on runs on dev subset; fix defects
