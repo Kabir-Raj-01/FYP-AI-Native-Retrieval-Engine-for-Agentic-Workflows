@@ -8,7 +8,22 @@ from __future__ import annotations
 
 import unicodedata
 
-__all__ = ["normalize"]
+__all__ = ["normalize", "summary_of"]
+
+# A sentence end: . ! or ? followed by whitespace (PLANNER_SPEC §3 "sentence boundary").
+_SENTENCE_ENDS = (". ", "! ", "? ")
+
+
+def summary_of(text: str, max_chars: int) -> str:
+    """``EvidenceItem.summary``: ``text`` truncated to ``max_chars`` at the last sentence
+    boundary (PLANNER_SPEC §3; ``planner.evidence_summary_chars``). Deterministic, no LLM.
+    Falls back to a hard cut when the first sentence alone is longer than ``max_chars``.
+    """
+    if len(text) <= max_chars:
+        return text
+    window = text[: max_chars + 1]  # a boundary may sit right at max_chars
+    cut = max(window.rfind(end) for end in _SENTENCE_ENDS)
+    return text[: cut + 1] if cut > 0 else text[:max_chars]
 
 
 def _is_punct(ch: str) -> bool:

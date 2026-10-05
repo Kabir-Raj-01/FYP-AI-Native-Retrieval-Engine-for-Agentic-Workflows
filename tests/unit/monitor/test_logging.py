@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -24,6 +25,15 @@ def test_json_events_carry_ts_level_component_and_fields(
         3,
     )
     assert line["ts"].endswith("Z")
+
+
+def test_logger_created_before_configuration_follows_it(cfg: EngineConfig, tmp_path: Path) -> None:
+    early = get_logger("engine.core")  # e.g. the Engine, built before the run configures logs
+    configure_logging(cfg.logging, events_file=tmp_path / "events.jsonl")
+    early.info("retrieval.call", k=3)
+    (line,) = (tmp_path / "events.jsonl").read_text("utf-8").splitlines()
+    event = json.loads(line)
+    assert (event["event"], event["component"], event["k"]) == ("retrieval.call", "engine.core", 3)
 
 
 def test_level_filters_lower_events(cfg: EngineConfig, capsys: pytest.CaptureFixture[str]) -> None:
