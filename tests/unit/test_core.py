@@ -109,6 +109,17 @@ def test_retrieval_call_event_is_logged(cfg: EngineConfig, retriever: FakeRetrie
     assert event["latency_ms"] == pytest.approx(50.0)
 
 
+def test_retrieval_event_latency_excludes_rerank(
+    cfg: EngineConfig, retriever: FakeRetriever
+) -> None:
+    eng = engine(cfg, retriever, reranker=FakeReranker(default=0.1))
+    with capture_logs() as logs:
+        result = eng.retrieve_direct("Linden Bay", RetrievalMode.DENSE, k=5, rerank=True)
+    (event,) = [e for e in logs if e["event"] == "retrieval.call"]
+    assert event["latency_ms"] == pytest.approx(50.0)  # one tick: the search
+    assert result.latency_ms == pytest.approx(100.0)  # two ticks: search + rerank (ADR-012)
+
+
 def test_health_delegates_to_the_retriever(
     cfg: EngineConfig, mini_corpus: list[CorpusChunk]
 ) -> None:

@@ -59,6 +59,9 @@ Open for the owner (Samay) — not decided here:
    (fewer candidates, or a lower `max_input_tokens`), or accept bge and budget the time.
 2. Pin the reranker revision (a `rerank.revision` key, like `embedding.revision`).
 3. Confirm on the full dev split (and on hybrid candidates) before the key is frozen.
+4. With a reranker, the one-shot baselines' TraceStep `latency_ms["execute"]` would include
+   rerank time, because `DirectResult.latency_ms` is search + rerank. Splitting it (e.g.
+   `rerank_latency_ms`) is an ADR-012 amendment, to be done with the Reranker.
 
 ## Consequences
 `rerank.cross_encoder_model` Frozen; used identically by all systems.

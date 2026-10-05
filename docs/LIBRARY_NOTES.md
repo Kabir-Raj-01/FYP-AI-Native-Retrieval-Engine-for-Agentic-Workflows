@@ -235,6 +235,24 @@ it**. Rules:
     Field(alias="json")`. Do **not** add `populate_by_name=True`: it also accepts the key
     `json_`, which then slips past `extra="forbid"`.
 
+## structlog
+- [x] Context binding, verified 2026-10-05 on 26.1.0 / Python 3.11: `merge_contextvars`
+      (first processor) adds keys bound with `structlog.contextvars.bound_contextvars(**kw)`,
+      which restores the previous values on exit (also on exceptions). Bindings are per
+      thread: a `concurrent.futures.ThreadPoolExecutor` worker does **not** inherit the
+      submitting thread's context (checked), so bind inside the work item.
+- Gotchas:
+  - `structlog.testing.capture_logs()` replaces the processor chain, so captured event
+    dicts are flat (no `data` nesting, no contextvars) — assert the line shape on real
+    output (`capsys` or an `events.jsonl` file), not with `capture_logs`.
+  - `structlog.get_logger().bind(...)` freezes the configuration at bind time; use the lazy
+    `engine.monitor.logging.get_logger(component)`.
+  - `bind_contextvars` creates each key's `ContextVar` lazily without a lock: two threads
+    binding a never-before-bound key at the same instant can each create one, and a stale
+    value may then shadow later bindings in that thread. Not reproduced at the default GIL
+    switch interval (5,000 trials, 2026-10-05 review); if the controlled loop binds ids from
+    the API threadpool, bind-and-unbind the keys once at startup to pre-create them.
+
 ## python-dotenv
 - [x] Verified 2026-10-04 on 1.2.4 (installed signature): `load_dotenv(override=False)`
       by default (existing variables win); `find_dotenv(usecwd=True)` searches upwards from

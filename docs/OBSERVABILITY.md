@@ -50,7 +50,12 @@ Event names (e.g. `cache.hit`, `llm.call`) are **not** config keys, even where t
 prefix with a config section. Config keys are listed only in CONFIG_SCHEMA.md.
 
 JSON lines with `ts, level, event, run_id, task_id, step, data`. Logger: `structlog`
-configured in `engine/monitor/logging.py`.
+configured in `engine/monitor/logging.py`. `run_id`, `task_id` and `step` are null when
+unbound (e.g. the API server's direct path); everything else, including the logger's
+`component`, goes under `data`. Producers bind the ids with
+`engine.monitor.logging.bound_contextvars(...)`: the eval harness binds `run_id` and
+`task_id` around each task (inside the worker thread — bindings are per thread), and the
+code that runs a step binds `step` (one-shot baselines: 1).
 | Event | data |
 |---|---|
 | `task.created` / `task.stopped` | budget / stop_reason, summary |

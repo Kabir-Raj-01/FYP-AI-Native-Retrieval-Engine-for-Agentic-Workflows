@@ -64,11 +64,17 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [x] K: hybrid mode (prefetch + RRF); hybrid_oneshot baseline (BASELINES_SPEC)
       — `python -m eval.run --config configs\experiments\hybrid_oneshot_dev.yaml`;
       shares `run_oneshot` with dense_oneshot; without rerank until ADR-005
-- [ ] K: retrieval instrumentation (latency, calls) in traces
+- [x] K: retrieval instrumentation (latency, calls) in traces
+      — calls and latency per step in TraceStep (`budget_after`, `latency_ms`) for the
+      one-shot baselines; `events.jsonl` lines carry `run_id`/`task_id`/`step` with fields
+      under `data` (OBSERVABILITY §3); `retrieval.call.latency_ms` is search-only. The
+      controlled loop's `execute` node records its own (S, with the graph)
 - [ ] V: LLMClient (providers, structured output, cache, caps) (LLM_CLIENT_SPEC); ADR-004 model choices
 - [ ] V: planner v1: INIT/REWRITE/SPLIT, validator, fallback, prompts (FR4, PLANNER_SPEC)
 - [ ] S: real `maybe_plan` node → gaps in state; explicit state updates per ownership matrix
 - [ ] V: cross-encoder relevance-only Reranker (used by baselines); ADR-005
+      — once it exists, one-shot traces need `latency_ms["rerank"]` split from `execute`:
+      `DirectResult` has only the total, so this needs an ADR-012 amendment
 - [ ] All: early MultiHop-RAG results table (dense vs hybrid)
 - [ ] Tag `v0.3-midterm`
 

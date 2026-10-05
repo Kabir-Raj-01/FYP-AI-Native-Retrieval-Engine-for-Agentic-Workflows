@@ -93,10 +93,7 @@ class Engine:
 
         start = self._clock()
         candidates = self._retriever.search(query, mode, size)
-        scored = None
-        if rerank and self._reranker is not None:
-            scored = self._reranker.rerank(query, candidates, None)
-        latency_ms = (self._clock() - start) * 1000.0
+        latency_ms = search_ms = (self._clock() - start) * 1000.0
         self._log.info(
             "retrieval.call",
             path="direct",
@@ -105,8 +102,12 @@ class Engine:
             query=query,
             n_returned=len(candidates),
             rerank=rerank,
-            latency_ms=round(latency_ms, 2),
+            latency_ms=round(search_ms, 2),  # search only (RETRIEVAL_SPEC §4)
         )
+        scored = None
+        if rerank and self._reranker is not None:
+            scored = self._reranker.rerank(query, candidates, None)
+            latency_ms = (self._clock() - start) * 1000.0
         return DirectResult(candidates=candidates, scored=scored, latency_ms=latency_ms)
 
     # ----------------------------------------------------- controlled path (Weeks 8-9)

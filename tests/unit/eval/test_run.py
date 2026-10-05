@@ -106,6 +106,14 @@ def test_run_folder_layout_and_metrics(
         json.loads(line) for line in (run_dir / "events.jsonl").read_text("utf-8").splitlines()
     ]
     assert {"run.started", "retrieval.call", "run.finished"} <= {e["event"] for e in events}
+    # every line joins to the run; retrieval calls also to their task's trace step
+    assert {e["run_id"] for e in events} == {run_dir.name}
+    calls = [e for e in events if e["event"] == "retrieval.call"]
+    assert sorted((e["task_id"], e["step"]) for e in calls) == [
+        ("multihop:0000", 1),
+        ("multihop:0001", 1),
+    ]
+    assert all(e["data"]["mode"] == "dense" for e in calls)
 
 
 def test_manifest_is_complete_and_not_reportable_without_a_reranker(

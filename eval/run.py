@@ -37,7 +37,7 @@ from engine import factory
 from engine.config import EngineConfig, config_hash, load_config
 from engine.core import Engine
 from engine.errors import ConfigError, EngineError
-from engine.monitor.logging import configure_logging, get_logger
+from engine.monitor.logging import bound_contextvars, configure_logging, get_logger
 from engine.state.models import EvidenceBundle, RunContext
 from eval.datasets.base import Task
 from eval.datasets.multihop import load_tasks
@@ -67,10 +67,14 @@ RunTask = Callable[[Task, BaselineContext], EvidenceBundle]
 
 
 def _bound(run_task: RunTask, ctx: BaselineContext) -> Callable[[Task], EvidenceBundle]:
-    """``run_task`` with its context bound (a closure per sub-run, not per loop variable)."""
+    """``run_task`` with its context bound (a closure per sub-run, not per loop variable).
+
+    Binds ``run_id``/``task_id`` for the task's events inside the worker thread.
+    """
 
     def run(task: Task) -> EvidenceBundle:
-        return run_task(task, ctx)
+        with bound_contextvars(run_id=ctx.traces.context.run_id, task_id=task.task_id):
+            return run_task(task, ctx)
 
     return run
 

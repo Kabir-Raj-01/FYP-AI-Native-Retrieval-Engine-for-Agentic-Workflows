@@ -81,7 +81,8 @@ may threshold on `retrieval_score`; relevance thresholds use the cross-encoder o
 ## 4. Latency and instrumentation
 `search` measures wall-clock latency (embedding + request) and returns it via the calling
 node, which records it in `RetrievalRecord.latency_ms` and the TraceStep. Emits
-`retrieval.call` events (OBSERVABILITY.md).
+`retrieval.call` events (OBSERVABILITY.md) whose `latency_ms` is the search alone, never
+reranking; on the direct path `DirectResult.latency_ms` is search + rerank (ADR-012).
 
 ## 5. Embedder (`engine/embeddings/`)
 ```python

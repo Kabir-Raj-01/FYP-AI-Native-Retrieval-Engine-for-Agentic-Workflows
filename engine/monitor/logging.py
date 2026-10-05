@@ -1,9 +1,10 @@
 """Structured event logging (OBSERVABILITY.md §3), minimal version.
 
 Events are JSON lines (``logging.json``) at ``logging.level``, each with ``ts``, ``level``,
-``event`` and the event's fields. This first version covers the direct path's
-``retrieval.call``; run/task/step binding and the events of the controlled loop are added
-with the trace writer (TASKS Weeks 8-9).
+``event``, ``run_id``, ``task_id``, ``step`` (null when unbound) and the event's own fields
+under ``data``. Producers bind the ids with ``bound_contextvars(run_id=..., task_id=...)``;
+the binding is per thread, so a worker thread must bind inside its own work item (a
+``ThreadPoolExecutor`` worker does not inherit the submitting thread's context).
 """
 
 from __future__ import annotations
@@ -13,10 +14,20 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+from structlog.contextvars import bound_contextvars, merge_contextvars
 
 from engine.config import LoggingConfig
 
-__all__ = ["configure_logging", "get_logger"]
+__all__ = ["bound_contextvars", "configure_logging", "get_logger"]
+
+# Top-level keys of an event line (OBSERVABILITY §3); every other field goes under "data".
+_TOP_LEVEL = ("ts", "level", "event", "run_id", "task_id", "step")
+
+
+def _nest_data(_logger: Any, _method: str, event_dict: Any) -> dict[str, Any]:
+    line = {key: event_dict.pop(key, None) for key in _TOP_LEVEL}
+    line["data"] = event_dict
+    return line
 
 
 def configure_logging(cfg: LoggingConfig, events_file: Path | None = None) -> None:
@@ -38,8 +49,10 @@ def configure_logging(cfg: LoggingConfig, events_file: Path | None = None) -> No
         factory = structlog.WriteLoggerFactory(file=stream)
     structlog.configure(
         processors=[
+            merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="ts"),
+            _nest_data,
             renderer,
         ],
         wrapper_class=structlog.make_filtering_bound_logger(level),

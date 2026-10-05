@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from baselines.base import BaselineContext
 from engine.monitor.interfaces import TraceWriter
+from engine.monitor.logging import bound_contextvars
 from engine.state.models import (
     Action,
     Budget,
@@ -66,7 +67,8 @@ def run_oneshot(
     cfg = ctx.cfg
     k = cfg.retrieval.default_k
     reranked = ctx.engine.has_reranker
-    result = ctx.engine.retrieve_direct(task.question, mode, k, rerank=reranked)
+    with bound_contextvars(step=1):
+        result = ctx.engine.retrieve_direct(task.question, mode, k, rerank=reranked)
     if result.scored is not None:
         ranked = [(s.candidate, s.relevance, s.final_score) for s in result.scored]
     else:
