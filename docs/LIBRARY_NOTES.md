@@ -147,13 +147,22 @@ it**. Rules:
       numerically). The model ships empty `prompts` (`{'query': '', 'document': ''}`).
       Throughput on an i7-1185G7 (4 cores, no GPU): ≈ 0.9 chunks/s at ~344 tokens,
       independent of batch size 8–64.
-- [ ] CrossEncoder: does `predict` return logits or probabilities for the chosen reranker
-      (depends on model and library version)? Relevance must end in [0,1]. Verified:
+- [x] CrossEncoder, verified 2026-10-05 on 6.1.0: it depends on the model, so read
+      `model.activation_fn` rather than assuming. `CrossEncoder(name, device="cpu",
+      max_length=...)`; `predict(pairs, batch_size=, show_progress_bar=False)` → numpy
+      `(n,)`. `BAAI/bge-reranker-base` (`2cfc18c9…`): `Sigmoid()` → probabilities already in
+      [0,1], but tiny on long questions (0.000–0.003 observed) — calibrate thresholds.
+      `cross-encoder/ms-marco-MiniLM-L-6-v2` (`233902d2…`): `Identity()` → logits, apply a
+      sigmoid. Full shas and the quality probe in ADR-005.
 - Gotchas:
   - 6.x renamed `get_sentence_embedding_dimension()` to `get_embedding_dimension()` (the
     old name still works but emits a `FutureWarning`).
   - Expect a CPU cross-encoder of base size to need tens of seconds for 20–60 candidates on
-    this laptop class (same per-token cost as the embedder) — see ADR-005.
+    this laptop class (same per-token cost as the embedder) — see ADR-005. Measured (on battery,
+    so indicative only): bge-reranker-base 10–24 s per 20 pairs at 512 tokens.
+  - Timings on battery are unreliable on this laptop: the CPU was throttled to ~1 GHz and
+    repeat runs differed by >2×, while `Win32_Processor.CurrentClockSpeed` can still
+    report the full clock. Benchmark on AC power only.
 
 ## LangGraph
 - [x] `StateGraph` with a Pydantic model as state; nodes returning partial updates;
