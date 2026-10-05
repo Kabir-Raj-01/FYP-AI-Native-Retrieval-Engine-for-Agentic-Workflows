@@ -1,6 +1,6 @@
 # Observability: Traces, Events, Runs
 
-> Status: Frozen for the TraceStep schema (ADR to change) · Owner: Vishal · Last updated: 2026-09-28
+> Status: Frozen for the TraceStep schema (ADR to change) · Owner: Vishal · Last updated: 2026-10-05
 > TraceStep amended by ADR-009 (schema_version, step semantics, run_id/system via RunContext).
 
 ## 1. Three kinds of records
@@ -31,6 +31,20 @@
 Baselines fill the same fields (e.g. one-shot: one step, action DENSE/SPARSE_HYBRID).
 Vectors are never written to traces.
 
+**Writer** (`engine/monitor/interfaces.py:TraceWriter`, JSONL implementation
+`engine/monitor/trace.py`, `factory.build_trace_writer(cfg, ctx, root)`), shared by the
+engine's `persist` node and every baseline:
+- Bound to one `RunContext`; producers create records with `writer.new_step(**fields)`,
+  which stamps `run_id`/`system` (ADR-009 §6), and `write_step` refuses a step of another
+  run or system.
+- Per task, steps must arrive as 1, 2, 3, … (`step == previous + 1`, continuing an existing
+  file); a duplicate or a gap is refused, which catches double writes from retries.
+- `TraceSummary` (for the bundle) = `TraceWriter.summarize(steps)`: `steps`,
+  `retrieval_calls`, `llm_calls`, `tokens`, `reranker_calls` from the last step's
+  `budget_after`; `cache_hits` = steps with `cache_hit`; `total_latency_ms` = sum of
+  `latency_ms["total"]`; `actions` = the action sequence.
+- Unknown `schema_version` on read is an error, never a silent misread.
+
 ## 3. Event log
 Event names (e.g. `cache.hit`, `llm.call`) are **not** config keys, even where they share a
 prefix with a config section. Config keys are listed only in CONFIG_SCHEMA.md.
@@ -59,7 +73,7 @@ DEBUG level only.
 manifest.json
 config.resolved.yaml
 events.jsonl
-b<B>/                       # one sub-folder per retrieval budget sub-run
+b<B>/                       # one sub-folder per retrieval budget sub-run (TraceWriter root)
   traces/<task_id>.jsonl
   bundles/<task_id>.json
   answers.jsonl             # {task_id, answer, generator tokens}
@@ -69,6 +83,12 @@ report/                     # tables and figures (eval/report.py)
 ```
 `eval/runs/` is gitignored; final reported runs are archived (zip) and their run ids
 listed in the thesis appendix.
+`<task_id>` in file names is percent-encoded (`multihop:0001` → `multihop%3A0001.jsonl`):
+Windows forbids `:` in file names; `urllib.parse.unquote` restores the id. Files are UTF-8
+with LF line endings. Run-id creation, `events.jsonl` (the event log written to a file),
+`config.resolved.yaml` and the manifest belong to the eval harness (`eval/run.py`); where the
+API server keeps its traces (for `GET /v1/tasks/{id}/trace`) is decided with the `/tasks`
+routes.
 
 ## 5. Manifest (`manifest.json`)
 `run_id, experiment, system, dataset, split, created_at, git_commit, git_dirty (must be

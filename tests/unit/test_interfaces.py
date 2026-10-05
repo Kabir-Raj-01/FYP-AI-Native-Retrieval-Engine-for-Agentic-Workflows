@@ -11,6 +11,7 @@ from __future__ import annotations
 import inspect
 import typing
 from abc import ABC
+from pathlib import Path
 
 import pytest
 
@@ -21,11 +22,12 @@ from engine.controller.interfaces import Controller
 from engine.embeddings.interfaces import Embedder, SparseEncoder
 from engine.evidence.interfaces import EvidenceManager
 from engine.llm.interfaces import LLMClient, LLMResult, Message
-from engine.monitor.interfaces import TrajectoryMonitor
+from engine.monitor.interfaces import TraceWriter, TrajectoryMonitor
 from engine.planner.interfaces import Planner
 from engine.rerank.interfaces import Reranker
 from engine.retrieval.interfaces import IndexWriter, RetrieverAdapter
 from engine.state.interfaces import TaskStore
+from engine.state.models import RunContext
 
 EXPECTED: dict[type[ABC], dict[str, str]] = {
     TaskStore: {
@@ -60,6 +62,13 @@ EXPECTED: dict[type[ABC], dict[str, str]] = {
         "observe": "(self, state: RetrievalState, decision: ActionDecision,"
         " update: EvidenceUpdate | None) -> MonitorVerdict",
         "advance": "(self, state: RetrievalState) -> AdvanceResult",
+    },
+    TraceWriter: {
+        "context": "property -> RunContext",
+        "write_step": "(self, step: TraceStep) -> None",
+        "write_bundle": "(self, bundle: EvidenceBundle) -> None",
+        "read_steps": "(self, task_id: str) -> list[TraceStep]",
+        "read_bundle": "(self, task_id: str) -> EvidenceBundle | None",
     },
     Embedder: {
         "dimension": "property -> int",
@@ -159,6 +168,7 @@ IMPLEMENTED = {
     "build_retriever",
     "build_index_writer",
     "build_cache",
+    "build_trace_writer",
 }
 
 
@@ -189,3 +199,5 @@ def test_implemented_builders_return_their_interfaces(monkeypatch: pytest.Monkey
     assert isinstance(factory.build_retriever(cfg, embedder, sparse), RetrieverAdapter)
     assert isinstance(factory.build_index_writer(cfg), IndexWriter)
     assert isinstance(factory.build_cache(cfg, embedder), Cache)  # connects lazily
+    ctx = RunContext(run_id="r", system="controller_on")
+    assert isinstance(factory.build_trace_writer(cfg, ctx, Path("unused")), TraceWriter)

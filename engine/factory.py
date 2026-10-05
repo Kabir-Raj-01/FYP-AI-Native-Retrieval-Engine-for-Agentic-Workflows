@@ -18,9 +18,12 @@ Selection (config key -> implementation):
 - Reranker          cross-encoder ``rerank.cross_encoder_model`` + state-aware scoring     [todo]
 - EvidenceManager   thresholds ``evidence.*``; verifier when ``llm.verifier.enabled``      [todo]
 - TrajectoryMonitor stagnation/stop rules ``monitor.*``                                    [todo]
+- TraceWriter       JSONL traces + bundles under a run folder (OBSERVABILITY §4)
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 from engine.cache.interfaces import Cache
 from engine.config import EngineConfig
@@ -28,11 +31,12 @@ from engine.controller.interfaces import Controller
 from engine.embeddings.interfaces import Embedder, SparseEncoder
 from engine.evidence.interfaces import EvidenceManager
 from engine.llm.interfaces import LLMClient
-from engine.monitor.interfaces import TrajectoryMonitor
+from engine.monitor.interfaces import TraceWriter, TrajectoryMonitor
 from engine.planner.interfaces import Planner
 from engine.rerank.interfaces import Reranker
 from engine.retrieval.interfaces import IndexWriter, RetrieverAdapter
 from engine.state.interfaces import TaskStore
+from engine.state.models import RunContext
 
 __all__ = [
     "build_cache",
@@ -47,6 +51,7 @@ __all__ = [
     "build_retriever",
     "build_sparse_encoder",
     "build_task_store",
+    "build_trace_writer",
 ]
 
 
@@ -114,3 +119,11 @@ def build_evidence_manager(
 
 def build_monitor(cfg: EngineConfig) -> TrajectoryMonitor:
     raise _not_built("TrajectoryMonitor")
+
+
+def build_trace_writer(cfg: EngineConfig, ctx: RunContext, root: Path) -> TraceWriter:
+    """Trace writer for one run (``ctx``) writing under ``root`` (an eval sub-run folder, or
+    the server's trace folder — the latter is decided with the ``/tasks`` routes)."""
+    from engine.monitor.trace import JsonlTraceWriter
+
+    return JsonlTraceWriter(root, ctx)

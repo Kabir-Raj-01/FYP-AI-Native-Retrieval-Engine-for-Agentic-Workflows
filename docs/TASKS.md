@@ -45,7 +45,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [ ] V: FastAPI app, `/health`, `/tasks` create/state (FR2, API_CONTRACT)
 - [ ] V: eval harness v0: dataset loader, dense_oneshot, metrics (Recall/Hit/MRR/CER), run folder + manifest (EVAL_PROTOCOL, OBSERVABILITY)
 - [ ] S: SQLite TaskStore (WAL, version check) + LangGraph skeleton with stub nodes; `Engine.step/run` loop with budget cap (ARCHITECTURE §3–4)
-- [ ] V: trace writer (TraceStep) shared by engine and baselines (OBSERVABILITY)
+- [x] V: trace writer (TraceStep) shared by engine and baselines (OBSERVABILITY)
+      — built by K: `engine/monitor/trace.py` (JSONL traces + bundles, context stamping,
+      step-order check, `summarize`); events.jsonl + manifest stay with the eval harness
 
 ## Week 10 (19–25 Oct) — Working prototype checkpoint
 - [ ] K+V: E0 — dense_oneshot results on the dev subset through the service
