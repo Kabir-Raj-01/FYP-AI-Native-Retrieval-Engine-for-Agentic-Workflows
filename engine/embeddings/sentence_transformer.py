@@ -3,11 +3,14 @@
 The model is ``embedding.model_name`` at the pinned ``embedding.revision``. Vectors are
 L2-normalised float32, so dot product == cosine. Query texts get ``embedding.query_prefix``
 and are cached in an in-process LRU (``embedding.lru_size``); passages get
-``embedding.passage_prefix`` and are not cached (bulk ingestion).
+``embedding.passage_prefix`` and are not cached (bulk ingestion). Thread-safe: the API
+serves sync endpoints from a threadpool (ARCHITECTURE §3), so the cache and the model are
+used under one lock.
 """
 
 from __future__ import annotations
 
+import threading
 from collections import OrderedDict
 from typing import Any, Protocol
 
@@ -45,12 +48,17 @@ class SentenceTransformerEmbedder(Embedder):
                 f"{cfg.dimension}"
             )
         self._query_cache: OrderedDict[str, np.ndarray] = OrderedDict()
+        self._lock = threading.Lock()
 
     @property
     def dimension(self) -> int:
         return self._cfg.dimension
 
     def embed_queries(self, texts: list[str]) -> Vectors:
+        with self._lock:
+            return self._embed_queries(texts)
+
+    def _embed_queries(self, texts: list[str]) -> Vectors:
         found: dict[str, np.ndarray] = {}
         for text in dict.fromkeys(texts):
             cached = self._query_cache.get(text)
@@ -68,7 +76,8 @@ class SentenceTransformerEmbedder(Embedder):
         return self._stack([found[t] for t in texts])
 
     def embed_passages(self, texts: list[str]) -> Vectors:
-        return self._encode([self._cfg.passage_prefix + t for t in texts])
+        with self._lock:
+            return self._encode([self._cfg.passage_prefix + t for t in texts])
 
     def _remember(self, text: str, vector: np.ndarray) -> None:
         if self._cfg.lru_size <= 0:

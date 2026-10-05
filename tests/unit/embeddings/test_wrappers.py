@@ -148,3 +148,17 @@ def test_bm25_empty_inputs(cfg: EngineConfig, tmp_path: Path) -> None:
     encoder = FastEmbedBM25Encoder(cfg.sparse, tmp_path, model)
     assert encoder.encode_documents([]) == encoder.encode_queries([]) == []
     assert model.calls == []
+
+
+def test_embedder_is_safe_under_concurrent_queries(st_cfg: EngineConfig) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    st_cfg.embedding.lru_size = 3
+    embedder = SentenceTransformerEmbedder(st_cfg.embedding, FakeSTModel())
+    texts = [f"query {i % 7}" for i in range(200)]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda t: embedder.embed_queries([t, "shared"]), texts))
+    expected = {t: embedder.embed_queries([t])[0] for t in set(texts)}
+    for text, out in zip(texts, results, strict=True):
+        assert out.shape == (2, DIM)
+        assert np.array_equal(out[0], expected[text])

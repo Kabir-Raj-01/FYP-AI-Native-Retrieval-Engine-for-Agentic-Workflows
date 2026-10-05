@@ -38,7 +38,7 @@ from data.gold import ChunkRef, GoldResult, build_gold_map
 from data.ids import chunk_id_for
 from data.split import Split, stratified_split
 from engine import factory
-from engine.config import EngineConfig, load_config
+from engine.config import EngineConfig, config_hash, load_config
 from engine.errors import BackendError, ConfigError
 
 __all__ = ["HFTokenizer", "IngestResult", "ingest", "main", "processed_dir"]
@@ -94,11 +94,6 @@ def _write_text(path: Path, text: str) -> str:
 
 def _json_text(obj: Any) -> str:
     return json.dumps(obj, indent=1, ensure_ascii=False) + "\n"
-
-
-def config_hash(cfg: EngineConfig) -> str:
-    canonical = json.dumps(cfg.model_dump(mode="json", by_alias=True), sort_keys=True)
-    return _sha256_bytes(canonical.encode("utf-8"))
 
 
 def git_state() -> dict[str, Any]:

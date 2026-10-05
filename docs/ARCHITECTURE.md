@@ -119,9 +119,22 @@ only for the other budget counters each action touches.
 | STOP | none | none | steps +1 |
 
 ## 6. Direct (controller-OFF) path
-`Engine.retrieve_direct(query, mode, k, rerank: bool)` calls the same `RetrieverAdapter`
-instance; optionally applies `Reranker.rerank(query, candidates, state=None)`, which is
-relevance-only mode (ADR-009 "Also"). No TaskStore, cache, planner or controller.
+`Engine.retrieve_direct(query, mode, k=None, rerank=False) -> DirectResult` (ADR-012) calls
+the same `RetrieverAdapter` instance; optionally applies
+`Reranker.rerank(query, candidates, state=None)`, which is relevance-only mode (ADR-009
+"Also"). No TaskStore, cache, planner or controller. `k=None` → `retrieval.default_k`;
+`k ∉ [1, retrieval.max_k]` → `ValueError`; `rerank=True` without a reranker →
+`ConfigError` (the API answers 422 until ADR-005's Reranker exists). Every call emits a
+`retrieval.call` event (`path="direct"`).
+
+`Engine(cfg, *, retriever, reranker=None, clock=time.perf_counter)` is the facade;
+`Engine.from_config(cfg)` builds the direct-path components through `engine/factory.py`
+only (embedder, sparse encoder, retriever, and the reranker once it exists) — never the
+planner, LLM client or TaskStore, so direct mode keeps working when those are unavailable
+(SRS FR3.4). `create_task`/`step`/`run` arrive with the controlled path. The HTTP layer
+(`engine/api/app.py`) builds one Engine at start-up and serves `/v1/health` and
+`/v1/retrieve/direct`; request limits are checked against config by the router
+(ADR-010).
 Baselines (BASELINES_SPEC.md) are built from this path plus, for fixed-iteration, the
 same Planner.
 
@@ -159,4 +172,5 @@ same Planner.
 | 2026-09-28 | GraphState/scratch, TaskStore.save signature, plan_mode, ownership fixes, per-task lock, no fetch(), Reranker state\|None | ADR-009 |
 | 2026-10-04 | §8 error list completed from the specs (`LLMOutputError`, `StateInvariantError`) plus `TaskExists`/`RunTimeout` for API_CONTRACT's `TASK_EXISTS`/`RUN_TIMEOUT`; flat hierarchy under `EngineError` (Week 7 plan review) | — |
 | 2026-10-05 | §2: `TaskStore.create` gains `task_id=None`; `search` filters typed `SearchFilters = Mapping[str, str \| int \| None]`; `observe`'s `update` may be `None`; `advance` is a `TrajectoryMonitor` method. Signatures pinned by `tests/unit/test_interfaces.py` | needs ADR line (Week 7 checkpoint) |
+| 2026-10-05 | §6: `retrieve_direct` returns `DirectResult`; `Engine` constructor and `from_config`; API shell with `/v1/health`, `/v1/retrieve/direct` | ADR-012 (Proposed) |
 | 2026-10-05 | §2: `SparseEncoder` and `IndexWriter` added (transport types `SparseVector`, `IndexPoint` live in their interface modules); `build_retriever` takes the sparse encoder | ADR-001 (Proposed) |

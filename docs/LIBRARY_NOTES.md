@@ -232,9 +232,29 @@ it**. Rules:
       the working directory. `engine/config.py` uses
       `load_dotenv(find_dotenv(usecwd=True), override=False)`; covered by
       `tests/unit/test_config.py::test_dotenv_is_loaded_but_existing_env_wins`.
-- [ ] Custom exception handlers returning the API_CONTRACT error body. Verified snippet:
-- [ ] Lifespan handler that builds the Engine once at startup. Verified snippet:
+- [x] Custom exception handlers returning the API_CONTRACT error body — verified
+      2026-10-05 on FastAPI 0.142.2 / Starlette 1.7.0 (`engine/api/app.py`):
+      ```python
+      @app.exception_handler(EngineError)
+      def engine_error(request: Request, exc: EngineError) -> JSONResponse:
+          return JSONResponse(status_code=int(exc.http_status),
+                              content={"error": {"code": exc.code, "message": exc.message,
+                                                 "task_id": exc.task_id}})
+      @app.exception_handler(RequestValidationError)   # overrides FastAPI's default 422 body
+      def invalid(request: Request, exc: RequestValidationError) -> JSONResponse: ...
+      ```
+      Raising `RequestValidationError([{"loc": ("body", "k"), "msg": ..., "type": "value_error"}])`
+      from a route reuses the same 422 handler (config-driven limits, ADR-010).
+- [x] Lifespan handler that builds the Engine once at startup — verified 2026-10-05:
+      `@asynccontextmanager async def lifespan(app): app.state.engine = ...; yield`,
+      `FastAPI(lifespan=lifespan)`; it runs when `TestClient(app)` is used as a context
+      manager. Sync `def` routes run in the threadpool (so shared components must be
+      thread-safe — the Embedder locks its cache and model).
 - Gotchas:
+  - Request models accept unknown JSON fields unless `extra="forbid"` is set;
+    API_CONTRACT's schemas do not set it, so they are left as specified.
+  - Response models are serialised without a context, so the vector `field_serializer`
+    yields `"vector": null` in API responses (as intended).
 
 ## LLM providers
 - [ ] Anthropic: current model names, message format, usage fields, structured output /

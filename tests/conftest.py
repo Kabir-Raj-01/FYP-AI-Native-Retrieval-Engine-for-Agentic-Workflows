@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
 import pytest
+import structlog
 
 from engine.config import EngineConfig, load_config
 from engine.state.models import Budget, EvidenceGap, EvidenceItem, RetrievalState
@@ -23,6 +24,13 @@ TEST_CONFIG_OVERRIDES = [
 ]
 
 StateFactory = Callable[..., RetrievalState]
+
+
+@pytest.fixture(autouse=True)
+def _reset_structlog() -> Iterator[None]:
+    """structlog's configuration is process-global; never let one test's leak into another."""
+    yield
+    structlog.reset_defaults()
 
 
 @pytest.fixture(scope="session")

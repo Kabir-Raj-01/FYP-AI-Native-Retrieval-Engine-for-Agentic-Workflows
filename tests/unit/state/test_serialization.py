@@ -13,6 +13,7 @@ from engine.state.models import (
     CacheEntry,
     CacheHit,
     Candidate,
+    DirectResult,
     EvidenceBundle,
     EvidenceItem,
     EvidenceUpdate,
@@ -38,6 +39,7 @@ VECTOR_MODELS = [
     RetrievalState,
     GraphState,
     EvidenceBundle,
+    DirectResult,
 ]
 
 

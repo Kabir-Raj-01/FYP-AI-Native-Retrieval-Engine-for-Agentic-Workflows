@@ -19,6 +19,7 @@ from engine.state.models import (
     CacheEntry,
     CacheHit,
     Candidate,
+    DirectResult,
     EvidenceBundle,
     EvidenceGap,
     EvidenceItem,
@@ -324,6 +325,7 @@ def sample_instances() -> dict[type[BaseModel], BaseModel]:
         ),
         GraphState(state=state),
         RunContext(run_id="r1", system="controller_on"),
+        DirectResult(candidates=[make_candidate()], scored=[scored], latency_ms=12.5),
         summary,
         EvidenceBundle(
             task_id="t-1",

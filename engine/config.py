@@ -20,6 +20,8 @@ enforced at runtime.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 import os
 from collections.abc import Mapping, Sequence
@@ -39,6 +41,7 @@ __all__ = [
     "ENV_OVERRIDES",
     "EngineConfig",
     "LLMRole",
+    "config_hash",
     "deep_merge",
     "load_config",
 ]
@@ -430,6 +433,12 @@ class EngineConfig(_Section):
         if model is None:
             raise ConfigError(f"llm.{role}.model is null; set it (ADR-004) before using the role")
         return str(model)
+
+
+def config_hash(cfg: EngineConfig) -> str:
+    """SHA-256 of the canonical JSON of the resolved config (manifests, ``/v1/health``)."""
+    canonical = json.dumps(cfg.model_dump(mode="json", by_alias=True), sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 # ----------------------------------------------------------------------------- loader

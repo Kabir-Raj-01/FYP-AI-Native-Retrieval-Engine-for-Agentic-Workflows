@@ -2,7 +2,7 @@
 
 > Status: Frozen (contract — change only via ADR) · Owner: Samay · Last updated: 2026-10-04
 > Implementation: `engine/state/models.py`. This document and that file must match exactly
-> (as amended by ADR-009). Vector persistence uses `engine/state/serialization.py`
+> (as amended by ADR-009, and ADR-012 for `DirectResult`). Vector persistence uses `engine/state/serialization.py`
 > (ADR-009 "Also"), not `Field(exclude=True)`. ADR-009 is still Proposed: it must be
 > Accepted by its reviewers before `engine/state/models.py` is merged (TASKS.md Week 7).
 
@@ -477,6 +477,16 @@ class TraceStep(BaseModel):          # semantics: OBSERVABILITY.md §2
     budget_after: Budget
     stop_reason: StopReason | None = None
     timestamp: datetime                # UTC-aware
+```
+
+### `DirectResult` (ADR-012, Proposed)
+Return type of `Engine.retrieve_direct` (controller-OFF path, ARCHITECTURE §6); never part
+of task state.
+```python
+class DirectResult(BaseModel):
+    candidates: list[Candidate]                  # backend order, rank 0..k-1, with vectors
+    scored: list[ScoredCandidate] | None = None  # rerank=True: relevance-only reranker output
+    latency_ms: float                            # wall clock: search (+ rerank)
 ```
 
 `vector` fields (`Candidate.vector`, `EvidenceItem.vector`, `CacheEntry.query_vector`)

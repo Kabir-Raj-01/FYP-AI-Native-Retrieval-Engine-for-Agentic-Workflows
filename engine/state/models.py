@@ -33,6 +33,7 @@ __all__ = [
     "CacheEntry",
     "CacheHit",
     "Candidate",
+    "DirectResult",
     "EvidenceBundle",
     "EvidenceGap",
     "EvidenceItem",
@@ -600,3 +601,13 @@ class TraceStep(BaseModel):  # semantics: OBSERVABILITY.md §2
     budget_after: Budget
     stop_reason: StopReason | None = None
     timestamp: AwareDatetime  # UTC-aware
+
+
+class DirectResult(BaseModel):
+    """Return type of Engine.retrieve_direct (ADR-012). Never part of task state."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    candidates: list[Candidate]  # backend order, rank 0..k-1, with vectors
+    scored: list[ScoredCandidate] | None = None  # rerank=True: relevance-only output
+    latency_ms: float  # wall clock: search (+ rerank)

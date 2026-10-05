@@ -59,6 +59,7 @@ SHARED_MODULES = {
     "engine.state.models",
     "engine.state.serialization",
     "engine.state.invariants",
+    "engine.monitor.logging",  # the shared event logger (OBSERVABILITY §3), not a component
 }
 CLIENT_ALLOWED = {"engine.state.models", "engine.api.schemas"}
 
