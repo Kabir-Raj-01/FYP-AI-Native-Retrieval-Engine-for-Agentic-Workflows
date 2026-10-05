@@ -106,6 +106,18 @@ If a non-retryable error aborts an iteration, the `Engine` facade sets
 
 `Engine.step(task_id)` runs exactly one iteration; `Engine.run(task_id)` loops until stop.
 
+**As built (2026-10-05, `engine/graph/`, `engine/core.py`):** the compiled graph runs one
+iteration per `invoke` (`persist → END`); `Engine.run` loops over iterations itself, which
+lets it check `api.run_timeout_s` and `status` between iterations — so the graph has no
+loop edge and `recursion_limit` is one pass plus a margin. Nodes are bound to a per-call
+`Context` (components, the iteration's `prev` state for `check_invariants`, per-stage
+latencies) with `functools.partial`. The per-task lock is non-blocking: a concurrent
+`step`/`run` on the same task raises `TaskConflict` (API_CONTRACT: the second caller gets
+409). Retryable errors (`BackendError`, `LLMError`, `TaskConflict`) leave the task ACTIVE;
+any other exception from an iteration marks it FAILED / ERROR. `scratch.candidates` holds
+everything an action returned (the queued cache entry needs all candidates, CACHE_SPEC §4);
+for RERANK_EXPAND `score_and_update` passes only the unseen ones to the reranker.
+
 ## 5. Action execution semantics
 Every action's `budget.steps_used` increment happens uniformly in `persist` (§4), not
 per action — the "steps +1" below is the eventual effect of every iteration, listed here
@@ -176,4 +188,5 @@ same Planner.
 | 2026-10-05 | §2: `TraceWriter` (JSONL traces + bundles, shared by engine and baselines) | — |
 | 2026-10-05 | §7: cache table per SDS §4.6; shared `engine/state/sqlite.py` and `engine/text.py` (`normalize`) | — |
 | 2026-10-05 | §6: `retrieve_direct` returns `DirectResult`; `Engine` constructor and `from_config`; API shell with `/v1/health`, `/v1/retrieve/direct` | ADR-012 (Proposed) |
+| 2026-10-05 | §4: graph = one iteration per invoke, `Engine.run` loops (timeout checks); non-blocking per-task lock → `TaskConflict`; retryable vs FAILED errors; `scratch.candidates` = all returned candidates (see "As built" under §4) | for ADR-009 review |
 | 2026-10-05 | §2: `SparseEncoder` and `IndexWriter` added (transport types `SparseVector`, `IndexPoint` live in their interface modules); `build_retriever` takes the sparse encoder | ADR-001 (Proposed) |

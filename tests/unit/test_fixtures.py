@@ -6,12 +6,10 @@ import hashlib
 from collections import Counter
 from pathlib import Path
 
-import pytest
-
 from engine.config import EngineConfig
 from engine.state.models import RetrievalState
 from tests.builders import make_evidence, make_gap
-from tests.conftest import StateFactory
+from tests.conftest import EngineFactory, StateFactory
 from tests.fakes import CorpusChunk, FakeRetriever
 from tests.fixture_data import MiniTask, load_injection_doc
 
@@ -123,5 +121,8 @@ def test_tmp_state_db_is_an_unused_path(tmp_state_db: Path) -> None:
     assert tmp_state_db.parent.exists()
 
 
-def test_engine_with_fakes_is_a_marked_placeholder(engine_with_fakes: None) -> None:
-    pytest.fail("unreachable: the fixture skips until the Engine exists")
+def test_engine_with_fakes_builds_a_controlled_engine(engine_with_fakes: EngineFactory) -> None:
+    fake = engine_with_fakes()
+    state = fake.engine.create_task("Linden Bay tram expansion", task_id="t-1")
+    assert fake.engine.state("t-1") == state
+    assert fake.parts.retriever is fake.retriever

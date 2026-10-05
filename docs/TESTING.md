@@ -20,6 +20,7 @@ The unit-test command `pytest -m "not integration and not llm and not e2e"` runs
 | `FakeReranker` | relevance from a `{chunk_id: score}` map; state-aware logic can be tested with the real Reranker + FakeEmbedder + fake cross-encoder scorer |
 | `FakeLLMClient` | queue of scripted responses per role; records every request; can raise `LLMError` / `LLMOutputError`; reports configurable token usage |
 | `FakeClock` | controllable time for latency fields |
+| `FakePlanner`, `FakeController`, `FakeEvidenceManager`, `FakeMonitor` (`tests/fakes/controlled.py`) | scripted plans / action sequence / acceptance (optionally resolving the current gap) / ACTION_POLICY §6.3-§6.4 stop checks without stagnation logic — for graph and loop tests before the real components exist |
 `tests/conftest.py` provides fixtures: `cfg` (base config + test overrides), `state_factory`
 (builds `RetrievalState` with given gaps/evidence/budget), `engine_with_fakes`,
 `tmp_state_db`.
@@ -42,7 +43,8 @@ The unit-test command `pytest -m "not integration and not llm and not e2e"` runs
      `steps_used == 3` and `stop_reason == MAX_STEPS`; the controller's own
      `steps_used >= max_steps` guard (ACTION_POLICY §2 step 1) never fires.
    - **Concurrent step rejected:** two concurrent `step()`/`run()` calls on the same
-     `task_id` — the in-process lock serialises them (ADR-009 "Also"); if the lock is
+     `task_id` — the in-process lock rejects the second with `TaskConflict` (API_CONTRACT:
+     409; the lock is non-blocking, so it does not queue the call); if the lock is
      bypassed (e.g. two separate `Engine` instances against the same DB), the second
      `TaskStore.save` raises `TaskConflict` on a stale `expected_version`.
    - **Serialization round-trip** (`engine/state/serialization.py`; ADR-009 §4a

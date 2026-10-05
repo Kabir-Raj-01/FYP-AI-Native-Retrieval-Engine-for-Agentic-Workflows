@@ -127,15 +127,6 @@ def test_health_delegates_to_the_retriever(
     assert engine(cfg, FakeRetriever(mini_corpus, healthy=False)).health() is False
 
 
-def test_controlled_path_is_not_implemented_yet(
-    cfg: EngineConfig, retriever: FakeRetriever
-) -> None:
-    eng = engine(cfg, retriever)
-    for method in (eng.create_task, eng.step, eng.run):
-        with pytest.raises(NotImplementedError, match="controlled path"):
-            method()
-
-
 def test_from_config_builds_only_direct_path_components(
     cfg: EngineConfig, monkeypatch: pytest.MonkeyPatch, retriever: FakeRetriever
 ) -> None:

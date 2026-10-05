@@ -203,6 +203,9 @@ it**. Rules:
     input (`GraphState(state=s).state is s`, pydantic `revalidate_instances="never"`). An
     in-place mutation leaks to later nodes and to the caller; take `prev` for
     `check_invariants` as `state.model_copy(deep=True)` before `invoke()`.
+- [x] A `functools.partial(node, ctx=ctx)` works as a node (2026-10-05, 1.2.12): the
+      graph passes the state as the first argument. Building + compiling a graph per call
+      costs ~1.7 ms (one-node graph), so `engine/graph/graph.py` compiles per iteration.
 - [x] Setting `recursion_limit` at invoke time: `invoke(..., config={"recursion_limit": n})`
       (smoke run above, 2026-10-05).
 - Gotchas:

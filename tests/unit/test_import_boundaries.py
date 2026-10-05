@@ -63,6 +63,9 @@ SHARED_MODULES = {
     "engine.state.sqlite",  # shared SQLite schema + cache-table rules (TaskStore and Cache)
 }
 CLIENT_ALLOWED = {"engine.state.models", "engine.api.schemas"}
+# The Engine facade runs the controlled path itself (ARCHITECTURE §1: core sits directly over
+# engine/graph, which has no interface and is not chosen from config) — the only exemption.
+FACADE_PACKAGES = {("engine/core.py", "graph")}
 
 
 @dataclass(frozen=True)
@@ -140,6 +143,8 @@ def factory_violations(imports: list[Imported]) -> list[Imported]:
             continue
         if i.path.startswith(f"engine/{package}/"):
             continue  # a package may use its own implementation modules
+        if (i.path, package) in FACADE_PACKAGES:
+            continue
         out.append(i)
     return out
 
@@ -239,6 +244,13 @@ def test_factory_checker_allows_a_package_to_use_its_own_modules() -> None:
     source = "from engine.cache.normalize import normalize"
     assert not factory_violations(_scan(source, "engine/cache/task_cache.py"))
     assert factory_violations(_scan(source, "engine/planner/validator.py"))
+
+
+def test_only_the_facade_may_import_the_graph() -> None:
+    source = "from engine.graph.graph import run_iteration"
+    assert not factory_violations(_scan(source, "engine/core.py"))
+    assert factory_violations(_scan(source, "baselines/dense_oneshot.py"))
+    assert factory_violations(_scan(source, "engine/api/routers/direct.py"))
 
 
 def test_client_checker() -> None:
