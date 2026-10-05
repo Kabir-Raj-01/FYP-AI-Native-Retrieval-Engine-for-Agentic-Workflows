@@ -32,6 +32,14 @@ Keys under `embedding`, `sparse`, `chunking`, `qdrant.collection` become Frozen.
 ## Evidence
 Before accepting: ingest the dev subset with this setting, run `check_gold_mapping.py`
 (≥ 95 %) and dense_oneshot Recall@10 as a sanity check; record the numbers here.
+- 2026-10-05 — chunking only (embedding and Qdrant indexing not yet run): 384-token
+  chunks, 48-token whole-sentence overlap, `BAAI/bge-base-en-v1.5` tokenizer
+  (transformers 5.18.0). 609 documents → 4,441 chunks (mean 344.3, max 384 tokens).
+  `check_gold_mapping.py multihop`: **6,084 / 6,084 evidence entries mapped (100 %)**, all
+  by exact match, none straddling a chunk boundary; 254 groups have two chunks (the fact
+  lies in an overlap). Dev 100 %, test 100 %, dev subset 100 %.
+- Pending: dense_oneshot Recall@10 on the dev subset (needs the Embedder, the index and
+  the eval harness).
 
 ## Reversal condition
 Cheap until the Week 10 checkpoint. Afterwards only with a new ADR and full re-runs.

@@ -157,6 +157,7 @@ class DataConfig(_Section):  # split keys Frozen after ADR-003
     split_seed: int
     dev_subset_size: int
     gold_fuzzy_threshold: Percent
+    gold_min_coverage: UnitFloat  # DATA §4 acceptance bar for scripts/check_gold_mapping.py
     hotpot_sample_size: int
     download_timeout_s: int
     sources: dict[str, DataSource]  # dataset name -> source (data/download.py)

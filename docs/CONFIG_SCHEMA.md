@@ -92,6 +92,7 @@ Only the dotted names in this section are config keys. Dotted names such as `cac
 | data.split_seed | int | 42 |
 | data.dev_subset_size | int | 300 |
 | data.gold_fuzzy_threshold | int 0–100 | 90 |
+| data.gold_min_coverage | float [0,1] | 0.95 |
 | data.hotpot_sample_size | int | 1000 |
 | data.download_timeout_s | int | 60 |
 | data.sources.multihop.hf_repo | str | yixuantt/MultiHopRAG |

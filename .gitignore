@@ -4,7 +4,9 @@ __pycache__/
 .env
 var/
 data/raw/
-data/processed/*
+# Ignore the files inside each dataset folder, not the folders themselves: git cannot
+# re-include a file whose parent directory is ignored.
+data/processed/*/*
 !data/processed/*/split.json
 !data/processed/*/gold_map.json
 eval/runs/

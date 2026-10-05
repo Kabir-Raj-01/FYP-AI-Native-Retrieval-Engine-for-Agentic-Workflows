@@ -27,7 +27,14 @@ import httpx
 from engine.config import DataSource, EngineConfig, load_config
 from engine.errors import ConfigError
 
-__all__ = ["DownloadError", "FileRecord", "download_dataset", "main", "raw_dir"]
+__all__ = [
+    "DownloadError",
+    "FileRecord",
+    "download_dataset",
+    "main",
+    "raw_dir",
+    "verify_raw_files",
+]
 
 # Hugging Face "resolve" endpoint for one file of a dataset at a given commit.
 HF_RESOLVE_URL = "https://huggingface.co/datasets/{repo}/resolve/{revision}/{filename}"
@@ -171,6 +178,30 @@ def download_dataset(
         f.write("\n")
     log(f"manifest: {path}")
     return path
+
+
+def verify_raw_files(cfg: EngineConfig, dataset: str) -> dict[str, str]:
+    """Check every configured raw file of ``dataset`` exists with its expected SHA-256.
+
+    Returns ``{file name: sha256}``. Ingestion calls this first (DATA.md §3 step 1).
+
+    Raises:
+        ConfigError: ``dataset`` has no ``data.sources`` entry.
+        DownloadError: a file is missing or its SHA-256 differs (run ``data.download``).
+    """
+    source = _source(cfg, dataset)
+    found: dict[str, str] = {}
+    for name, expected in source.files.items():
+        path = raw_dir(cfg, dataset) / name
+        if not path.is_file():
+            raise DownloadError(
+                f"{path} is missing; run: python -m data.download --dataset {dataset}"
+            )
+        actual = _sha256_of(path)
+        if actual != expected:
+            raise DownloadError(f"{path}: SHA-256 {actual} differs from the expected {expected}")
+        found[name] = actual
+    return found
 
 
 def main(argv: Sequence[str] | None = None) -> int:

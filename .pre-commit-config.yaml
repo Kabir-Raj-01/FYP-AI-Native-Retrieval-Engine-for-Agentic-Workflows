@@ -24,3 +24,5 @@ repos:
     hooks:
       - id: detect-secrets
         args: [--baseline, .secrets.baseline]
+        # generated gold maps / splits: thousands of hex chunk ids, no secrets, no comments
+        exclude: ^data/processed/

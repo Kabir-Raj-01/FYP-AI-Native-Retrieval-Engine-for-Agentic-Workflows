@@ -54,6 +54,7 @@ data:                           # split keys FROZEN after ADR-003
   split_seed: 42
   dev_subset_size: 300
   gold_fuzzy_threshold: 90      # rapidfuzz 0-100
+  gold_min_coverage: 0.95       # share of gold evidence entries that must map to chunks (DATA §4)
   hotpot_sample_size: 1000
   download_timeout_s: 60        # per HTTP request, data/download.py
   sources:                      # raw benchmark files (data/download.py); FROZEN after ADR-003

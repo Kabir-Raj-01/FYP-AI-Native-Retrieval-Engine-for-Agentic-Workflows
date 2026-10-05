@@ -241,6 +241,7 @@ UNIT_INTERVAL_KEYS = [
     "evidence.gap_coverage_threshold",
     "evidence.verify_margin",
     "data.dev_fraction",
+    "data.gold_min_coverage",
     "eval.redundancy_cos",
 ]
 

@@ -50,8 +50,17 @@ its git history. Items marked **(to fill)** need the downloaded files.
   `url` and `title` are each unique across the corpus; there is no separate document id
   field, so `doc_id` falls back to the DATA §3 rule (sha1 of url).
 - **Split:** stratified by question type, dev fraction `data.dev_fraction`, seed
-  `data.split_seed`; `split.json` hash ___ **(to fill)**. Dev subset
-  (`data.dev_subset_size`) hash ___ **(to fill)**.
+  `data.split_seed` (algorithm: DATA §5). Generated 2026-10-05 by
+  `python -m data.ingest --dataset multihop` with base.yaml values (0.7, 42, subset 300):
+  dev **1,789** (comparison 599, inference 571, null 211, temporal 408), test **767**
+  (257 / 245 / 90 / 175), dev subset **300** (101 / 96 / 35 / 68).
+  `data/processed/multihop/split.json` SHA-256
+  `ddb6a0381c578632360b4eccf2957757b35683fe532569fe0ce1254a2b65fce4`.
+  Dev subset SHA-256 (of its sorted task ids joined by `\n`)
+  `48b5322a9fde09b39460054949e0a9d8d6be086dd65855e38cfefd512e8f466a`.
+  Task ids are `multihop:<index>`, the 0-based position in the checksum-pinned
+  `MultiHopRAG.json` (the file has no ids; DATA §1). Two runs produced byte-identical
+  files.
 - **Official answer-accuracy definition** (`qa_evaluate.py`): if the model output contains
   `The answer to the question is "…"`, the quoted text is taken as the prediction. A
   prediction is correct when the set of whitespace-separated tokens of the lower-cased

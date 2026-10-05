@@ -33,8 +33,11 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 ## Weeks 8–9 (5–18 Oct) — Vertical slice
 - [ ] K: download + ingestion pipeline, UUIDv5 point ids, Qdrant collection (FR1, DATA §3, RETRIEVAL_SPEC)
       — download done: `python -m data.download --dataset multihop` (pinned HF revision,
-      SHA-256 verified, identical to ADR-003); ingestion not started
-- [ ] K: gold map + `check_gold_mapping.py` ≥ 95 % (DATA §4); split.json committed (DATA §5)
+      SHA-256 verified, identical to ADR-003); ingestion steps 1–4, 7, 8 done
+      (`python -m data.ingest`: 4,441 chunks, deterministic); embedding + Qdrant upsert
+      (steps 5–6) not started
+- [x] K: gold map + `check_gold_mapping.py` ≥ 95 % (DATA §4); split.json committed (DATA §5)
+      — 100 % (6,084 / 6,084); split 1,789 / 767, subset 300 (branch `k/data-download`)
 - [ ] K: QdrantAdapter dense + sparse; Embedder (RETRIEVAL_SPEC §1–5)
 - [ ] K: controller-OFF direct path — `Engine.retrieve_direct` + `/retrieve/direct` endpoint (FR3, ARCHITECTURE §6, API_CONTRACT)
 - [ ] V: FastAPI app, `/health`, `/tasks` create/state (FR2, API_CONTRACT)
@@ -126,3 +129,4 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 | 2026-10-04 | Windows-only setup; audit against the proposal: owners per Table II, Week 13 controller core, ADR-010/011 added, ADR-003 partly filled, all experiment configs for E1–E3, pre-commit config. |
 | 2026-10-05 | First code (K with Claude Code, branch `k/foundations-week7`): errors, EngineConfig + loader, state models/serialization/invariants, all interfaces + factory stub, fakes/fixtures, import-boundary test. 475 unit tests green, 100 % coverage of `engine/`. Open: ADR-009/010 acceptance, an ADR line for the checkpoint interpretations, LangGraph import blocked by Smart App Control on K's machine (LIBRARY_NOTES). |
 | 2026-10-05 | LangGraph unblocked (uuid-utils 0.17.0, `requirements.lock`); nested GraphState verified (ADR-009 A7). Branch `k/data-download`: Qdrant v1.19.1 pinned; MultiHop-RAG downloaded and verified (609 docs, 2,556 queries; ADR-003 filled except split hashes). |
+| 2026-10-05 | scikit-learn 1.9.0 / pandas 3.0.3 held (Smart App Control). Ingestion step 1 (chunks, gold map, split): 4,441 chunks, gold coverage 100 %, split.json + gold_map.json committed, ADR-003 split hashes filled. Next: Embedder + BM25 + Qdrant upsert + adapter (step 2). |
