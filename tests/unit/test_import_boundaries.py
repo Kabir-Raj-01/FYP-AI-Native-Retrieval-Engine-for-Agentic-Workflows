@@ -1,7 +1,8 @@
 """Import-boundary rules checked with `ast` (TESTING §4.9; CLAUDE.md rules 3, 5; ARCHITECTURE §2).
 
 Real now:
-- provider SDKs (`anthropic`, `openai`) are imported only inside engine/llm;
+- provider SDKs (`anthropic`, `openai`) are imported only inside engine/llm (and its own unit
+  tests, which build SDK exceptions to check the error mapping);
 - nothing in examples/ imports `engine`;
 - concrete component modules (`engine.<component>.<anything but interfaces>`) are imported
   only by engine/factory.py or from inside their own package (tests are exempt: unit tests
@@ -117,7 +118,10 @@ def sdk_violations(imports: list[Imported]) -> list[Imported]:
     return [
         i
         for i in imports
-        if _top(i.module) in PROVIDER_SDKS and not i.path.startswith("engine/llm/")
+        if _top(i.module) in PROVIDER_SDKS
+        # engine/llm itself, and its own unit tests (they build SDK exceptions to check the
+        # providers' error mapping)
+        and not i.path.startswith(("engine/llm/", "tests/unit/llm/"))
     ]
 
 
@@ -200,6 +204,8 @@ def test_sdk_checker_flags_imports_outside_engine_llm(source: str) -> None:
     assert sdk_violations(_scan(source, "engine/planner/planner.py"))
     assert sdk_violations(_scan(source, "eval/generator.py"))
     assert not sdk_violations(_scan(source, "engine/llm/providers/anthropic.py"))
+    assert not sdk_violations(_scan(source, "tests/unit/llm/test_providers.py"))
+    assert sdk_violations(_scan(source, "tests/unit/planner/test_planner.py"))
 
 
 @pytest.mark.parametrize(

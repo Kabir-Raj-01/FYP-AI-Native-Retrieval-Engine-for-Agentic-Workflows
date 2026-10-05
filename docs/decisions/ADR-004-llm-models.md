@@ -16,6 +16,16 @@ must be fixed, affordable across hundreds of runs, and reliable at JSON output.
 - Prompt templates and their hashes: `planner/init.j2` ___, `rewrite.j2` ___, `split.j2` ___,
   `eval/prompts/answer.j2` ___.
 
+### Notes from the LLM client build (2026-10-05, Kabir) — inputs for the decision
+- With `provider: anthropic`, temperature is not sent (anthropic 1.11.0 has no such
+  parameter; current models reject sampling params); repeatability then rests on the
+  response cache (`llm.cache_enabled`, `llm.cache_namespace`).
+- Current Claude models think adaptively by default and thinking tokens count towards
+  `max_tokens`; `llm.planner.max_output_tokens = 600` may be too small — size it in the
+  50-task pilot.
+- Any OpenAI-compatible endpoint works with config + `.env` only (`base_url`, `model`,
+  `LLM_API_KEY`), e.g. OpenAI, a router, or a local Ollama server.
+
 ## Alternatives considered
 Local open-weight model via Ollama (no cost, slower, weaker JSON adherence) vs a small
 hosted API model (fast, reliable JSON, costs credit). Record the pilot comparison

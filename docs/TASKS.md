@@ -75,6 +75,8 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       under `data` (OBSERVABILITY §3); `retrieval.call.latency_ms` is search-only. The
       controlled loop's `execute` node records its own (S, with the graph)
 - [ ] V: LLMClient (providers, structured output, cache, caps) (LLM_CLIENT_SPEC); ADR-004 model choices
+      — client built by K (`engine/llm/`, branch `k/controlled-path`; tested with scripted
+      providers, no network); ADR-004 model choices still open (Vishal)
 - [ ] V: planner v1: INIT/REWRITE/SPLIT, validator, fallback, prompts (FR4, PLANNER_SPEC)
 - [ ] S: real `maybe_plan` node → gaps in state; explicit state updates per ownership matrix
 - [x] V: cross-encoder relevance-only Reranker (used by baselines); ADR-005

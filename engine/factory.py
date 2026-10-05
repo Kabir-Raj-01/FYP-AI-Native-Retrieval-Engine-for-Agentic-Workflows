@@ -11,7 +11,7 @@ Selection (config key -> implementation):
 - SparseEncoder     fastembed BM25 ``sparse.model_name`` @ ``sparse.revision``
 - RetrieverAdapter  Qdrant at ``qdrant.url`` / ``qdrant.collection`` (dense, sparse, hybrid)
 - IndexWriter       Qdrant collection creation + upsert (ingestion only)
-- LLMClient         ``llm.<role>.provider``: ``anthropic`` | ``openai_compatible`` | ``fake`` [todo]
+- LLMClient         ``llm.<role>.provider``: ``anthropic`` | ``openai_compatible`` (``fake``: tests)
 - Planner           bounded LLM planner (``ablation.planner`` false -> no planner calls)    [todo]
 - Cache             task-local SQLite cache in ``paths.state_db`` (``ablation.cache``)
 - Controller        rule + utility policy (``ablation.adaptive_actions`` false -> fixed)
@@ -92,7 +92,9 @@ def build_index_writer(cfg: EngineConfig) -> IndexWriter:
 
 
 def build_llm_client(cfg: EngineConfig) -> LLMClient:
-    raise _not_built("LLMClient")
+    from engine.llm.client import ProviderLLMClient
+
+    return ProviderLLMClient(cfg)  # providers and API keys are resolved on first use
 
 
 def build_planner(cfg: EngineConfig, llm: LLMClient) -> Planner:

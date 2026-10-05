@@ -89,6 +89,16 @@ System message: instructions and schema only. User message: task data; any retri
 corpus-derived text wrapped as described in SECURITY.md §3. Never put retrieved text in
 the system message.
 
+## 9a. As built (2026-10-05)
+`engine/llm/client.py` (`ProviderLLMClient`), `engine/llm/cache.py`,
+`engine/llm/providers/{anthropic,openai_compatible}.py`; `factory.build_llm_client`.
+Interpretations: the per-run caps count **real provider requests** (a cache hit spends no
+credit, so it does not count against `llm.max_calls_per_run`); the schema instruction is
+appended to the system text (no native schema-constrained output yet); the Anthropic
+provider does not send `temperature` (not accepted by anthropic 1.11.0, LIBRARY_NOTES);
+providers and API keys are resolved on a role's first use, so building the client needs no
+key; `provider: fake` raises `ConfigError` (tests use `FakeLLMClient`).
+
 ## 10. Tests
 Fake provider returning scripted strings; fence stripping; invalid JSON → `LLMOutputError`;
 transport retry then success; retry exhaustion → `LLMError`; cache hit returns identical

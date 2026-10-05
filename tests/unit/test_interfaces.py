@@ -174,6 +174,7 @@ IMPLEMENTED = {
     "build_controller",
     "build_evidence_manager",
     "build_monitor",
+    "build_llm_client",
 }
 
 
@@ -209,5 +210,6 @@ def test_implemented_builders_return_their_interfaces(monkeypatch: pytest.Monkey
     assert isinstance(factory.build_controller(cfg, embedder), Controller)
     assert isinstance(factory.build_evidence_manager(cfg, embedder, None), EvidenceManager)  # type: ignore[arg-type]
     assert isinstance(factory.build_monitor(cfg), TrajectoryMonitor)
+    assert isinstance(factory.build_llm_client(cfg), LLMClient)  # no provider built yet
     ctx = RunContext(run_id="r", system="controller_on")
     assert isinstance(factory.build_trace_writer(cfg, ctx, Path("unused")), TraceWriter)

@@ -290,12 +290,27 @@ it**. Rules:
     yields `"vector": null` in API responses (as intended).
 
 ## LLM providers
-- [ ] Anthropic: current model names, message format, usage fields, structured output /
-      tool-use option. Check https://docs.claude.com — do not rely on remembered model
-      strings. Verified snippet:
-- [ ] OpenAI-compatible (Ollama/LM Studio): JSON mode / schema support of the chosen local
-      model and server version; usage fields present? Verified snippet:
+- [x] Anthropic, verified 2026-10-05 on anthropic 1.11.0 (installed signatures):
+      `anthropic.Anthropic(api_key=, timeout=, max_retries=0)`;
+      `client.messages.create(model=, max_tokens=, system=, messages=[{role, content}])` —
+      **no `temperature` parameter** in 1.11.0 (current Claude models reject sampling
+      params), so `llm.<role>.temperature` is not sent; reply text = the `TextBlock`s of
+      `response.content`; usage `response.usage.input_tokens/output_tokens`;
+      `stop_reason == "refusal"` → `LLMError`. Retryable: `APIConnectionError` (incl.
+      `APITimeoutError`), `RateLimitError`, `InternalServerError`; other `APIStatusError` not.
+      1.x is built on `httpx2` (not `httpx`). Model strings: still to be chosen in ADR-004.
+- [x] OpenAI-compatible, verified 2026-10-05 on openai 3.24.0: `openai.OpenAI(base_url=,
+      api_key=, timeout=, max_retries=0)` (needs a non-empty key even for local servers);
+      `client.chat.completions.create(model=, messages=, temperature=, max_tokens=)`;
+      `response.usage` may be None on local servers → tokens estimated (`ceil(chars/4)`).
+      Same retryable error classes as the Anthropic SDK; also built on `httpx2`.
+      JSON-mode / schema support of a chosen local model: still to check with ADR-004.
 - Gotchas:
+  - Current Claude models think adaptively by default and thinking tokens count against
+    `max_tokens`: the planner's `llm.planner.max_output_tokens` (600) may truncate the
+    JSON — size it when ADR-004 picks the model.
+  - SDK retries are disabled in both wrappers; `engine/llm/client.py` retries
+    `TransportError` with tenacity (`max_transport_retries`), so the two do not compound.
 
 ## rapidfuzz
 - [ ] `fuzz.partial_ratio` scale 0–100 (thresholds in config use this scale). Verified:
