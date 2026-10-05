@@ -99,9 +99,9 @@ class Embedder(ABC):
 - Implementation: `engine/embeddings/sentence_transformer.py` (sentence-transformers,
   `embedding.model_name` at the pinned `embedding.revision`; `factory.build_embedder`).
   The constructor fails with `ConfigError` if the model's dimension differs from
-  `embedding.dimension`. CPU throughput on a 4-core laptop (i7-1185G7): ≈ 0.9 chunks/s for
-  ~344-token chunks, so a full MultiHop-RAG index build takes ≈ 80 min; a short query
-  takes well under a second.
+  `embedding.dimension`. CPU throughput on a 4-core laptop (i7-1185G7): ≈ 0.9–1.25
+  chunks/s for ~344-token chunks — the full MultiHop-RAG index (4,441 chunks) took 59 min;
+  direct dense retrieval (query embedding + search, k = 20) has a median of 104 ms (NFR-P1).
 
 ### Sparse encoder (`engine/embeddings/interfaces.py`; ADR-001)
 ```python

@@ -58,8 +58,26 @@ Before accepting: ingest the dev subset with this setting, run `check_gold_mappi
   `check_gold_mapping.py multihop`: **6,084 / 6,084 evidence entries mapped (100 %)**, all
   by exact match, none straddling a chunk boundary; 254 groups have two chunks (the fact
   lies in an overlap). Dev 100 %, test 100 %, dev subset 100 %.
-- Pending: dense_oneshot Recall@10 on the dev subset (needs the Embedder, the index and
-  the eval harness).
+- 2026-10-05 — index `multihop_v1` built (`python -m data.ingest --dataset multihop
+  --index`): 4,441 points (named dense 768-d cosine + BM25 sparse with IDF), 59.3 min on CPU
+  (i7-1185G7, ≈ 1.25 chunks/s); a rerun skips all 4,441 (resumable).
+- 2026-10-05 — **preliminary** retrieval sanity check on the dev subset (265 of 300 tasks have
+  gold evidence; question text as query, no reranking; one-off script, not `eval/` — the
+  official E0 numbers come from the eval harness):
+
+  | Mode | Recall@10 | Hit@10 | CER@10 | ms/query |
+  |---|---|---|---|---|
+  | dense (bge-base) | 0.477 | 0.823 | 0.177 | 135 |
+  | sparse (BM25) | 0.608 | 0.906 | 0.325 | 18 |
+  | hybrid (RRF) | 0.589 | 0.898 | 0.291 | 28 |
+
+  Recall@10 by type, dense / sparse / hybrid: comparison 0.540 / 0.746 / 0.708, inference
+  0.398 / 0.523 / 0.512, temporal 0.495 / 0.522 / 0.522. BM25 beats dense on these
+  entity-heavy news questions; dense is functional (Hit@10 0.82), and RRF fusion lands
+  slightly below BM25 alone. Worth examining in E0/E1 (e.g. the BGE-large or e5 alternative
+  above, or RRF weighting) before this ADR is accepted.
+- NFR-P1 (direct dense retrieval, k = 20, CPU, 127.0.0.1): median 104 ms, p90 127 ms over
+  24 uncached queries (`tests/integration/test_direct_live.py`) — within the ≤ 200 ms target.
 
 ## Reversal condition
 Cheap until the Week 10 checkpoint. Afterwards only with a new ADR and full re-runs.
