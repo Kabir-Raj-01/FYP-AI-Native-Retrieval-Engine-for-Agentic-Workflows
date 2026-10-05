@@ -25,7 +25,7 @@ sub-run's retrieval budget B). TraceStep: `rule="one_shot"`, `eligible_actions=[
 empty `utility_scores`, `accepted_ids` = the bundle, `rejected={}`, `evidence_gain=0.0`,
 `budget_after` with `max_steps=1`, `max_retrieval_calls=B`, `max_llm_calls=0`. Bundle `gaps`
 are empty (a one-shot baseline plans none); `summary` = PLANNER_SPEC §3 truncation.
-**Interim, until the Reranker exists (ADR-005):** no rerank — the bundle is the top
+**Without a reranker** (an Engine built without one, e.g. in tests): no rerank — the bundle is the top
 `rerank.top_n_output` in retrieval order with `final_score` = the raw retrieval score and
 `relevance = 0.0`; `eval/run.py` marks such runs non-reportable.
 

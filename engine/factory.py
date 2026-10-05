@@ -15,7 +15,7 @@ Selection (config key -> implementation):
 - Planner           bounded LLM planner (``ablation.planner`` false -> no planner calls)    [todo]
 - Cache             task-local SQLite cache in ``paths.state_db`` (``ablation.cache``)
 - Controller        rule + utility policy (``ablation.adaptive_actions`` false -> fixed)    [todo]
-- Reranker          cross-encoder ``rerank.cross_encoder_model`` + state-aware scoring     [todo]
+- Reranker          cross-encoder ``rerank.cross_encoder_model`` + state-aware scoring
 - EvidenceManager   thresholds ``evidence.*``; verifier when ``llm.verifier.enabled``      [todo]
 - TrajectoryMonitor stagnation/stop rules ``monitor.*``                                    [todo]
 - TraceWriter       JSONL traces + bundles under a run folder (OBSERVABILITY §4)
@@ -110,7 +110,10 @@ def build_controller(cfg: EngineConfig, embedder: Embedder) -> Controller:
 
 
 def build_reranker(cfg: EngineConfig, embedder: Embedder) -> Reranker:
-    raise _not_built("Reranker")
+    from engine.rerank.cross_encoder import CrossEncoderScorer
+    from engine.rerank.state_aware import StateAwareReranker
+
+    return StateAwareReranker(cfg, embedder, CrossEncoderScorer(cfg.rerank))  # loads lazily
 
 
 def build_evidence_manager(

@@ -305,6 +305,7 @@ class RerankWeights(_Section):  # Frozen after calibration ADR; non-negative, no
 
 class RerankConfig(_Section):
     cross_encoder_model: str  # Frozen after ADR-005
+    revision: GitRevision  # Hugging Face commit of cross_encoder_model (pinned weights)
     weights: RerankWeights
     top_n_output: int
     batch_size: int

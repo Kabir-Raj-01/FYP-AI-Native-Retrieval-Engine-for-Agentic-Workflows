@@ -4,7 +4,7 @@
 2. Bundle = top ``rerank.top_n_output`` by relevance; one TraceStep (action DENSE);
    ``stop_reason = ONE_SHOT_COMPLETE``; retrieval calls = 1, LLM calls = 0.
 
-Interim (until the Reranker exists, ADR-005): without a reranker the bundle is the top
+Without a reranker (an Engine built without one): the bundle is the top
 ``rerank.top_n_output`` in retrieval order, with ``final_score`` = the raw retrieval score
 and ``relevance`` = 0.0; ``eval/run.py`` marks such runs non-reportable.
 """

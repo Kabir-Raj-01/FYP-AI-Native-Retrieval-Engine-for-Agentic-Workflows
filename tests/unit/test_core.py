@@ -146,5 +146,5 @@ def test_from_config_builds_only_direct_path_components(
     monkeypatch.setattr(factory, "build_llm_client", no_planner)
     eng = Engine.from_config(cfg)
     assert built == ["embedder", "sparse", "retriever"]
-    assert not eng.has_reranker  # build_reranker is still a stub (ADR-005)
+    assert eng.has_reranker  # built; the cross-encoder model loads on the first rerank
     assert eng.retrieve_direct("Linden Bay", RetrievalMode.DENSE, k=2).candidates

@@ -77,9 +77,11 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [ ] V: LLMClient (providers, structured output, cache, caps) (LLM_CLIENT_SPEC); ADR-004 model choices
 - [ ] V: planner v1: INIT/REWRITE/SPLIT, validator, fallback, prompts (FR4, PLANNER_SPEC)
 - [ ] S: real `maybe_plan` node → gaps in state; explicit state updates per ownership matrix
-- [ ] V: cross-encoder relevance-only Reranker (used by baselines); ADR-005
-      — once it exists, one-shot traces need `latency_ms["rerank"]` split from `execute`:
-      `DirectResult` has only the total, so this needs an ADR-012 amendment
+- [x] V: cross-encoder relevance-only Reranker (used by baselines); ADR-005
+      — built by K (`engine/rerank/`, branch `k/controlled-path`) with the config default
+      bge-reranker-base at the new `rerank.revision`; model choice still ADR-005 (Samay).
+      Open: one-shot traces need `latency_ms["rerank"]` split from `execute` (`DirectResult`
+      has only the total → ADR-012 amendment); E0 not yet re-run with rerank (CPU cost)
 - [ ] All: early MultiHop-RAG results table (dense vs hybrid)
 - [ ] Tag `v0.3-midterm`
 
@@ -95,6 +97,8 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [ ] S: EvidenceManager: acceptance, gap resolution, evidence gain (FR8, EVIDENCE_MANAGER_SPEC)
 - [ ] S: TrajectoryMonitor: stagnation, gap advancement, stop checks (ACTION_POLICY §6)
 - [ ] S: state-aware reranking prototype (FR7, RERANK_SPEC) — may run into FYP-II per Gantt
+      — built by K with the Reranker (`engine/rerank/state_aware.py`; FR7 constructed case
+      reproduced exactly); weights stay Draft until the calibration ADR
 - [ ] V: `/step`, `/run`, `/result`, `/trace` endpoints + RetrievalClient (FR11)
 
 ## Weeks 14–15 (16–29 Nov) — Integration and test buffer (no new features)

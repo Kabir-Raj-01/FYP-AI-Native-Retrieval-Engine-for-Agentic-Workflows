@@ -154,6 +154,9 @@ it**. Rules:
       [0,1], but tiny on long questions (0.000–0.003 observed) — calibrate thresholds.
       `cross-encoder/ms-marco-MiniLM-L-6-v2` (`233902d2…`): `Identity()` → logits, apply a
       sigmoid. Full shas and the quality probe in ADR-005.
+      Constructor parameters checked on the installed 6.1.0: `CrossEncoder(model_name_or_path,
+      device=, revision=, max_length=, activation_fn=, ...)`; `predict(inputs, batch_size=,
+      show_progress_bar=, ...)` (`engine/rerank/cross_encoder.py`).
 - Gotchas:
   - 6.x renamed `get_sentence_embedding_dimension()` to `get_embedding_dimension()` (the
     old name still works but emits a `FutureWarning`).

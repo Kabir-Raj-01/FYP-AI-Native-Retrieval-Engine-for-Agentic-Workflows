@@ -171,6 +171,7 @@ Truncates `PlanResult.rationale` (never rejects it) — ADR-009 §10.
 | Key | Type | Default | Frozen |
 |---|---|---|---|
 | rerank.cross_encoder_model | str | BAAI/bge-reranker-base | after ADR-005 |
+| rerank.revision | str (40-hex commit) | 2cfc18c9415c912f9d8155881c133215df768a70 | pinned Hugging Face commit of the cross-encoder; changes together with the model (ADR-005) |
 | rerank.weights.{relevance,gap_coverage,novelty,redundancy} | float ≥ 0 | 0.6/0.2/0.2/0.3 | after calibration ADR |
 | rerank.top_n_output | int | 10 | bundle size for all systems |
 | rerank.batch_size | int | 32 | |

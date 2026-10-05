@@ -137,7 +137,7 @@ the same `RetrieverAdapter` instance; optionally applies
 `Reranker.rerank(query, candidates, state=None)`, which is relevance-only mode (ADR-009
 "Also"). No TaskStore, cache, planner or controller. `k=None` → `retrieval.default_k`;
 `k ∉ [1, retrieval.max_k]` → `ValueError`; `rerank=True` without a reranker →
-`ConfigError` (the API answers 422 until ADR-005's Reranker exists). Every call emits a
+`ConfigError` (the API answers 422 for an Engine built without a reranker). Every call emits a
 `retrieval.call` event (`path="direct"`).
 
 `Engine(cfg, *, retriever, reranker=None, clock=time.perf_counter)` is the facade;

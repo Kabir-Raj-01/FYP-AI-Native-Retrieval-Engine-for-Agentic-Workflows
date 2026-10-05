@@ -57,7 +57,8 @@ Open for the owner (Samay) — not decided here:
 1. Quality favours `bge-reranker-base` (proposed default); latency favours MiniLM, which
    showed no reliable quality gain. Options: accept bge and reduce the rerank input
    (fewer candidates, or a lower `max_input_tokens`), or accept bge and budget the time.
-2. Pin the reranker revision (a `rerank.revision` key, like `embedding.revision`).
+2. ~~Pin the reranker revision~~ — done 2026-10-05: `rerank.revision` (bge sha above), read
+   by `engine/rerank/cross_encoder.py`; it must change together with the model.
 3. Confirm on the full dev split (and on hybrid candidates) before the key is frozen.
 4. With a reranker, the one-shot baselines' TraceStep `latency_ms["execute"]` would include
    rerank time, because `DirectResult.latency_ms` is search + rerank. Splitting it (e.g.

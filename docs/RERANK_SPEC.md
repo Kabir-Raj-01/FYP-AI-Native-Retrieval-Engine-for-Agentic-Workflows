@@ -48,6 +48,15 @@ list. Without redundancy, two near-identical new chunks could both be selected.
 - Cross-encoder input truncated to `rerank.max_input_tokens`.
 - Runs on CPU acceptably at k ≤ 50 with a base-size model; GPU optional (`rerank.device`).
 
+**As built (2026-10-05, `engine/rerank/state_aware.py`, `cross_encoder.py`):** with
+`ablation.state_aware_rerank` false *and* a state, `gap_coverage` and `novelty` are still
+computed (the EvidenceManager's `LOW_NOVELTY` check reads them, so the ablation changes
+only the ordering); `final = relevance`, cross-encoder order, redundancy 0. With
+`state=None`: gap coverage 0, novelty 1, redundancy 0. Ties keep backend order; cosines are
+clipped to [0, 1]; a state-aware call needs candidate vectors (`ValueError` otherwise). The
+cross-encoder loads lazily at `rerank.revision` and maps logits through a sigmoid only for
+an `Identity` head.
+
 ## 5. Outputs used downstream
 EvidenceManager uses `relevance` and `novelty` for acceptance and `final_score` for
 ordering; the controller reads `top_relevances` (stored in `LastResult`) for
