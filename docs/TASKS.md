@@ -61,7 +61,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [ ] Tag `v0.2-week10`
 
 ## Weeks 11–12 (26 Oct–8 Nov) — Baselines, state, planner → Mid-term
-- [ ] K: hybrid mode (prefetch + RRF); hybrid_oneshot baseline (BASELINES_SPEC)
+- [x] K: hybrid mode (prefetch + RRF); hybrid_oneshot baseline (BASELINES_SPEC)
+      — `python -m eval.run --config configs\experiments\hybrid_oneshot_dev.yaml`;
+      shares `run_oneshot` with dense_oneshot; without rerank until ADR-005
 - [ ] K: retrieval instrumentation (latency, calls) in traces
 - [ ] V: LLMClient (providers, structured output, cache, caps) (LLM_CLIENT_SPEC); ADR-004 model choices
 - [ ] V: planner v1: INIT/REWRITE/SPLIT, validator, fallback, prompts (FR4, PLANNER_SPEC)
@@ -149,3 +151,4 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 | 2026-10-05 | Index `multihop_v1` built (4,441 points, 59 min). Direct path + `/v1/retrieve/direct` + `/v1/health` (ADR-012). Preliminary dev-subset Recall@10: dense 0.477, BM25 0.608, hybrid 0.589 (ADR-001). NFR-P1 met (median 104 ms). Risk: CPU cross-encoder vs NFR-P3/P7 (ADR-005). |
 | 2026-10-05 | Trace writer + eval harness v0 + dense_oneshot. Preliminary E0 (dev subset, no rerank): Recall@10 0.477, CER 0.177; trajectory coverage 0.661 shows the top-20 holds far more gold than the retrieval-order top-10 — evidence for adding the reranker (ADR-005). Cache + latency profile done. |
 | 2026-10-05 | ADR-005 probe (dev subset, exploratory): bge-reranker-base lifts dense Recall@10 0.493 → 0.556 (80 tasks); MiniLM no reliable gain on dense and hurts hybrid (0.589 → 0.525). Rerank latency not yet valid (measured on battery); bge ≈ 10–24 s per 20 pairs. Decision stays with ADR-005's owner. |
+| 2026-10-05 | hybrid_oneshot baseline. Preliminary dev-subset run (no rerank, non-reportable): Recall@10 0.589, Hit@10 0.898, MRR 0.604, CER 0.291, trajectory coverage 0.729 — vs dense_oneshot 0.477 / 0.823 / 0.491 / 0.177 / 0.661. |

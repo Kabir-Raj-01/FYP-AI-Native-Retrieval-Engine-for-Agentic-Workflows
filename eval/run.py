@@ -6,9 +6,9 @@ Writes ``<paths.runs_dir>/<run_id>/`` with ``run_id = YYYYMMDD-HHMMSS_<experimen
 ``manifest.json``, ``config.resolved.yaml``, ``events.jsonl`` and one ``b<B>/`` folder per
 retrieval budget (``traces/``, ``bundles/``, ``per_task.csv``, ``metrics.json``).
 
-v0 limits (recorded in the manifest): only ``dense_oneshot`` is implemented; the test split
-is refused (EVAL_PROTOCOL §1.2 requires the frozen-config tag); answers are not generated
-(ADR-004); without a reranker (ADR-005) runs are not reportable.
+v0 limits (recorded in the manifest): only ``dense_oneshot`` and ``hybrid_oneshot`` are
+implemented; the test split is refused (EVAL_PROTOCOL §1.2 requires the frozen-config tag);
+answers are not generated (ADR-004); without a reranker (ADR-005) runs are not reportable.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from typing import Any
 import httpx
 import yaml
 
-from baselines import dense_oneshot
+from baselines import dense_oneshot, hybrid_oneshot
 from baselines.base import BaselineContext
 from data.ingest import GOLD_MAP_FILE, SPLIT_FILE, git_state, processed_dir
 from engine import factory
@@ -47,6 +47,7 @@ __all__ = ["main", "run_experiment"]
 
 SYSTEMS: dict[str, Callable[[Task, BaselineContext], EvidenceBundle]] = {
     dense_oneshot.SYSTEM: dense_oneshot.run_task,
+    hybrid_oneshot.SYSTEM: hybrid_oneshot.run_task,
 }
 # Distributions whose versions go into the manifest (OBSERVABILITY §5).
 _PACKAGES = (
@@ -134,7 +135,7 @@ def run_experiment(
     if exp.split == "test":
         raise ConfigError("the test split needs the frozen-config tag (EVAL_PROTOCOL §1.2)")
     if exp.system not in SYSTEMS:
-        raise ConfigError(f"system {exp.system!r} is not implemented yet (v0: dense_oneshot)")
+        raise ConfigError(f"system {exp.system!r} is not implemented yet (v0: {sorted(SYSTEMS)})")
     run_task = SYSTEMS[exp.system]
     started = clock()
     created = now()

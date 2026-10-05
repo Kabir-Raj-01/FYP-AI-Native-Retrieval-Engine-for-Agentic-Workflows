@@ -25,15 +25,18 @@ from engine.state.models import (
 from engine.text import summary_of
 from eval.datasets.base import Task
 
-__all__ = ["SYSTEM", "run_task"]
+__all__ = ["SYSTEM", "run_oneshot", "run_task"]
 
 SYSTEM = "dense_oneshot"
-_ACTION = Action.DENSE
-_MODE = RetrievalMode.DENSE
 
 
 def _item(
-    c: Candidate, relevance: float, final: float, task: Task, ctx: BaselineContext
+    c: Candidate,
+    relevance: float,
+    final: float,
+    action: Action,
+    task: Task,
+    ctx: BaselineContext,
 ) -> EvidenceItem:
     return EvidenceItem(
         evidence_id=c.chunk_id,
@@ -44,7 +47,7 @@ def _item(
         relevance=relevance,
         novelty=1.0,  # nothing accepted before this single step
         final_score=final,
-        source_action=_ACTION,
+        source_action=action,
         query=task.question,
         metadata=dict(c.metadata),
         added_at_step=1,
@@ -53,17 +56,24 @@ def _item(
 
 
 def run_task(task: Task, ctx: BaselineContext) -> EvidenceBundle:
+    return run_oneshot(task, ctx, RetrievalMode.DENSE, Action.DENSE)
+
+
+def run_oneshot(
+    task: Task, ctx: BaselineContext, mode: RetrievalMode, action: Action
+) -> EvidenceBundle:
+    """One retrieval in ``mode``, traced as ``action``; shared with hybrid_oneshot."""
     cfg = ctx.cfg
     k = cfg.retrieval.default_k
     reranked = ctx.engine.has_reranker
-    result = ctx.engine.retrieve_direct(task.question, _MODE, k, rerank=reranked)
+    result = ctx.engine.retrieve_direct(task.question, mode, k, rerank=reranked)
     if result.scored is not None:
         ranked = [(s.candidate, s.relevance, s.final_score) for s in result.scored]
     else:
         ranked = [(c, 0.0, c.retrieval_score) for c in result.candidates]
     top = ranked[: cfg.rerank.top_n_output]
     evidence = sorted(
-        (_item(c, rel, fin, task, ctx) for c, rel, fin in top), key=lambda e: -e.final_score
+        (_item(c, rel, fin, action, task, ctx) for c, rel, fin in top), key=lambda e: -e.final_score
     )  # stable: ties keep backend order
 
     budget = Budget(
@@ -79,12 +89,12 @@ def run_task(task: Task, ctx: BaselineContext) -> EvidenceBundle:
     step = ctx.traces.new_step(
         task_id=task.task_id,
         step=1,
-        action=_ACTION,
+        action=action,
         rule="one_shot",
-        eligible_actions=[_ACTION],
+        eligible_actions=[action],
         utility_scores={},  # baselines have no utility (OBSERVABILITY §2)
         query=task.question,
-        mode=_MODE,
+        mode=mode,
         k=k,
         cache_hit=False,
         candidate_ids=candidate_ids,
