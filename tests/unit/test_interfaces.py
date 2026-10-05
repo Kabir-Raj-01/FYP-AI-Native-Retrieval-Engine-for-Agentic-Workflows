@@ -171,6 +171,9 @@ IMPLEMENTED = {
     "build_trace_writer",
     "build_task_store",
     "build_reranker",
+    "build_controller",
+    "build_evidence_manager",
+    "build_monitor",
 }
 
 
@@ -203,5 +206,8 @@ def test_implemented_builders_return_their_interfaces(monkeypatch: pytest.Monkey
     assert isinstance(factory.build_cache(cfg, embedder), Cache)  # connects lazily
     assert isinstance(factory.build_task_store(cfg), TaskStore)  # connects lazily
     assert isinstance(factory.build_reranker(cfg, embedder), Reranker)  # loads lazily
+    assert isinstance(factory.build_controller(cfg, embedder), Controller)
+    assert isinstance(factory.build_evidence_manager(cfg, embedder, None), EvidenceManager)  # type: ignore[arg-type]
+    assert isinstance(factory.build_monitor(cfg), TrajectoryMonitor)
     ctx = RunContext(run_id="r", system="controller_on")
     assert isinstance(factory.build_trace_writer(cfg, ctx, Path("unused")), TraceWriter)

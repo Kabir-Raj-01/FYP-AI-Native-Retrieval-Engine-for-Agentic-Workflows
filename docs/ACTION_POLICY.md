@@ -155,6 +155,24 @@ With `ablation.gap_tracking` false, INIT creates exactly one gap (the goal), gap
 resolution uses the evidence-sufficiency rule in EVIDENCE_MANAGER_SPEC §5, and
 advancement never happens.
 
+**As built (2026-10-05, `engine/controller/policy.py`, `engine/monitor/trajectory.py`):**
+interpretations awaiting the owner's review —
+- TRANSFORM's "every retrieval action is blocked only by Issued(·)" = DENSE and
+  SPARSE_HYBRID have both issued the pending query (normalised).
+- "Failed queries" of a gap (REWRITE vs SPLIT) = the gap's `query_history` queries that
+  appear in `retrieval_history`; state keeps no per-query gain. SPLIT needs ≥ 2 of them and
+  `live gaps + 1 ≤ planner.max_gaps`.
+- RERANK_EXPAND's "last_result exists for the current gap's pending query" =
+  `normalize(last_result.query) == normalize(pending_query)`; the band is inclusive.
+- §6.2 / §6.3 follow ADR-009 addendum A6 as decided on 2026-10-05: a SUPERSEDED parent keeps
+  its status and its effective status (all children RESOLVED → resolved; all closed, one
+  EXHAUSTED → exhausted) is used by the stop checks; advancing resets `stagnation_count` and
+  `transforms_in_streak`, not `last_result`.
+- §7's "STOP(STAGNATION) for this gap" is a STOP with `rule = "fixed_policy"`: the monitor
+  marks the gap EXHAUSTED and advances; the task stops when no OPEN gap remains. The fixed
+  policy stops with `MAX_RETRIEVAL_CALLS` once the retrieval budget is spent (it never
+  REUSEs).
+
 ## 7. Fixed policy (ablation `adaptive_actions = false`)
 For the current gap: first step DENSE if need is semantic, otherwise SPARSE_HYBRID; if
 that query was already issued, the other mode; if both were issued, STOP(STAGNATION) for

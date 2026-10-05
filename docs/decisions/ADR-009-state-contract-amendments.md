@@ -390,6 +390,14 @@ an API_CONTRACT row map to 500 `INTERNAL_ERROR`.
   resets `stagnation_count`, `transforms_in_streak` and `last_result`, while the ownership
   matrix gives `last_result` only to `score_and_update`.
 
+**A6 — decided 2026-10-05 (Kabir, with the user's approval; for Samay's review).**
+Both recommended options were taken: the parent stays SUPERSEDED and the monitor computes
+its effective status for the stop checks (invariant 4 and the ownership matrix unchanged);
+advancing resets `stagnation_count` and `transforms_in_streak` only (monitor-owned fields,
+applied verbatim from `MonitorVerdict`), not `last_result` — RERANK_EXPAND requires a
+`last_result` for the current gap's query, so a stale one is never used. Implemented in
+`engine/monitor/trajectory.py`; tests in `tests/unit/monitor/test_trajectory.py`.
+
 **A7. Reversal condition evaluated: `GraphState`/`IterationScratch` composes with LangGraph.**
 Tested on langgraph 1.2.12 with the real models (2026-10-05;
 `tests/unit/graph/test_langgraph_graphstate.py`, LIBRARY_NOTES "LangGraph"). Nested

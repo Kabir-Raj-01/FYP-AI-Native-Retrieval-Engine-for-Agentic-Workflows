@@ -47,8 +47,9 @@ class TrajectoryMonitor(ABC):
         """Next current gap: the lowest-index OPEN gap's id, or None if there is none.
 
         Called by ``maybe_plan`` after INIT, by ``execute`` after a SPLIT and by
-        ``observe`` on gap resolution/exhaustion (ADR-009 §4). Which further fields it
-        resets is an open spec question (Week 7 checkpoint, S5).
+        ``observe`` on gap resolution/exhaustion (ADR-009 §4). Only ``current_gap_id`` is
+        applied; ``observe`` resets ``stagnation_count``/``transforms_in_streak`` itself
+        when it advances (ADR-009 A6 as decided 2026-10-05).
         """
         raise NotImplementedError
 

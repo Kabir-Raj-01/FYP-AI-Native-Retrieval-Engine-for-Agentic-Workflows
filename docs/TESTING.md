@@ -55,7 +55,10 @@ The unit-test command `pytest -m "not integration and not llm and not e2e"` runs
      original values even though `dump_with_vectors` excludes them from the payload.
      Also covers `current_gap_id = None` (computed properties fall back to
      `""`/`""`/`MIXED`).
-3. **Worked example** (`test_worked_example.py`) reproducing ACTION_POLICY §8 exactly.
+3. **Worked example** (`tests/unit/controller/test_worked_example.py`) reproducing
+   ACTION_POLICY §8 exactly. Invariant 9's static part is
+   `tests/unit/test_import_boundaries.py::test_components_do_not_store_state_references`
+   (no `self.<attr> = …state…` in component methods).
 4. **Golden trajectories** (`tests/e2e/test_golden.py`): with fakes and the fixture
    corpus, the action sequence and stop reason per task match a stored snapshot
    (`tests/fixtures/golden/*.json`). Snapshot updates require a PR comment explaining why.

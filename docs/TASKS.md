@@ -93,9 +93,17 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       — cache v1 + leakage test done (`engine/cache/task_cache.py`, shared
       `engine/state/sqlite.py`, `engine/text.py`); REUSE needs the controller and the
       `execute`/`score_and_update` nodes (Week 13, S)
-- [ ] S: controller v1: preconditions, signals, utility, tie-break, fixed-policy ablation (FR6, ACTION_POLICY §2–4, §7) + worked-example test
-- [ ] S: EvidenceManager: acceptance, gap resolution, evidence gain (FR8, EVIDENCE_MANAGER_SPEC)
-- [ ] S: TrajectoryMonitor: stagnation, gap advancement, stop checks (ACTION_POLICY §6)
+- [x] S: controller v1: preconditions, signals, utility, tie-break, fixed-policy ablation (FR6, ACTION_POLICY §2–4, §7) + worked-example test
+      — built by K (`engine/controller/policy.py`, `signals.py`; worked example exact);
+      interpretations listed under ACTION_POLICY §6 "As built" for Samay's review
+- [x] S: EvidenceManager: acceptance, gap resolution, evidence gain (FR8, EVIDENCE_MANAGER_SPEC)
+      — built by K (`engine/evidence/manager.py`); the optional LLM verifier is not built
+      (needs a shared output model via ADR + a verifier model in ADR-004)
+- [x] S: TrajectoryMonitor: stagnation, gap advancement, stop checks (ACTION_POLICY §6)
+      — built by K (`engine/monitor/trajectory.py`) with ADR-009 A6 decided as recommended.
+      Risk: with bge-reranker-base, relevance on long MultiHop questions was 0.000–0.003
+      (ADR-005 probe) vs `evidence.relevance_threshold` 0.5 — measure on subgoal queries
+      once the planner runs; calibration (ACTION_POLICY §9) owns the fix
 - [ ] S: state-aware reranking prototype (FR7, RERANK_SPEC) — may run into FYP-II per Gantt
       — built by K with the Reranker (`engine/rerank/state_aware.py`; FR7 constructed case
       reproduced exactly); weights stay Draft until the calibration ADR

@@ -57,6 +57,12 @@ and the task stops with STAGNATION, returning whatever evidence it has. The host
 generator decides "insufficient information". This is the intended behaviour for
 MultiHop-RAG null queries and is measured by over-retrieval metrics.
 
+**As built (2026-10-05, `engine/evidence/manager.py`):** the optional verifier (§3) is not
+built — its `{supports: bool}` output needs a shared model (STATE_SPEC change, ADR) and
+ADR-004 names no verifier model; `llm.verifier.enabled = true` raises `ConfigError`.
+Eviction picks the lowest-`final_score` unpinned item among E_t and the items accepted
+earlier in the same step; ties in gap coverage go to the earliest item.
+
 ## 7. Events
 `evidence.accepted`, `evidence.rejected` (with code), `evidence.evicted`,
 `gap.resolved`, `gap.verification` (OBSERVABILITY.md).

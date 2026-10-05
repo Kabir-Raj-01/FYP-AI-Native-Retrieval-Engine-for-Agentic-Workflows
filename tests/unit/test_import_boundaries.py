@@ -301,10 +301,57 @@ def test_library_checker(source: str, path: str, violates: bool) -> None:
     assert bool(library_violations(_scan(source, path))) is violates
 
 
-# --------------------------------------------------------------------------------- TODO
-@pytest.mark.skip(
-    reason="TODO(Weeks 8-9): STATE_SPEC §5 invariant 9 (no component keeps a reference to the "
-    "state between calls) needs the graph nodes; define the static check with them"
+# ----------------------------------------------- STATE_SPEC §5 invariant 9 (static part)
+STATEFUL_PACKAGES = ("planner", "cache", "controller", "rerank", "evidence", "monitor", "graph")
+
+
+def state_reference_violations(source: str, rel_path: str) -> list[str]:
+    """``self.<attr> = <anything mentioning a parameter named state/gs>`` inside a method:
+    a component keeping (part of) the task state between calls."""
+    out: list[str] = []
+    for fn in ast.walk(ast.parse(source)):
+        if not isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+            continue
+        params = {a.arg for a in fn.args.args + fn.args.kwonlyargs} & {"state", "gs"}
+        if not params:
+            continue
+        for node in ast.walk(fn):
+            if not isinstance(node, ast.Assign | ast.AugAssign | ast.AnnAssign):
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            on_self = any(
+                isinstance(tg, ast.Attribute)
+                and isinstance(tg.value, ast.Name)
+                and tg.value.id == "self"
+                for tg in targets
+            )
+            value = node.value
+            uses = value is not None and any(
+                isinstance(n, ast.Name) and n.id in params for n in ast.walk(value)
+            )
+            if on_self and uses:
+                out.append(f"{rel_path}:{node.lineno}")
+    return out
+
+
+def test_components_do_not_store_state_references() -> None:
+    found: list[str] = []
+    for package in STATEFUL_PACKAGES:
+        for path in (REPO_ROOT / "engine" / package).glob("*.py"):
+            rel = path.relative_to(REPO_ROOT).as_posix()
+            found += state_reference_violations(path.read_text(encoding="utf-8"), rel)
+    assert found == []
+
+
+@pytest.mark.parametrize(
+    ("source", "violates"),
+    [
+        ("def f(self, state):\n    self.last = state\n", True),
+        ("def f(self, state):\n    self.n = len(state.gaps)\n", True),
+        ("def f(self, gs, ctx):\n    self.s = gs.state\n", True),
+        ("def f(self, state):\n    x = state.gaps\n    return x\n", False),
+        ("def f(self, cfg):\n    self.cfg = cfg\n", False),
+    ],
 )
-def test_components_do_not_store_state_references() -> None:  # pragma: no cover
-    raise AssertionError
+def test_state_reference_checker(source: str, violates: bool) -> None:
+    assert bool(state_reference_violations(source, "engine/x.py")) is violates

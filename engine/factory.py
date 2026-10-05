@@ -14,10 +14,10 @@ Selection (config key -> implementation):
 - LLMClient         ``llm.<role>.provider``: ``anthropic`` | ``openai_compatible`` | ``fake`` [todo]
 - Planner           bounded LLM planner (``ablation.planner`` false -> no planner calls)    [todo]
 - Cache             task-local SQLite cache in ``paths.state_db`` (``ablation.cache``)
-- Controller        rule + utility policy (``ablation.adaptive_actions`` false -> fixed)    [todo]
+- Controller        rule + utility policy (``ablation.adaptive_actions`` false -> fixed)
 - Reranker          cross-encoder ``rerank.cross_encoder_model`` + state-aware scoring
-- EvidenceManager   thresholds ``evidence.*``; verifier when ``llm.verifier.enabled``      [todo]
-- TrajectoryMonitor stagnation/stop rules ``monitor.*``                                    [todo]
+- EvidenceManager   thresholds ``evidence.*`` (verifier not built: enabled -> ConfigError)
+- TrajectoryMonitor stagnation/stop rules ``monitor.*``
 - TraceWriter       JSONL traces + bundles under a run folder (OBSERVABILITY §4)
 """
 
@@ -106,7 +106,9 @@ def build_cache(cfg: EngineConfig, embedder: Embedder) -> Cache:
 
 
 def build_controller(cfg: EngineConfig, embedder: Embedder) -> Controller:
-    raise _not_built("Controller")
+    from engine.controller.policy import RuleUtilityController
+
+    return RuleUtilityController(cfg, embedder)
 
 
 def build_reranker(cfg: EngineConfig, embedder: Embedder) -> Reranker:
@@ -119,11 +121,15 @@ def build_reranker(cfg: EngineConfig, embedder: Embedder) -> Reranker:
 def build_evidence_manager(
     cfg: EngineConfig, embedder: Embedder, llm: LLMClient
 ) -> EvidenceManager:
-    raise _not_built("EvidenceManager")
+    from engine.evidence.manager import ThresholdEvidenceManager
+
+    return ThresholdEvidenceManager(cfg, embedder)  # llm: for the verifier, not built yet
 
 
 def build_monitor(cfg: EngineConfig) -> TrajectoryMonitor:
-    raise _not_built("TrajectoryMonitor")
+    from engine.monitor.trajectory import RuleTrajectoryMonitor
+
+    return RuleTrajectoryMonitor(cfg)
 
 
 def build_trace_writer(cfg: EngineConfig, ctx: RunContext, root: Path) -> TraceWriter:
