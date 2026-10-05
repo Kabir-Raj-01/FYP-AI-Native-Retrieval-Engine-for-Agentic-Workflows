@@ -43,7 +43,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       — with a minimal app shell (`/v1/health`); `rerank=true` → 422 until the Reranker
       (ADR-005); NFR-P1 median 104 ms; merge waits for ADR-012
 - [ ] V: FastAPI app, `/health`, `/tasks` create/state (FR2, API_CONTRACT)
-- [ ] V: eval harness v0: dataset loader, dense_oneshot, metrics (Recall/Hit/MRR/CER), run folder + manifest (EVAL_PROTOCOL, OBSERVABILITY)
+- [x] V: eval harness v0: dataset loader, dense_oneshot, metrics (Recall/Hit/MRR/CER), run folder + manifest (EVAL_PROTOCOL, OBSERVABILITY)
+      — built by K: `python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml`;
+      dense_oneshot without rerank until ADR-005
 - [ ] S: SQLite TaskStore (WAL, version check) + LangGraph skeleton with stub nodes; `Engine.step/run` loop with budget cap (ARCHITECTURE §3–4)
 - [x] V: trace writer (TraceStep) shared by engine and baselines (OBSERVABILITY)
       — built by K: `engine/monitor/trace.py` (JSONL traces + bundles, context stamping,
@@ -51,6 +53,10 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 
 ## Week 10 (19–25 Oct) — Working prototype checkpoint
 - [ ] K+V: E0 — dense_oneshot results on the dev subset through the service
+      — preliminary E0 run (in-process, no rerank, non-reportable) 2026-10-05:
+      Recall@10 0.477, Hit@10 0.823, MRR 0.491, CER 0.177, trajectory coverage 0.661
+      (matches the one-off check in ADR-001); still needed: reranker, a run through the
+      HTTP service, a clean tree
 - [ ] All: demo script + short progress slides
 - [ ] Tag `v0.2-week10`
 
@@ -141,3 +147,4 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 | 2026-10-05 | LangGraph unblocked (uuid-utils 0.17.0, `requirements.lock`); nested GraphState verified (ADR-009 A7). Branch `k/data-download`: Qdrant v1.19.1 pinned; MultiHop-RAG downloaded and verified (609 docs, 2,556 queries; ADR-003 filled except split hashes). |
 | 2026-10-05 | scikit-learn 1.9.0 / pandas 3.0.3 held (Smart App Control). Ingestion step 1 (chunks, gold map, split): 4,441 chunks, gold coverage 100 %, split.json + gold_map.json committed, ADR-003 split hashes filled. Next: Embedder + BM25 + Qdrant upsert + adapter (step 2). |
 | 2026-10-05 | Index `multihop_v1` built (4,441 points, 59 min). Direct path + `/v1/retrieve/direct` + `/v1/health` (ADR-012). Preliminary dev-subset Recall@10: dense 0.477, BM25 0.608, hybrid 0.589 (ADR-001). NFR-P1 met (median 104 ms). Risk: CPU cross-encoder vs NFR-P3/P7 (ADR-005). |
+| 2026-10-05 | Trace writer + eval harness v0 + dense_oneshot. Preliminary E0 (dev subset, no rerank): Recall@10 0.477, CER 0.177; trajectory coverage 0.661 shows the top-20 holds far more gold than the retrieval-order top-10 — evidence for adding the reranker (ADR-005). Cache + latency profile done. |

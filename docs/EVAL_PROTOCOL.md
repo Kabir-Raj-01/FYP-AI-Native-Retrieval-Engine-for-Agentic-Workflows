@@ -74,6 +74,15 @@ and evidence metrics.
 - Over-retrieval = retrieval calls made after the step at which all groups were first hit.
 - Stagnation episodes = count of steps with stagnation_count ≥ patience.
 
+**Implementation status (v0, 2026-10-05):** `eval/metrics.py` computes Hit/Recall/NDCG@k,
+MRR, CER, partial and trajectory coverage and the efficiency counts from traces, bundles
+and the gold map; answer accuracy, redundancy rates, over-retrieval and premature-stop
+rates come with the generator and the controlled runs. **Latency caveat:** with
+`eval.max_workers` > 1 the workers share one Embedder (which serialises model calls), so a
+task's latency includes waiting for the others — report latency from a single-worker run
+(`--set eval.max_workers=1`, non-reportable) or from `scripts/latency_profile.py`, not from
+a parallel quality run.
+
 ## 5. Statistics (`eval/stats.py`)
 - Differences between two systems on per-task metrics: paired bootstrap
   (`eval.bootstrap_resamples`, seed `project.seed`), 95 % CI of the mean difference.

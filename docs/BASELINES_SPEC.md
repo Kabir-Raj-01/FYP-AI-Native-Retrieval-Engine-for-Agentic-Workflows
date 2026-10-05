@@ -1,6 +1,6 @@
 # Baselines
 
-> Status: Stable · Owner: Vishal · Last updated: 2026-09-25 · Related: EVAL_PROTOCOL.md
+> Status: Stable · Owner: Vishal · Last updated: 2026-10-05 · Related: EVAL_PROTOCOL.md
 
 ## 1. Shared conditions (all systems, including controller_on)
 Same Qdrant collection, embedding model, sparse encoder, cross-encoder (relevance-only
@@ -18,6 +18,16 @@ as the engine. Selected by `experiment.system` in the experiment config.
 1. `retrieve_direct(goal, mode=dense, k=retrieval.default_k, rerank=True)`.
 2. Bundle = top `rerank.top_n_output` by relevance. One TraceStep (action DENSE).
    `stop_reason = ONE_SHOT_COMPLETE`. Retrieval calls = 1, LLM calls = 0.
+
+Implementation: `baselines/dense_oneshot.py`, `run_task(task, ctx: BaselineContext)`
+(`baselines/base.py`: the shared Engine, the run's TraceWriter, the config and the
+sub-run's retrieval budget B). TraceStep: `rule="one_shot"`, `eligible_actions=[DENSE]`,
+empty `utility_scores`, `accepted_ids` = the bundle, `rejected={}`, `evidence_gain=0.0`,
+`budget_after` with `max_steps=1`, `max_retrieval_calls=B`, `max_llm_calls=0`. Bundle `gaps`
+are empty (a one-shot baseline plans none); `summary` = PLANNER_SPEC §3 truncation.
+**Interim, until the Reranker exists (ADR-005):** no rerank — the bundle is the top
+`rerank.top_n_output` in retrieval order with `final_score` = the raw retrieval score and
+`relevance = 0.0`; `eval/run.py` marks such runs non-reportable.
 
 ### hybrid_oneshot
 Identical with `mode=hybrid` (action SPARSE_HYBRID in the trace).

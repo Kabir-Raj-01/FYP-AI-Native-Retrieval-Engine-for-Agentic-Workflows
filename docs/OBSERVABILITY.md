@@ -96,7 +96,11 @@ false for reportable runs), config_hash, cli_overrides, reportable (bool), pytho
 package_versions (from importlib.metadata), qdrant_server_version, collection,
 split_hash, gold_map_hash, prompt_hashes {template: sha256}, models {role: model},
 seeds, retrieval_budgets, repeats, cache_namespace, n_tasks, aborted (bool + reason),
-totals {llm_calls, tokens, cost_usd, wall_time_s}`.
+totals {llm_calls, tokens, cost_usd, wall_time_s}`, plus `reportable_reasons` (why
+`reportable` is false: dirty tree, `--set`, `--max-tasks`, a missing component such as the
+reranker) and `notes` (`experiment.notes`). `models` holds `embedding` and `sparse` as
+`name@revision`, and the reranker/planner/generator models (null until they exist).
+Written by `eval/run.py` even when the run aborts.
 
 ## 6. Tools
 - `scripts/show_trace.py <run_id> <task_id>` — pretty-prints a trajectory (actions,
