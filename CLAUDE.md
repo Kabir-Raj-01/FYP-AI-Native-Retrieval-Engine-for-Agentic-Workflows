@@ -7,7 +7,7 @@
 ## Project
 **AI-Native Retrieval Engine for Agentic Workflows** — Final Year Project, BS(CS),
 FAST-NUCES Karachi, Fall 2026 – Spring 2027.
-Team: **Kabir Raj** (data, retrieval, controller-OFF direct path, cache, infra) ·
+Team: **Kabir Raj** (data, retrieval, controller-OFF direct path, cache, infrastructure) ·
 **Samay Kumar** (state, controller, reranking, evidence, stopping) · **Vishal Kothari**
 (planner, API/client, LLM client, baselines, trajectory logging, evaluation, testing,
 agent integration).
