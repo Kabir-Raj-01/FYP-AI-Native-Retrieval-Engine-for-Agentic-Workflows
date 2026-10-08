@@ -149,3 +149,10 @@ These are calibration/prompt issues, not code defects; they define the FYP-II wo
 | Mar–Apr 2027 | HotpotQA (E5) and curated benchmark (E6) | Kabir + Vishal / All |
 | Apr–May 2027 | LangGraph agent demo / MCP; wheel + Windows deployment docs | Vishal / Kabir |
 | May–Jun 2027 | Code freeze, reproducibility package, thesis, viva | All |
+
+## 9. Acknowledgement of tool use
+Per CONTRIBUTING.md ("Working with Claude Code") and FAST's policy on AI assistance: parts
+of the code, tests and documentation were written with Claude Code (Anthropic) under the
+team's review — plan first, tests with every change, real command output checked, every
+line explainable by its author. Check the department's current policy for the exact wording
+required in the submitted report.
