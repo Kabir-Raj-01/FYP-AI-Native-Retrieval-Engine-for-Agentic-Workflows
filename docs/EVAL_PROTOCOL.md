@@ -76,8 +76,13 @@ and evidence metrics.
 
 **Implementation status (v0, 2026-10-05):** `eval/metrics.py` computes Hit/Recall/NDCG@k,
 MRR, CER, partial and trajectory coverage and the efficiency counts from traces, bundles
-and the gold map; answer accuracy, redundancy rates, over-retrieval and premature-stop
-rates come with the generator and the controlled runs. **Latency caveat:** with
+and the gold map. **Update 2026-10-08:** answers and answer accuracy are produced post hoc
+by `python -m eval.generator --run <id>` (`b<B>/answers.csv`, `answers.json`: the
+official ADR-003 rule as `accuracy` plus normalised `exact_match`; prompt
+`eval/prompts/answer.j2`, its hash in `answers.json`); `eval/stats.py` implements §5 and
+`eval/report.py` §7 (tables, stop reasons, action sequences, `quality_vs_calls.png`,
+`stop_reasons.png`, and `comparison.md` for several runs). Still to add: redundancy rates,
+over-retrieval and premature-stop rates. **Latency caveat:** with
 `eval.max_workers` > 1 the workers share one Embedder (which serialises model calls), so a
 task's latency includes waiting for the others — report latency from a single-worker run
 (`--set eval.max_workers=1`, non-reportable) or from `scripts/latency_profile.py`, not from

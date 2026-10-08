@@ -4,7 +4,9 @@ Computed only from bundles, traces and gold groups — no system-specific branch
 Gold groups G: a group is *hit* if any of its chunk ids is in the considered set. Tasks with
 no gold groups (null queries) are excluded from retrieval and evidence metrics and kept in
 efficiency metrics. The bundle is ranked in its stored order (sorted by final_score).
-Answer accuracy needs the answer generator (ADR-004) and is not computed yet.
+Answer accuracy is computed post hoc by ``eval/generator.py``. Premature stop and
+over-retrieval follow EVAL_PROTOCOL §4 (retrieval calls = DENSE, SPARSE_HYBRID and
+RERANK_EXPAND steps).
 """
 
 from __future__ import annotations
@@ -14,7 +16,7 @@ import statistics
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from engine.state.models import EvidenceBundle, TraceStep
+from engine.state.models import Action, EvidenceBundle, StopReason, TraceStep
 
 __all__ = [
     "TaskMetrics",
@@ -23,11 +25,26 @@ __all__ = [
     "hit_at_k",
     "mrr",
     "ndcg_at_k",
+    "over_retrieval",
     "recall_at_k",
     "task_metrics",
 ]
 
 Groups = Sequence[Sequence[str]]
+_RETRIEVALS = frozenset({Action.DENSE, Action.SPARSE_HYBRID, Action.RERANK_EXPAND})
+_EARLY_STOPS = frozenset(
+    {StopReason.ALL_GAPS_RESOLVED, StopReason.LOW_MARGINAL_UTILITY, StopReason.STAGNATION}
+)
+
+
+def over_retrieval(steps: Sequence[TraceStep], groups: Groups) -> int:
+    """Retrieval calls after the step at which every gold group was first retrieved."""
+    seen: set[str] = set()
+    for i, s in enumerate(steps):
+        seen.update(s.candidate_ids)
+        if groups_hit(seen, groups) == len(groups):
+            return sum(1 for later in steps[i + 1 :] if later.action in _RETRIEVALS)
+    return 0
 
 
 def groups_hit(ids: Sequence[str] | set[str], groups: Groups) -> int:
@@ -78,6 +95,8 @@ class TaskMetrics:
     cer: float | None = None  # complete-evidence recall: all groups hit in the bundle
     partial_coverage: float | None = None  # hit groups / |G| in the bundle
     trajectory_coverage: float | None = None  # same, over everything retrieved
+    premature_stop: float | None = None  # 1 = stopped early with CER 0 and coverage < 1
+    over_retrieval: int | None = None
     retrieval_calls: int = 0
     steps: int = 0
     latency_ms: float = 0.0
@@ -98,6 +117,8 @@ class TaskMetrics:
             cer=self.cer,
             partial_coverage=self.partial_coverage,
             trajectory_coverage=self.trajectory_coverage,
+            premature_stop=self.premature_stop,
+            over_retrieval=self.over_retrieval,
             retrieval_calls=self.retrieval_calls,
             steps=self.steps,
             latency_ms=round(self.latency_ms, 3),
@@ -128,6 +149,9 @@ def task_metrics(
     retrieved = {c for s in steps for c in s.candidate_ids}
     n = len(gold_groups)
     in_bundle = groups_hit(ranked, gold_groups)
+    coverage = groups_hit(retrieved, gold_groups) / n
+    cer = 1.0 if in_bundle == n else 0.0
+    early = bundle.stop_reason in _EARLY_STOPS and cer == 0.0 and coverage < 1.0
     return TaskMetrics(
         task_id=task_id,
         question_type=question_type,
@@ -137,9 +161,11 @@ def task_metrics(
         hit={k: hit_at_k(ranked, gold_groups, k) for k in recall_ks},
         ndcg={k: ndcg_at_k(ranked, gold_groups, k) for k in recall_ks},
         mrr=mrr(ranked, gold_groups),
-        cer=1.0 if in_bundle == n else 0.0,
+        cer=cer,
         partial_coverage=in_bundle / n,
-        trajectory_coverage=groups_hit(retrieved, gold_groups) / n,
+        trajectory_coverage=coverage,
+        premature_stop=1.0 if early else 0.0,
+        over_retrieval=over_retrieval(steps, gold_groups),
         retrieval_calls=summary.retrieval_calls,
         steps=summary.steps,
         latency_ms=summary.total_latency_ms,
@@ -161,7 +187,14 @@ def aggregate(rows: Sequence[TaskMetrics]) -> dict[str, object]:
             out[f"recall@{k}"] = _mean([r.recall[k] for r in subset])
             out[f"hit@{k}"] = _mean([r.hit[k] for r in subset])
             out[f"ndcg@{k}"] = _mean([r.ndcg[k] for r in subset])
-        for name in ("mrr", "cer", "partial_coverage", "trajectory_coverage"):
+        for name in (
+            "mrr",
+            "cer",
+            "partial_coverage",
+            "trajectory_coverage",
+            "premature_stop",
+            "over_retrieval",
+        ):
             out[name] = _mean([getattr(r, name) for r in subset])
         return out
 

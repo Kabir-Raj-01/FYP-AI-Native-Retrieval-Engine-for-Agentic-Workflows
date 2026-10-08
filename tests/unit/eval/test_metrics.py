@@ -14,6 +14,7 @@ from eval.metrics import (
     hit_at_k,
     mrr,
     ndcg_at_k,
+    over_retrieval,
     recall_at_k,
     task_metrics,
 )
@@ -150,6 +151,30 @@ def test_aggregate_excludes_null_tasks_from_quality_but_not_efficiency() -> None
     assert out["quality_by_type"]["comparison_query"]["tasks"] == 2
     assert out["efficiency"]["latency_ms_median"] == 200.0  # over all 3 tasks
     assert out["efficiency"]["retrieval_calls_mean"] == 1
+
+
+def test_over_retrieval_counts_retrievals_after_full_coverage() -> None:
+    steps = [
+        step(["a1"]),
+        step(["b"]),  # all groups retrieved here
+        step(["x"]).model_copy(update={"action": Action.SPARSE_HYBRID}),
+        step([]).model_copy(update={"action": Action.STOP}),  # not a retrieval
+        step(["y"]).model_copy(update={"action": Action.RERANK_EXPAND}),
+    ]
+    assert over_retrieval(steps, GROUPS) == 2
+    assert over_retrieval(steps[:1], GROUPS) == 0  # never fully covered
+
+
+def test_premature_stop_needs_an_early_reason_cer_zero_and_partial_coverage() -> None:
+    early = bundle(["a1"]).model_copy(update={"stop_reason": StopReason.LOW_MARGINAL_UTILITY})
+    m = task_metrics("t", None, GROUPS, early, [step(["a1"])], [1])
+    assert (m.cer, m.trajectory_coverage, m.premature_stop) == (0.0, 0.5, 1.0)
+    # everything was retrieved (coverage 1): the stop was not what lost the evidence
+    assert task_metrics("t", None, GROUPS, early, [step(["a1", "b"])], [1]).premature_stop == 0.0
+    # a budget stop is not premature
+    spent = early.model_copy(update={"stop_reason": StopReason.MAX_RETRIEVAL_CALLS})
+    assert task_metrics("t", None, GROUPS, spent, [step(["a1"])], [1]).premature_stop == 0.0
+    assert aggregate([m])["quality"]["premature_stop"] == 1.0
 
 
 def test_row_flattens_per_k_values() -> None:
