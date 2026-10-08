@@ -10,10 +10,11 @@ import yaml
 
 from engine.cache.task_cache import TaskCache
 from engine.config import EngineConfig
+from engine.planner.llm_planner import LLMPlanner
 from engine.state.models import NeedType
 from engine.state.sqlite import connect
 from scripts import latency_profile as lp
-from tests.fakes import CorpusChunk, FakeEmbedder, FakeRetriever
+from tests.fakes import CorpusChunk, FakeEmbedder, FakeLLMClient, FakeRetriever
 from tests.unit.state.test_sqlite import add_task
 
 
@@ -69,6 +70,21 @@ def test_profile_uses_medians_and_keeps_the_transform_default(cfg: EngineConfig)
     assert profile["latency_ms"]["TRANSFORM"] == cfg.controller.default_latency_ms.TRANSFORM
     assert profile["source"] == {**dict.fromkeys(lp.MEASURED, "measured"), "TRANSFORM": "default"}
     assert "TRANSFORM" not in profile["p90_ms"]
+
+
+def test_transform_times_one_planner_rewrite_per_question(cfg: EngineConfig) -> None:
+    llm = FakeLLMClient({"planner": [{"subgoals": [{"description": "d", "query": f"tram news {w}",
+                                                     "need_type": "mixed"}]}
+                                     for w in ("today", "update")]})  # fmt: skip
+    clock = ticking(0.5)
+    planner = LLMPlanner(cfg, llm)
+    out = lp.measure_transform(cfg, QUERIES[:2], planner, clock=lambda: next(clock))
+    assert out == [500.0, 500.0]
+    assert [r.role for r in llm.requests] == ["planner", "planner"]
+    assert QUERIES[0] in llm.requests[0].messages[-1].content  # the question is the gap
+    profile = lp.build_profile(cfg, {**{a: [1.0] for a in lp.MEASURED}, "TRANSFORM": out}, {})
+    assert profile["latency_ms"]["TRANSFORM"] == 500.0
+    assert profile["source"]["TRANSFORM"] == "measured"
 
 
 def test_written_file_round_trips_with_lf_and_header(tmp_path: Path, cfg: EngineConfig) -> None:

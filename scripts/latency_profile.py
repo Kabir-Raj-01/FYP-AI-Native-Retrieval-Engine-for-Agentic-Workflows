@@ -1,6 +1,7 @@
 """Measure per-action latency for the controller's latency signal (ACTION_POLICY §4).
 
-    python scripts\\latency_profile.py [--config PATH] [--queries N] [--out PATH]
+    python scripts\\latency_profile.py [--config PATH] [--queries N] [--transform-queries N]
+                                       [--out PATH]
 
 Runs each action type on dev-subset questions (split.json — never the test split) against
 the live index and writes the median wall-clock milliseconds per action to
@@ -10,9 +11,10 @@ the live index and writes the median wall-clock milliseconds per action to
 - DENSE          dense search at ``retrieval.default_k`` (query embedding + request)
 - SPARSE_HYBRID  hybrid search at ``retrieval.default_k`` (the mode used for mixed needs)
 - RERANK_EXPAND  dense search at ``min(default_k + expand_step_k, max_k)``
-- TRANSFORM      not measurable until the planner and LLM client exist: the value of
-                 ``controller.default_latency_ms.TRANSFORM`` is kept, marked
-                 ``source: default``.
+- TRANSFORM      one planner REWRITE (with its validation and any retry) on the first
+                 ``--transform-queries`` questions, LLM response cache off; with
+                 ``--transform-queries 0`` the value of ``controller.default_latency_ms.TRANSFORM``
+                 is kept, marked ``source: default``.
 
 Reranking is excluded: it follows every candidate-producing action alike. Query embeddings
 are not cached (``embedding.lru_size`` = 0 for the run), so every timing includes a cold
@@ -40,8 +42,17 @@ from engine.config import EngineConfig, load_config
 from engine.embeddings.interfaces import Embedder
 from engine.errors import BackendError, ConfigError
 from engine.monitor.logging import configure_logging
+from engine.planner.interfaces import Planner
 from engine.retrieval.interfaces import RetrieverAdapter
-from engine.state.models import CacheEntry, NeedType, RetrievalMode
+from engine.state.models import (
+    Budget,
+    CacheEntry,
+    EvidenceGap,
+    NeedType,
+    PlanMode,
+    RetrievalMode,
+    RetrievalState,
+)
 from engine.state.sqlite import connect
 from engine.text import normalize
 
@@ -49,6 +60,7 @@ ACTIONS = ("REUSE", "DENSE", "SPARSE_HYBRID", "RERANK_EXPAND", "TRANSFORM")
 MEASURED = ("REUSE", "DENSE", "SPARSE_HYBRID", "RERANK_EXPAND")
 PROFILE_TASK_PREFIX = "latency-profile"
 DEFAULT_QUERIES = 50  # profiling sample size (a script parameter, not an engine setting)
+DEFAULT_TRANSFORM_QUERIES = 10  # each is a live LLM call: a smaller sample
 
 
 def profile_task_id(i: int) -> str:
@@ -111,6 +123,44 @@ def measure(
     return timings
 
 
+def measure_transform(
+    cfg: EngineConfig,
+    queries: Sequence[str],
+    planner: Planner,
+    *,
+    clock: Callable[[], float],
+) -> list[float]:
+    """One REWRITE per question, on a state whose only gap is the question itself."""
+    d = cfg.budget_defaults
+    out: list[float] = []
+    for i, query in enumerate(queries):
+        now = datetime.now(UTC)
+        gap = EvidenceGap(
+            gap_id="g0",
+            description=query,
+            query=query,
+            need_type=NeedType.MIXED,
+            created_at_step=1,
+        )
+        state = RetrievalState(
+            task_id=profile_task_id(i),
+            goal=query,
+            budget=Budget(
+                max_steps=d.max_steps,
+                max_retrieval_calls=d.max_retrieval_calls,
+                max_llm_calls=d.max_llm_calls,
+                max_tokens=d.max_tokens,
+            ),
+            gaps=[gap],
+            current_gap_id="g0",
+            needs_initial_plan=False,
+            created_at=now,
+            updated_at=now,
+        )
+        out.append(_ms(clock, partial(planner.plan, state, PlanMode.REWRITE)))
+    return out
+
+
 def build_profile(
     cfg: EngineConfig, timings: dict[str, list[float]], meta: dict[str, Any]
 ) -> dict[str, Any]:
@@ -164,6 +214,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="latency_profile", description=__doc__)
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--queries", type=int, default=DEFAULT_QUERIES)
+    parser.add_argument("--transform-queries", type=int, default=DEFAULT_TRANSFORM_QUERIES)
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args(argv)
     try:
@@ -195,6 +246,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             conn.close()
             cache = factory.build_cache(run_cfg, embedder)
             timings = measure(run_cfg, queries, retriever, embedder, cache, clock=time.perf_counter)
+        if args.transform_queries > 0:
+            run_cfg.llm.cache_enabled = False  # time the provider, not the response cache
+            planner = factory.build_planner(run_cfg, factory.build_llm_client(run_cfg))
+            timings["TRANSFORM"] = measure_transform(
+                run_cfg, queries[: args.transform_queries], planner, clock=time.perf_counter
+            )
         profile = build_profile(
             cfg,
             timings,
@@ -203,6 +260,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "git_commit": _git_commit(),
                 "collection": cfg.qdrant.collection,
                 "queries": len(queries),
+                "transform_queries": len(timings.get("TRANSFORM", [])),
+                "llm_model": cfg.llm.planner.model if timings.get("TRANSFORM") else None,
                 "query_source": "dev_subset (split.json)",
             },
         )
