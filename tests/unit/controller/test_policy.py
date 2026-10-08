@@ -114,12 +114,22 @@ def test_no_eligible_action_reason(cfg: EngineConfig) -> None:
     assert d.stop_reason == StopReason.STAGNATION
 
 
-def test_min_utility_stop_only_after_the_first_retrieval(cfg: EngineConfig) -> None:
+def test_min_utility_stop_only_after_the_current_gap_was_searched(cfg: EngineConfig) -> None:
     cfg.controller.min_utility = 0.99
     fresh = controller(cfg).select_action(state(), None)
     assert fresh.action == Action.DENSE  # a task always retrieves at least once
-    later = state(budget=make_budget(retrieval_calls_used=1))
-    d = controller(cfg).select_action(later, None)
+    # an earlier gap used the retrieval budget, but this gap's query was never issued:
+    # every gap gets its first retrieval (ACTION_POLICY §2 step 8, amended 2026-10-08)
+    other_gap = state(
+        budget=make_budget(retrieval_calls_used=1),
+        retrieval_history=[issued(Action.SPARSE_HYBRID, "an earlier gap's query")],
+    )
+    assert controller(cfg).select_action(other_gap, None).action == Action.DENSE
+    searched = state(
+        budget=make_budget(retrieval_calls_used=1),
+        retrieval_history=[issued(Action.SPARSE_HYBRID, "Q0")],  # normalised match
+    )
+    d = controller(cfg).select_action(searched, None)
     assert (d.action, d.stop_reason, d.rule) == (
         Action.STOP,
         StopReason.LOW_MARGINAL_UTILITY,

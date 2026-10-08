@@ -97,6 +97,36 @@ def test_entity_used_but_not_declared(cfg: EngineConfig) -> None:
     validate(out("KX-41 developer"), PlanMode.INIT, make_state(), SOURCES, cfg)
 
 
+def test_keyword_queries_juxtaposing_grounded_names_are_accepted(cfg: EngineConfig) -> None:
+    # seen live (qwen2.5:3b): names from the goal glued together in a keyword query
+    goal = "Did The Verge report Apple defending its Google Search deal, per Forbes?"
+    plan = PlanLLMOutput(
+        subgoals=[
+            SubgoalPlan(
+                description="Find the report by The Verge on Apple's Google Search deal.",
+                query="The Verge Apple Google Search deal",
+                need_type=NeedType.LEXICAL,
+            ),
+            SubgoalPlan(
+                description="Find what Forbes wrote.",
+                query="Forbes Apple Google",
+                need_type=NeedType.LEXICAL,
+            ),
+        ],
+    )
+    validate(plan, PlanMode.INIT, make_state(), [goal], cfg)
+    invented = plan.model_copy(
+        update={
+            "subgoals": [
+                SubgoalPlan(
+                    description="Find it.", query="Orrin Vale Apple", need_type=NeedType.LEXICAL
+                )
+            ]
+        }
+    )
+    assert code(invented, PlanMode.INIT, make_state(), cfg) == "UNDECLARED_ENTITY"
+
+
 def test_split_within_bounds_is_accepted(cfg: EngineConfig) -> None:
     state = rewrite_state(
         gaps=[make_gap("g0", query="KX-41 builder"), make_gap("g1", status=GapStatus.EXHAUSTED)]

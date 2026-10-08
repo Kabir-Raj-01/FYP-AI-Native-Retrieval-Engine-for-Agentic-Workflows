@@ -22,7 +22,9 @@ class Span:
     text: str
 
 
-_NAME = re.compile(r"\b[A-Z][\w'&.-]*(?:\s+[A-Z][\w'&.-]*)+")
+# words may hold inner dots ("U.S"), but a name never runs over a line break or a full stop
+_WORD = r"[A-Z][\w'&-]*(?:\.[\w'&-]+)*"
+_NAME = re.compile(rf"\b{_WORD}(?:[ \t]+{_WORD})+")
 _YEAR = re.compile(r"\b(?:1[89]\d\d|20\d\d)\b")
 _NUMBER = re.compile(
     r"(?:[$€£]\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:million|billion|bn|m|k))?)"

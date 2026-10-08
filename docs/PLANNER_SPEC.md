@@ -114,6 +114,12 @@ user message = goal, gaps, previous queries, `<evidence>` block.
   declared entity nor groundable; the extractor drops the first word of a capitalised span
   that starts a sentence. "Short" in `heuristic()` is the config key
   `planner.heuristic_max_tokens` (12).
+- Fixed 2026-10-08 after the first live runs (qwen2.5:3b rejected 6 of 6 INIT attempts):
+  the extractor runs on each subgoal's description and query separately, and a capitalised
+  span never runs over a line break or a full stop (it had merged "…by Forbes." + "Forbes
+  Sygic CEO" into one name). A `name` span is also grounded when every one of its words
+  occurs in the sources: keyword queries juxtapose separately grounded names ("The Verge
+  Apple Google Search"); an invented name still has words absent from the sources.
 - The retry note (attempt ≥ 2) is appended to the user message; the JSON schema is
   appended to the system text by the LLM client. Template hashes:
   `engine.planner.prompting.prompt_hashes()` (manifest `prompt_hashes`).

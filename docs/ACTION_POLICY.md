@@ -28,13 +28,25 @@
 6. for a in E: compute gain, cost, redundancy_signal, latency_signal (§4);
    U = α·gain − β·cost − γ·redundancy_signal − δ·latency_signal
 7. a* = argmax U; ties broken by order REUSE > SPARSE_HYBRID > DENSE > RERANK_EXPAND > TRANSFORM
-8. if U(a*) < controller.min_utility and retrieval_calls_used >= 1
+8. if U(a*) < controller.min_utility and the current gap was already searched
                                                      → STOP(LOW_MARGINAL_UTILITY), rule="min_utility"
+                                                       (ends the current gap only, §6.3)
 9. if a* == TRANSFORM: set plan_mode per PLANNER_SPEC §2's REWRITE/SPLIT conditions
                                                      (ActionDecision.plan_mode; ADR-009 §3)
 10. return a*, rule="utility_argmax"
 ```
-Step 8 never fires before the first retrieval call — a task always retrieves at least once.
+Step 8 never fires before the current gap's first search — every gap is searched at least
+once while the retrieval budget allows ("searched" = one of the gap's queries is in
+`retrieval_history`; without a gap, any retrieval call).
+
+**Amended 2026-10-08 (for Samay's review).** Step 8 used to stop the *task* after its first
+retrieval call. In the first live runs (qwen2.5:3b planner, dev subset) every task with a
+2–3-subgoal plan stopped after searching only the first subgoal (U(DENSE) ≈ 0.045 <
+0.05), leaving the other subgoals unsearched and the retrieval budget unused. A min-utility
+STOP now ends only the current gap, exactly like the fixed policy's "STOP for this gap"
+(§7): the monitor marks it EXHAUSTED and advances; the task stops with
+`LOW_MARGINAL_UTILITY` when no OPEN gap is left (§6.4). With `ablation.gap_tracking` false
+(one gap) behaviour is unchanged.
 
 Step 1 is a **defensive-only** guard (ADR-009 §12): in normal single-caller operation the
 monitor's `MAX_STEPS` check (§6.4, evaluated near the end of the iteration that is about
@@ -52,7 +64,7 @@ for `mixed` both are preferred. "Issued(a, q)" = query q (normalised) already ap
 `retrieval_history` with action a.
 | Action | Eligible iff |
 |---|---|
-| REUSE | `ablation.cache` and `cache_hit is not None` for the pending query |
+| REUSE | `ablation.cache` and `cache_hit is not None` for the pending query, not Issued(REUSE, pending_query), and the pending query not yet Issued by DENSE or SPARSE_HYBRID (as built, see §6 "As built") |
 | DENSE | retrieval budget left, not Issued(DENSE, pending_query), and (DENSE is preferred **or** `stagnation_count ≥ 1` **or** Issued(preferred, pending_query)) |
 | SPARSE_HYBRID | same rule as DENSE with the roles swapped |
 | RERANK_EXPAND | retrieval budget left, `last_result` exists for the current gap's pending query, `last_result.depth < retrieval.max_k`, and at least one of `last_result.top_relevances` lies in `[controller.ambiguous_band.low, controller.ambiguous_band.high]` |
@@ -134,6 +146,8 @@ Runs in this order:
    `last_result.depth`, which replaces the old `current_depth` field — STATE_SPEC §4).
 4. **Stop checks** (first match wins):
    - no OPEN gaps and every root gap (no parent) is RESOLVED → `ALL_GAPS_RESOLVED`
+   - no OPEN gaps, the last one closed by a gap-ending STOP (rule `min_utility` or
+     `fixed_policy`) → that STOP's reason (`LOW_MARGINAL_UTILITY` / `STAGNATION`)
    - no OPEN gaps otherwise → `STAGNATION`
    - `steps_used + 1 ≥ max_steps` → `MAX_STEPS`
    - `tokens_used ≥ max_tokens` → `MAX_TOKENS`
@@ -168,6 +182,11 @@ interpretations awaiting the owner's review —
   never enter E_t, so REUSE's gain stayed near 1 at zero cost, and a gap is only exhausted
   after a TRANSFORM, which REUSE always out-scored (decided 2026-10-05 with the user, for
   Samay's review).
+- REUSE is also not eligible for a pending query this task already searched (DENSE or
+  SPARSE_HYBRID): the hit is then that search's own result, already scored against E_t,
+  so re-scoring it cannot accept anything new. Live runs (2026-10-08) showed SEARCH →
+  REUSE (same entry) → STOP on almost every gap, a wasted step each; the golden fixtures
+  lost exactly those REUSE steps, with identical evidence and stop reasons.
 - RERANK_EXPAND's "last_result exists for the current gap's pending query" =
   `normalize(last_result.query) == normalize(pending_query)`; the band is inclusive.
 - §6.2 / §6.3 follow ADR-009 addendum A6 as decided on 2026-10-05: a SUPERSEDED parent keeps

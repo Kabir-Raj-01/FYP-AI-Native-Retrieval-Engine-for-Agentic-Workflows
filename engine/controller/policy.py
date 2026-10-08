@@ -40,9 +40,10 @@ from engine.state.models import (
 )
 from engine.text import normalize
 
-__all__ = ["FIXED_POLICY_RULE", "RuleUtilityController", "load_latency_ms"]
+__all__ = ["FIXED_POLICY_RULE", "MIN_UTILITY_RULE", "RuleUtilityController", "load_latency_ms"]
 
 FIXED_POLICY_RULE = "fixed_policy"
+MIN_UTILITY_RULE = "min_utility"
 _TIE_ORDER = (
     Action.REUSE,
     Action.SPARSE_HYBRID,
@@ -98,13 +99,13 @@ class RuleUtilityController(Controller):
             return self._fixed(state, eligible)
         scores = self._scores(state, cache_hit, eligible, blocked_only)
         best = min(eligible, key=lambda a: (-scores[a].U, _TIE_ORDER.index(a)))
-        if self._cfg.controller.min_utility > scores[best].U and b.retrieval_calls_used >= 1:
+        if self._cfg.controller.min_utility > scores[best].U and self._gap_searched(state):
             return ActionDecision(
                 action=Action.STOP,
                 eligible=eligible,
                 scores=scores,
                 stop_reason=StopReason.LOW_MARGINAL_UTILITY,
-                rule="min_utility",
+                rule=MIN_UTILITY_RULE,
             )
         return ActionDecision(
             action=best,
@@ -113,6 +114,17 @@ class RuleUtilityController(Controller):
             plan_mode=self._plan_mode(state) if best == Action.TRANSFORM else None,
             rule="utility_argmax",
         )
+
+    @staticmethod
+    def _gap_searched(state: RetrievalState) -> bool:
+        """Step 8's guard, per gap: the current gap already produced candidates (one of its
+        queries is in ``retrieval_history``); without a gap, any retrieval call."""
+        gap = state.current_gap
+        if gap is None:
+            return state.budget.retrieval_calls_used >= 1
+        issued = {normalize(r.query) for r in state.retrieval_history}
+        queries = {normalize(q.query) for q in state.query_history if q.gap_id == gap.gap_id}
+        return bool((queries | {normalize(gap.query)}) & issued)
 
     @staticmethod
     def _stop(reason: StopReason, rule: str, eligible: list[Action]) -> ActionDecision:
@@ -143,8 +155,11 @@ class RuleUtilityController(Controller):
         eligible: set[Action] = set()
         # REUSE at most once per pending query, like the searches' not-Issued rule: reusing
         # the same entry again for the same query returns the same candidates (decided
-        # 2026-10-05 after the golden test showed REUSE looping to MAX_STEPS)
-        if cfg.ablation.cache and hit is not None and not was(Action.REUSE):
+        # 2026-10-05 after the golden test showed REUSE looping to MAX_STEPS) — and never for
+        # a query this task already searched: its hit is that search's own result, already
+        # scored against E_t (2026-10-08, live runs: SEARCH > REUSE of it > STOP per gap)
+        searched = any(was(a) for a in _SEARCH)
+        if cfg.ablation.cache and hit is not None and not was(Action.REUSE) and not searched:
             eligible.add(Action.REUSE)
         for a in _SEARCH:
             switch = a in preferred or stagnated or any(was(p) for p in preferred)

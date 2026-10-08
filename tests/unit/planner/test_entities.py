@@ -33,6 +33,15 @@ def test_sentence_initial_capitals_are_not_names() -> None:
     assert ("name", "Bay Council") in kinds("Linden Bay Council voted.")  # first word dropped
 
 
+def test_names_do_not_run_over_full_stops_or_line_breaks() -> None:
+    # seen live: description "... by Forbes." + "\n" + query "Forbes Sygic CEO" was one name
+    found = kinds("Find the CEO named by Forbes Magazine.\nForbes Sygic CEO")
+    assert ("name", "Forbes Magazine") in found
+    assert ("name", "Sygic CEO") in found  # sentence start: first word dropped
+    assert not any("." in text or "\n" in text for _, text in found)
+    assert ("name", "U.S Steel") in kinds("shares of U.S Steel rose")
+
+
 @pytest.mark.parametrize(
     ("text", "need"),
     [

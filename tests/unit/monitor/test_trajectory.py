@@ -146,6 +146,19 @@ def test_fixed_policy_stop_exhausts_the_gap_and_moves_on(cfg: EngineConfig) -> N
     assert (v.should_continue, v.stop_reason) == (False, StopReason.STAGNATION)
 
 
+def test_min_utility_stop_ends_the_gap_not_the_task(cfg: EngineConfig) -> None:
+    # live pilot 2026-10-08: every task stopped after its first subgoal's retrieval
+    stop = decision(Action.STOP, stop_reason=StopReason.LOW_MARGINAL_UTILITY, rule="min_utility")
+    v = RuleTrajectoryMonitor(cfg).observe(two_gaps(), stop, None)
+    assert (v.should_continue, v.current_gap_id, v.exhausted_gap) == (True, "g1", "g0")
+    last = make_state(gaps=[make_gap("g0")], current_gap_id="g0")
+    v = RuleTrajectoryMonitor(cfg).observe(last, stop, None)
+    assert (v.should_continue, v.stop_reason) == (False, StopReason.LOW_MARGINAL_UTILITY)
+    cfg.ablation.gap_tracking = False  # one gap, the goal: the task stops as before
+    v = RuleTrajectoryMonitor(cfg).observe(two_gaps(), stop, None)
+    assert (v.should_continue, v.stop_reason) == (False, StopReason.LOW_MARGINAL_UTILITY)
+
+
 def test_gap_tracking_off_never_advances_or_exhausts(cfg: EngineConfig) -> None:
     cfg.ablation.gap_tracking = False
     m = cfg.monitor
