@@ -1,6 +1,6 @@
 # ADR-010: API request limits come from configuration
 
-> Status: Proposed · Date: 2026-10-04 · Author(s): Vishal · Reviewer: Kabir, Samay
+> Status: Accepted (2026-10-08, Kabir for the team; Samay/Vishal review after the fact) · Date: 2026-10-04 · Author(s): Vishal · Reviewer: Kabir, Samay
 
 ## Context
 API_CONTRACT hard-coded request limits in the HTTP schemas: goal length 3–2,000

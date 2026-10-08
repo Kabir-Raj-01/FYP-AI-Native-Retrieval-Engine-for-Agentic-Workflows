@@ -1,6 +1,6 @@
 # ADR-003: MultiHop-RAG source, licence, checksums, split and answer metric
 
-> Status: Proposed · Date: 2026-09-25 · Updated: 2026-10-05 · Author(s): Kabir · Reviewer: Vishal
+> Status: Accepted (2026-10-08, Kabir for the team; Samay/Vishal review after the fact) · Date: 2026-09-25 · Updated: 2026-10-05 · Author(s): Kabir · Reviewer: Vishal
 
 ## Context
 Results must be reproducible from a named, checksummed dataset version, and the dev/test
@@ -67,7 +67,8 @@ its git history. Items marked **(to fill)** need the downloaded files.
   prediction shares at least one token with the lower-cased gold answer; accuracy is
   reported overall and per question type. Null queries are scored the same way against
   their gold answer. Note: any shared token counts (including stop-words), so this metric
-  is lenient; the team decides before E1 whether to also report a normalised exact match.
+  is lenient; decided 2026-10-08: a normalised exact match (lower-case, punctuation and
+  articles removed) is reported alongside it (`eval/generator.py`, `exact_match`).
 - **Official retrieval metrics** (`retrieval_evaluate.py`, for reference): Hits@4,
   Hits@10, MAP@10 and MRR@10, matching gold `fact` strings as substrings of retrieved
   text, with null queries excluded. Our metrics use the gold chunk map instead (DATA §4,

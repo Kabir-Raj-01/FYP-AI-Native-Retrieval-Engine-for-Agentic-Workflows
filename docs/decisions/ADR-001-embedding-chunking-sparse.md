@@ -1,6 +1,6 @@
 # ADR-001: Embedding model, chunking policy, sparse method, collection naming
 
-> Status: Proposed · Date: 2026-09-25 · Updated: 2026-10-05 · Author(s): Kabir · Reviewer: Samay / Vishal
+> Status: Accepted (2026-10-08, Kabir for the team; Samay/Vishal review after the fact) · Date: 2026-09-25 · Updated: 2026-10-05 · Author(s): Kabir · Reviewer: Samay / Vishal
 
 ## Context
 All systems share one index (EVAL_PROTOCOL §1). The embedding model also drives cache

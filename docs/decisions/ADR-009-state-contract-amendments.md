@@ -1,6 +1,6 @@
 # ADR-009: State contract amendments (pre-implementation review of `engine/state/models.py`)
 
-> Status: Proposed · Date: 2026-09-28 · Author(s): Kabir Raj · Reviewer: Samay, Vishal
+> Status: Accepted (2026-10-08, Kabir for the team; Samay/Vishal review after the fact) · Date: 2026-09-28 · Author(s): Kabir Raj · Reviewer: Samay, Vishal
 
 ## Context
 A documentation-only review of CLAUDE.md, ARCHITECTURE.md and STATE_SPEC.md (before
