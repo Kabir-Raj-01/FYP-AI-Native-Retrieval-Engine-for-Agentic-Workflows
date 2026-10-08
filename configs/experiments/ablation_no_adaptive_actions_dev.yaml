@@ -9,3 +9,5 @@ experiment:
   notes: "E3 ablation — adaptive action selection off (fixed policy)"
 ablation:
   adaptive_actions: false
+eval:
+  max_workers: 1                # one local Ollama (ADR-004) serves calls in turn; more workers queue past llm timeout_s

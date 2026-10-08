@@ -7,3 +7,5 @@ experiment:
   budget_mode: natural           # equal | natural (EVAL_PROTOCOL §1, BASELINES_SPEC §3)
   retrieval_budgets: []  # unused in natural mode (cap = eval.natural_max_retrieval_calls)
   notes: "E2 natural policy, full engine (baselines: reuse E1 runs)"
+eval:
+  max_workers: 1                # one local Ollama (ADR-004) serves calls in turn; more workers queue past llm timeout_s

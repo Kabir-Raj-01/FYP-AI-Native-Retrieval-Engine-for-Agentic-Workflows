@@ -8,4 +8,5 @@ experiment:
   retrieval_budgets: []  # unused in natural mode (cap = eval.natural_max_retrieval_calls)
   notes: "E2 natural policy, full engine, frozen config"
 eval:
+  max_workers: 1                # one local Ollama (ADR-004) serves calls in turn; more workers queue past llm timeout_s
   repeats: 3                    # final LLM-dependent test runs (EVAL_PROTOCOL §6)

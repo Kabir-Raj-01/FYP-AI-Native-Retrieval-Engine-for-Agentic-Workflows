@@ -6,7 +6,9 @@ no gold groups (null queries) are excluded from retrieval and evidence metrics a
 efficiency metrics. The bundle is ranked in its stored order (sorted by final_score).
 Answer accuracy is computed post hoc by ``eval/generator.py``. Premature stop and
 over-retrieval follow EVAL_PROTOCOL §4 (retrieval calls = DENSE, SPARSE_HYBRID and
-RERANK_EXPAND steps).
+RERANK_EXPAND steps); repeated-document rate and evidence gain per retrieval are over
+candidate-producing steps, for every task. Redundant-evidence rate (needs embeddings) is
+not computed yet.
 """
 
 from __future__ import annotations
@@ -101,6 +103,8 @@ class TaskMetrics:
     retrieval_calls: int = 0
     steps: int = 0
     latency_ms: float = 0.0
+    repeated_doc_rate: float | None = None  # returned candidates seen earlier / all returned
+    evidence_gain_per_retrieval: float | None = None  # mean gain over candidate steps
 
     def row(self) -> dict[str, str | float | int | None]:
         """Flat CSV row (``recall@5``, ``hit@5``, ``ndcg@5``, ...)."""
@@ -128,6 +132,8 @@ class TaskMetrics:
             retrieval_calls=self.retrieval_calls,
             steps=self.steps,
             latency_ms=round(self.latency_ms, 3),
+            repeated_doc_rate=self.repeated_doc_rate,
+            evidence_gain_per_retrieval=self.evidence_gain_per_retrieval,
         )
         return out
 
@@ -141,6 +147,16 @@ def task_metrics(
     recall_ks: Sequence[int],
 ) -> TaskMetrics:
     summary = bundle.trace_summary
+    producing = [s for s in steps if s.candidate_ids]
+    returned = sum(len(s.candidate_ids) for s in producing)
+    trace_only = {
+        "repeated_doc_rate": (
+            sum(len(s.candidate_ids) - len(s.new_candidate_ids) for s in producing) / returned
+            if returned
+            else None
+        ),
+        "evidence_gain_per_retrieval": _mean([s.evidence_gain for s in producing]),
+    }
     if not gold_groups:
         return TaskMetrics(
             task_id=task_id,
@@ -150,6 +166,7 @@ def task_metrics(
             retrieval_calls=summary.retrieval_calls,
             steps=summary.steps,
             latency_ms=summary.total_latency_ms,
+            **trace_only,
         )
     ranked = [e.chunk_id for e in bundle.evidence]
     retrieved = {c for s in steps for c in s.candidate_ids}
@@ -176,6 +193,7 @@ def task_metrics(
         retrieval_calls=summary.retrieval_calls,
         steps=summary.steps,
         latency_ms=summary.total_latency_ms,
+        **trace_only,
     )
 
 
@@ -218,6 +236,16 @@ def aggregate(rows: Sequence[TaskMetrics]) -> dict[str, object]:
         "efficiency": {
             "retrieval_calls_mean": _mean([r.retrieval_calls for r in rows]),
             "steps_mean": _mean([r.steps for r in rows]),
+            "repeated_doc_rate": _mean(
+                [r.repeated_doc_rate for r in rows if r.repeated_doc_rate is not None]
+            ),
+            "evidence_gain_per_retrieval": _mean(
+                [
+                    r.evidence_gain_per_retrieval
+                    for r in rows
+                    if r.evidence_gain_per_retrieval is not None
+                ]
+            ),
             "latency_ms_median": statistics.median(latencies) if latencies else None,
             "latency_ms_p90": (
                 latencies[min(len(latencies) - 1, int(len(latencies) * 0.9))] if latencies else None

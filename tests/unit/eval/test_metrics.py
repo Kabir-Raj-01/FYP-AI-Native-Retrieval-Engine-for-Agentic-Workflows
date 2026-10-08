@@ -190,3 +190,18 @@ def test_row_flattens_per_k_values() -> None:
         row["ndcg@3"],
     )
     assert row["has_gold"] == 1
+
+
+def test_repeated_doc_rate_and_gain_per_retrieval_use_candidate_steps_only() -> None:
+    steps = [
+        step(["a1", "x"]).model_copy(update={"evidence_gain": 0.6}),
+        step(["a1", "b"]).model_copy(update={"new_candidate_ids": ["b"], "evidence_gain": 0.2}),
+        step([]).model_copy(update={"action": Action.STOP, "evidence_gain": 0.0}),
+    ]
+    m = task_metrics("t", None, GROUPS, bundle(["a1", "b"]), steps, [1])
+    assert m.repeated_doc_rate == pytest.approx(1 / 4)  # "a1" again, of 4 returned
+    assert m.evidence_gain_per_retrieval == pytest.approx(0.4)  # the STOP step is excluded
+    null = task_metrics("t", "null_query", [], bundle([]), [step([])], [1])
+    assert (null.repeated_doc_rate, null.evidence_gain_per_retrieval) == (None, None)
+    eff = aggregate([m, null])["efficiency"]
+    assert eff["repeated_doc_rate"] == pytest.approx(0.25)  # tasks without candidates skipped

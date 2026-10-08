@@ -8,4 +8,5 @@ experiment:
   retrieval_budgets: [2, 3, 4]  # one sub-run per budget B
   notes: "E1 equal-budget, full engine, frozen config"
 eval:
+  max_workers: 1                # one local Ollama (ADR-004) serves calls in turn; more workers queue past llm timeout_s
   repeats: 3                    # final LLM-dependent test runs (EVAL_PROTOCOL §6)

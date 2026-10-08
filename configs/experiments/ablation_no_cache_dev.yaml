@@ -9,3 +9,5 @@ experiment:
   notes: "E3 ablation — cache off"
 ablation:
   cache: false
+eval:
+  max_workers: 1                # one local Ollama (ADR-004) serves calls in turn; more workers queue past llm timeout_s

@@ -9,3 +9,5 @@ experiment:
   notes: "E3 ablation — gap tracking off"
 ablation:
   gap_tracking: false
+eval:
+  max_workers: 1                # one local Ollama (ADR-004) serves calls in turn; more workers queue past llm timeout_s

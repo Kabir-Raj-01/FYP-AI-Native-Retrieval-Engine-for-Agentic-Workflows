@@ -81,8 +81,9 @@ by `python -m eval.generator --run <id>` (`b<B>/answers.csv`, `answers.json`: th
 official ADR-003 rule as `accuracy` plus normalised `exact_match`; prompt
 `eval/prompts/answer.j2`, its hash in `answers.json`); `eval/stats.py` implements §5 and
 `eval/report.py` §7 (tables, stop reasons, action sequences, `quality_vs_calls.png`,
-`stop_reasons.png`, and `comparison.md` for several runs). Still to add: redundancy rates,
-over-retrieval and premature-stop rates. **Latency caveat:** with
+`stop_reasons.png`, and `comparison.md` for several runs). Over-retrieval, premature-stop,
+repeated-document rate and evidence gain per retrieval are in `eval/metrics.py`; still to
+add: redundant-evidence rate (needs embeddings of accepted items; E3, FYP-II). **Latency caveat:** with
 `eval.max_workers` > 1 the workers share one Embedder (which serialises model calls), so a
 task's latency includes waiting for the others — report latency from a single-worker run
 (`--set eval.max_workers=1`, non-reportable) or from `scripts/latency_profile.py`, not from

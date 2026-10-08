@@ -7,3 +7,5 @@ experiment:
   budget_mode: equal           # equal | natural (EVAL_PROTOCOL §1, BASELINES_SPEC §3)
   retrieval_budgets: [2, 3, 4]  # sets budget.max_retrieval_calls per sub-run
   notes: "E1 equal-budget, full engine"
+eval:
+  max_workers: 1                # one local Ollama (ADR-004) serves calls in turn; more workers queue past llm timeout_s
