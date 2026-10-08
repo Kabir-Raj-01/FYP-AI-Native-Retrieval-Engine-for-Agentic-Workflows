@@ -18,15 +18,17 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       — skeleton, pyproject fixes and pre-commit done (branch `k/foundations-week7`);
       Qdrant v1.19.1 binary installed and pinned (branch `k/data-download`); CI not yet
       run on GitHub
-- [ ] K: ADR-001 embedding + chunking + sparse method (accept) · ADR-003 dataset source, licence, split (draft)
+- [x] K: ADR-001 embedding + chunking + sparse method (accept) · ADR-003 dataset source, licence, split (draft)
+      — both Accepted 2026-10-08 (Kabir for the team); ADR-003 also fixes EM next to accuracy
 - [x] S: `engine/state/models.py` exactly per STATE_SPEC; invariant tests skeleton
       (also `serialization.py`, `invariants.py`; merge waits for ADR-009 acceptance)
 - [x] V: `engine/config.py` EngineConfig + loader + config tests (CONFIG_SCHEMA)
 - [x] V: test fakes + conftest fixtures (TESTING §2) (`engine_with_fakes` skips until the
       Engine exists; `planner_responses/*.json` belong with the planner, Week 11)
 - [x] All: all `interfaces.py` files with docstrings, bodies `NotImplementedError`
-- [ ] S+V: review ADR-009 and mark it Accepted (its amendments are already applied to
+- [x] S+V: review ADR-009 and mark it Accepted (its amendments are already applied to
       STATE_SPEC, ARCHITECTURE and API_CONTRACT) · review ADR-010
+      — both Accepted 2026-10-08 by Kabir for the team; Samay/Vishal review after the fact
 - [ ] All: show ADR-011 (deviations from the proposal) to the supervisor; mark Accepted once approved
 - [ ] Tag `v0.1-skeleton`
 
@@ -47,7 +49,7 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [x] V: eval harness v0: dataset loader, dense_oneshot, metrics (Recall/Hit/MRR/CER), run folder + manifest (EVAL_PROTOCOL, OBSERVABILITY)
       — built by K: `python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml`;
       dense_oneshot without rerank until ADR-005
-- [ ] S: SQLite TaskStore (WAL, version check) + LangGraph skeleton with stub nodes; `Engine.step/run` loop with budget cap (ARCHITECTURE §3–4)
+- [x] S: SQLite TaskStore (WAL, version check) + LangGraph skeleton with stub nodes; `Engine.step/run` loop with budget cap (ARCHITECTURE §3–4)
       — built by K (branch `k/controlled-path`): TaskStore (`engine/state/store.py`:
       version-checked save, cache entries in the same transaction, foreign-task entries
       refused); graph nodes (`engine/graph/nodes.py`, real node logic per ARCHITECTURE §4-§5)
@@ -75,9 +77,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       one-shot baselines; `events.jsonl` lines carry `run_id`/`task_id`/`step` with fields
       under `data` (OBSERVABILITY §3); `retrieval.call.latency_ms` is search-only. The
       controlled loop's `execute` node records its own (S, with the graph)
-- [ ] V: LLMClient (providers, structured output, cache, caps) (LLM_CLIENT_SPEC); ADR-004 model choices
-      — client built by K (`engine/llm/`, branch `k/controlled-path`; tested with scripted
-      providers, no network); ADR-004 model choices still open (Vishal)
+- [x] V: LLMClient (providers, structured output, cache, caps) (LLM_CLIENT_SPEC); ADR-004 model choices
+      — client built by K (`engine/llm/`); ADR-004 Accepted 2026-10-08: qwen2.5:3b on a local
+      Ollama v0.40.1 (`tools\ollama`, SETUP §2), live-verified with `python -m engine.llm.smoke`
 - [x] V: planner v1: INIT/REWRITE/SPLIT, validator, fallback, prompts (FR4, PLANNER_SPEC)
       — built by K (`engine/planner/`; injection test included); interpretations in
       PLANNER_SPEC §7a. Needs ADR-004 (model) for live runs
@@ -97,7 +99,7 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [x] V: fixed_iteration baseline (BASELINES_SPEC)
       — built by K (`baselines/fixed_iteration.py`); `eval.run` now runs all four systems
       (`controller_on` and `fixed_iteration` need ADR-004's planner model)
-- [ ] K: task-local cache v1 + REUSE + leakage test (FR5, CACHE_SPEC)
+- [x] K: task-local cache v1 + REUSE + leakage test (FR5, CACHE_SPEC)
       — cache v1 + leakage test done (`engine/cache/task_cache.py`, shared
       `engine/state/sqlite.py`, `engine/text.py`); REUSE needs the controller and the
       `execute`/`score_and_update` nodes (Week 13, S)
@@ -112,7 +114,7 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       Risk: with bge-reranker-base, relevance on long MultiHop questions was 0.000–0.003
       (ADR-005 probe) vs `evidence.relevance_threshold` 0.5 — measure on subgoal queries
       once the planner runs; calibration (ACTION_POLICY §9) owns the fix
-- [ ] S: state-aware reranking prototype (FR7, RERANK_SPEC) — may run into FYP-II per Gantt
+- [x] S: state-aware reranking prototype (FR7, RERANK_SPEC) — may run into FYP-II per Gantt
       — built by K with the Reranker (`engine/rerank/state_aware.py`; FR7 constructed case
       reproduced exactly); weights stay Draft until the calibration ADR
 - [x] V: `/step`, `/run`, `/result`, `/trace` endpoints + RetrievalClient (FR11)
@@ -127,10 +129,10 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       `tests/unit/graph/test_faults.py`, OpenAPI snapshot `tests/fixtures/openapi.json`;
       `scripts/show_trace.py`. The golden test found a REUSE loop (fixed, ACTION_POLICY §6
       "As built"). Coverage: 98 % overall, ≥ 94 % per target package
-- [ ] K: latency profile (`python scripts\latency_profile.py`)
+- [x] K: latency profile (`python scripts\latency_profile.py`)
       — script done and `configs/latency_profile.yaml` generated (REUSE 3.8, DENSE 139,
       SPARSE_HYBRID 154, RERANK_EXPAND 168 ms median); re-run for TRANSFORM once the
-      planner exists
+      planner exists — done 2026-10-08: TRANSFORM measured 14.5 s (live planner REWRITE)
 - [ ] Fallback if controller-ON slips: baselines + modular component demos remain the FYP-I demo
 
 ## Week 16 (30 Nov–6 Dec) — FYP-I draft
