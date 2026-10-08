@@ -1,6 +1,6 @@
 # Tasks and Milestones
 
-> Status: Living document · Owner: All · Last updated: 2026-10-08
+> Status: Living document · Owner: All · Last updated: 2026-10-09
 > Mirrors the proposal's milestone plan (§4), Table II allocation and Fig. 2 Gantt chart.
 > Week 1 = 17 Aug 2026; dates are approximate — align with the department calendar.
 > Mark items `[x]` in the PR that completes them. Each item names its owner, FR and doc.
@@ -61,12 +61,14 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       step-order check, `summarize`); events.jsonl + manifest stay with the eval harness
 
 ## Week 10 (19–25 Oct) — Working prototype checkpoint
-- [ ] K+V: E0 — dense_oneshot results on the dev subset through the service
-      — preliminary E0 run (in-process, no rerank, non-reportable) 2026-10-05:
-      Recall@10 0.477, Hit@10 0.823, MRR 0.491, CER 0.177, trajectory coverage 0.661
-      (matches the one-off check in ADR-001); still needed: reranker, a run through the
-      HTTP service, a clean tree
-- [ ] All: demo script + short progress slides
+- [x] K+V: E0 — dense_oneshot results on the dev subset through the service
+      — reportable run 2026-10-09 `20261008-184814_dense_oneshot_dev_f086ac2` (clean tree,
+      bge reranker): Recall@10 0.565, Hit@10 0.917, MRR 0.633, CER@10 0.226, CER 0.328.
+      `eval.run` calls the Engine in-process (it has no HTTP mode); the HTTP path is the
+      same `retrieve_direct`, verified live by `examples/demo_fyp1.py` and the integration
+      tests (NFR-P1 median 142 ms)
+- [x] All: demo script + short progress slides
+      — `examples/demo_fyp1.py` (run live 2026-10-09) + `docs/reports/FYP1_SLIDES.md`
 - [ ] Tag `v0.2-week10`
 
 ## Weeks 11–12 (26 Oct–8 Nov) — Baselines, state, planner → Mid-term
@@ -91,7 +93,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       bge-reranker-base at the new `rerank.revision`; model choice still ADR-005 (Samay).
       Open: one-shot traces need `latency_ms["rerank"]` split from `execute` (`DirectResult`
       has only the total → ADR-012 amendment); E0 not yet re-run with rerank (CPU cost)
-- [ ] All: early MultiHop-RAG results table (dense vs hybrid)
+- [x] All: early MultiHop-RAG results table (dense vs hybrid)
+      — `docs/reports/FYP1_REPORT_DRAFT.md` §5.1: hybrid − dense Recall@10 +0.053
+      [+0.029, +0.078], CER +0.117 (McNemar p < 0.0001), 265 tasks; ADR-005 Accepted
 - [ ] Tag `v0.3-midterm`
 
 ## Week 13 (9–15 Nov) — Controller core
@@ -124,7 +128,8 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 
 ## Weeks 14–15 (16–29 Nov) — Integration and test buffer (no new features)
 - [ ] All: end-to-end controller_on runs on dev subset; fix defects
-- [ ] All: read ≥ 20 trajectories by hand with `show_trace.py`; log failure categories
+- [x] All: read ≥ 20 trajectories by hand with `show_trace.py`; log failure categories
+      — 21 read, 7 categories: `docs/reports/FYP1_TRAJECTORY_REVIEW.md`
 - [x] V: golden-trajectory and fault-injection tests
       — built by K: `tests/e2e/test_golden.py` (+ `tests/fixtures/golden/mini_tasks.json`),
       `tests/unit/graph/test_faults.py`, OpenAPI snapshot `tests/fixtures/openapi.json`;
@@ -134,17 +139,20 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       — script done and `configs/latency_profile.yaml` generated (REUSE 3.8, DENSE 139,
       SPARSE_HYBRID 154, RERANK_EXPAND 168 ms median); re-run for TRANSFORM once the
       planner exists — done 2026-10-08: TRANSFORM measured 14.5 s (live planner REWRITE)
-- [ ] Fallback if controller-ON slips: baselines + modular component demos remain the FYP-I demo
+- [x] Fallback if controller-ON slips: baselines + modular component demos remain the FYP-I demo
+      — not needed: controller-ON runs end to end (demo and E1)
 
 ## Week 16 (30 Nov–6 Dec) — FYP-I draft
 - [ ] V+All: E1 on dev subset (equal budget B ∈ {2,3,4}), preliminary; initial report/dashboard
-- [ ] All: FYP-I report draft (methodology ← docs/, design ← ARCHITECTURE + ADRs, results ← eval/runs)
+- [x] All: FYP-I report draft (methodology ← docs/, design ← ARCHITECTURE + ADRs, results ← eval/runs)
+      — `docs/reports/FYP1_REPORT_DRAFT.md` (team edits it into the submitted report)
 - [ ] Tag `v0.5-fyp1`
 
 ## FYP-I final evaluation / defense (Dec–early Jan)
 - [ ] Live demo: same question controller-OFF vs ON, trace + stop reason; recorded backup video
+      — demo verified and runbook in `docs/reports/FYP1_SLIDES.md`; recording the video is left
 - [ ] Every member can explain every module
-- [ ] FYP-II plan slide
+- [x] FYP-II plan slide — `docs/reports/FYP1_SLIDES.md` §10
 
 ---
 
