@@ -29,9 +29,10 @@ from pathlib import Path
 from typing import Any
 
 import jinja2
+import yaml
 
 from engine import factory
-from engine.config import EngineConfig, load_config
+from engine.config import EngineConfig, ExperimentConfig, load_config
 from engine.errors import EngineError
 from engine.llm.interfaces import LLMClient, Message
 from engine.state.models import EvidenceBundle, RunContext
@@ -103,13 +104,14 @@ def _mean(xs: Sequence[float]) -> float | None:
     return sum(xs) / len(xs) if xs else None
 
 
-def run_tasks(run_dir: Path) -> list[Task]:
-    """The tasks of a finished run, from its ``config.resolved.yaml``."""
-    run_cfg = load_config(run_dir / "config.resolved.yaml")
-    exp = run_cfg.experiment
-    if exp is None:
+def run_tasks(run_dir: Path, cfg: EngineConfig) -> list[Task]:
+    """The tasks of a finished run: its ``experiment`` section (``config.resolved.yaml``),
+    the data under the current ``cfg``."""
+    resolved = yaml.safe_load((run_dir / "config.resolved.yaml").read_text(encoding="utf-8"))
+    if not resolved.get("experiment"):
         raise ValueError(f"{run_dir}: not an experiment run")
-    return load_tasks(run_cfg, exp.split, exp.subset)
+    exp = ExperimentConfig.model_validate(resolved["experiment"])
+    return load_tasks(cfg, exp.split, exp.subset)
 
 
 def generate(
@@ -179,7 +181,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         cfg = load_config(args.config)
         cfg.require_llm_model("generator")
         run_dir = cfg.paths.runs_dir / args.run
-        tasks = run_tasks(run_dir)[: args.max_tasks]
+        tasks = run_tasks(run_dir, cfg)[: args.max_tasks]
         result = generate(run_dir, tasks, cfg, factory.build_llm_client(cfg))
     except (EngineError, OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

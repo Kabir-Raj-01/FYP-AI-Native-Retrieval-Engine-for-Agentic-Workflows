@@ -11,6 +11,7 @@ import pytest
 from engine.config import EngineConfig
 from engine.monitor.trace import task_file_stem
 from engine.state.models import EvidenceBundle, StopReason, TraceSummary
+from eval import generator
 from eval.datasets.base import Task
 from eval.generator import (
     answer_messages,
@@ -101,6 +102,24 @@ def test_official_rule_is_any_shared_token_and_em_is_strict() -> None:
     assert not official_correct("Google", "Apple")
     assert exact_match("The Apple!", "apple")
     assert not exact_match("Apple Inc", "apple")
+
+
+def test_run_tasks_reads_the_experiment_of_a_resolved_config(
+    tmp_path: Path, cfg: EngineConfig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # live bug: load_config() refused config.resolved.yaml (name != file stem)
+    seen: list[tuple[str, bool]] = []
+    monkeypatch.setattr(
+        generator, "load_tasks", lambda c, split, subset: seen.append((split, subset)) or []
+    )
+    exp = {"name": "dense_oneshot_dev", "system": "dense_oneshot", "dataset": "multihop",
+           "split": "dev", "subset": True, "budget_mode": "equal", "retrieval_budgets": [1],
+           "notes": ""}  # fmt: skip
+    (tmp_path / "config.resolved.yaml").write_text(json.dumps({"experiment": exp}), "utf-8")
+    assert generator.run_tasks(tmp_path, cfg) == [] and seen == [("dev", True)]
+    (tmp_path / "config.resolved.yaml").write_text("{}", "utf-8")
+    with pytest.raises(ValueError, match="not an experiment"):
+        generator.run_tasks(tmp_path, cfg)
 
 
 def test_generate_writes_answers_per_budget(tmp_path: Path, cfg: EngineConfig) -> None:
