@@ -1,6 +1,6 @@
 # ADR-012: `DirectResult` — the return type of `Engine.retrieve_direct`
 
-> Status: Proposed · Date: 2026-10-05 · Author(s): Kabir · Reviewer: Samay, Vishal
+> Status: Accepted (2026-10-08, Kabir for the team; Samay/Vishal review after the fact) · Date: 2026-10-05 · Author(s): Kabir · Reviewer: Samay, Vishal
 
 ## Context
 ARCHITECTURE §6 defines `Engine.retrieve_direct(query, mode, k, rerank)` but no return
@@ -46,3 +46,12 @@ undefined `rerank=true` behaviour is fixed here. Like ADR-009, this must be Acce
 ## Reversal condition
 If the baselines need more per-call data (e.g. separate search and rerank latencies),
 extend the model through a new ADR rather than adding ad-hoc return values.
+
+## Amendment A1 (2026-10-08) — separate rerank latency
+The case foreseen above (ADR-005 open item 4): with the reranker on, a one-shot baseline's
+TraceStep put search + rerank under `latency_ms["execute"]`, while the controlled loop
+records `execute` and `rerank` as separate stages. `DirectResult` gains
+`rerank_latency_ms: float | None = None` (the rerank part of `latency_ms`; `None` without
+rerank). The baselines record `{"execute": search, "rerank": rerank, "total": both}`
+(`baselines.base.step_latency`), the same stages as the controlled loop.
+`DirectResponse.latency_ms` (API_CONTRACT) is unchanged: still the total.

@@ -191,10 +191,14 @@ class Engine:
             latency_ms=round(search_ms, 2),  # search only (RETRIEVAL_SPEC §4)
         )
         scored = None
+        rerank_ms = None
         if rerank and self._reranker is not None:
             scored = self._reranker.rerank(query, candidates, None)
             latency_ms = (self._clock() - start) * 1000.0
-        return DirectResult(candidates=candidates, scored=scored, latency_ms=latency_ms)
+            rerank_ms = latency_ms - search_ms
+        return DirectResult(
+            candidates=candidates, scored=scored, latency_ms=latency_ms, rerank_latency_ms=rerank_ms
+        )
 
     # -------------------------------------------------------------------- controlled path
     def default_budget(self) -> Budget:

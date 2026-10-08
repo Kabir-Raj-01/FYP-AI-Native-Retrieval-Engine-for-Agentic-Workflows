@@ -479,7 +479,7 @@ class TraceStep(BaseModel):          # semantics: OBSERVABILITY.md §2
     timestamp: datetime                # UTC-aware
 ```
 
-### `DirectResult` (ADR-012, Proposed)
+### `DirectResult` (ADR-012, amendment A1)
 Return type of `Engine.retrieve_direct` (controller-OFF path, ARCHITECTURE §6); never part
 of task state.
 ```python
@@ -487,6 +487,7 @@ class DirectResult(BaseModel):
     candidates: list[Candidate]                  # backend order, rank 0..k-1, with vectors
     scored: list[ScoredCandidate] | None = None  # rerank=True: relevance-only reranker output
     latency_ms: float                            # wall clock: search (+ rerank)
+    rerank_latency_ms: float | None = None       # the rerank part of latency_ms (A1)
 ```
 
 `vector` fields (`Candidate.vector`, `EvidenceItem.vector`, `CacheEntry.query_vector`)

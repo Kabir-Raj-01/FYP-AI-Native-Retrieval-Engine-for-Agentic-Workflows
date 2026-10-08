@@ -11,7 +11,7 @@ and ``relevance`` = 0.0; ``eval/run.py`` marks such runs non-reportable.
 
 from __future__ import annotations
 
-from baselines.base import BaselineContext
+from baselines.base import BaselineContext, step_latency
 from engine.monitor.interfaces import TraceWriter
 from engine.monitor.logging import bound_contextvars
 from engine.state.models import (
@@ -108,7 +108,7 @@ def run_oneshot(
         evidence_gain=0.0,
         plan_events=[],
         stagnation_count=0,
-        latency_ms={"execute": result.latency_ms, "total": result.latency_ms},
+        latency_ms=step_latency(result),
         llm_calls=0,
         tokens=0,
         budget_after=budget,

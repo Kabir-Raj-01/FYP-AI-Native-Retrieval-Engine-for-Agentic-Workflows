@@ -26,6 +26,9 @@
   `evidence_gain` — from the EvidenceUpdate (0.0 and empty for steps without candidates).
 - `plan_events` — planner events produced during this step (INIT in step 1, TRANSFORM).
 - `latency_ms` — per stage (`plan, select, execute, rerank, evidence, monitor, total`).
+  The direct-path baselines record `execute` (search), `rerank` and `total` (ADR-012 A1).
+  With `rerank.score_cache_enabled`, a cached score costs ~0 ms in `rerank`: quote latency
+  from `scripts/latency_profile.py` or a single-worker cold run, not from quality runs.
 - `llm_calls`, `tokens` — consumed in this step; `budget_after` — cumulative.
 - `stop_reason` — set only on the final step.
 Baselines fill the same fields (e.g. one-shot: one step, action DENSE/SPARSE_HYBRID).

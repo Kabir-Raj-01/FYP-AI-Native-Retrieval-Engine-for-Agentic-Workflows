@@ -14,8 +14,17 @@ from datetime import UTC, datetime
 from engine.config import EngineConfig
 from engine.core import Engine
 from engine.monitor.interfaces import TraceWriter
+from engine.state.models import DirectResult
 
-__all__ = ["BaselineContext"]
+__all__ = ["BaselineContext", "step_latency"]
+
+
+def step_latency(result: DirectResult) -> dict[str, float]:
+    """TraceStep ``latency_ms`` stages, as the controlled loop records them (ADR-012 A1)."""
+    rerank = result.rerank_latency_ms
+    if rerank is None:
+        return {"execute": result.latency_ms, "total": result.latency_ms}
+    return {"execute": result.latency_ms - rerank, "rerank": rerank, "total": result.latency_ms}
 
 
 @dataclass(frozen=True)

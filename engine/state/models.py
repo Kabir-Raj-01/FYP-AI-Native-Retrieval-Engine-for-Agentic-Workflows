@@ -611,3 +611,4 @@ class DirectResult(BaseModel):
     candidates: list[Candidate]  # backend order, rank 0..k-1, with vectors
     scored: list[ScoredCandidate] | None = None  # rerank=True: relevance-only output
     latency_ms: float  # wall clock: search (+ rerank)
+    rerank_latency_ms: float | None = None  # the rerank part of latency_ms (ADR-012 A1)

@@ -16,7 +16,7 @@ non-reportable anyway, ``eval/run.py``).
 
 from __future__ import annotations
 
-from baselines.base import BaselineContext
+from baselines.base import BaselineContext, step_latency
 from engine.monitor.interfaces import TraceWriter
 from engine.state.models import (
     Action,
@@ -155,7 +155,7 @@ def run_task(task: Task, ctx: BaselineContext) -> EvidenceBundle:
             evidence_gain=0.0,
             plan_events=events,
             stagnation_count=0,
-            latency_ms={"execute": result.latency_ms, "total": result.latency_ms},
+            latency_ms=step_latency(result),
             llm_calls=budget.llm_calls_used - llm_before,
             tokens=budget.tokens_used - tokens_before,
             budget_after=budget,
