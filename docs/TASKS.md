@@ -30,7 +30,7 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       STATE_SPEC, ARCHITECTURE and API_CONTRACT) · review ADR-010
       — both Accepted 2026-10-08 by Kabir for the team; Samay/Vishal review after the fact
 - [ ] All: show ADR-011 (deviations from the proposal) to the supervisor; mark Accepted once approved
-- [ ] Tag `v0.1-skeleton`
+- [x] Tag `v0.1-skeleton` — local tag at `0aac8b8` (tip of `k/foundations-week7`); push with the branch
 
 ## Weeks 8–9 (5–18 Oct) — Vertical slice
 - [x] K: download + ingestion pipeline, UUIDv5 point ids, Qdrant collection (FR1, DATA §3, RETRIEVAL_SPEC)
@@ -69,7 +69,7 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       tests (NFR-P1 median 142 ms)
 - [x] All: demo script + short progress slides
       — `examples/demo_fyp1.py` (run live 2026-10-09) + `docs/reports/FYP1_SLIDES.md`
-- [ ] Tag `v0.2-week10`
+- [x] Tag `v0.2-week10` — local tag at `f086ac2` (code of the reportable E0 runs)
 
 ## Weeks 11–12 (26 Oct–8 Nov) — Baselines, state, planner → Mid-term
 - [x] K: hybrid mode (prefetch + RRF); hybrid_oneshot baseline (BASELINES_SPEC)
@@ -96,7 +96,7 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [x] All: early MultiHop-RAG results table (dense vs hybrid)
       — `docs/reports/FYP1_REPORT_DRAFT.md` §5.1: hybrid − dense Recall@10 +0.053
       [+0.029, +0.078], CER +0.117 (McNemar p < 0.0001), 265 tasks; ADR-005 Accepted
-- [ ] Tag `v0.3-midterm`
+- [x] Tag `v0.3-midterm` — local tag at `5163f78`
 
 ## Week 13 (9–15 Nov) — Controller core
 > Per the proposal Gantt chart, cache/controller work starts alongside Weeks 11–12; this
