@@ -41,6 +41,7 @@ fix it in the same PR.
 | `LIBRARY_NOTES.md` | Pinned versions + verified API usage | All | Ongoing |
 | `TASKS.md` | Milestone checklist per week and owner | All | Ongoing |
 | `decisions/` | Architecture Decision Records (ADRs) | Author of each | Ongoing |
+| `reports/` | FYP-I report draft, results, trajectory review, slides outline | All | Week 16 |
 
 ## Maintenance rules
 1. **Header line.** Every doc starts with
