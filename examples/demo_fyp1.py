@@ -73,7 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"  gaps: {[(g.description[:60], g.status.value) for g in bundle.gaps]}")
         print("  evidence bundle (the host app generates the answer from this):")
         for e in bundle.evidence[:8]:
-            print(f"    {e.relevance:.3f}  {_title(e)}")
+            print(f"    final {e.final_score:.3f}  rel {e.relevance:.3f}  {_title(e)}")
 
         print("\n== Trace (why each action was chosen) ==")
         for s in client.trace(tid):
