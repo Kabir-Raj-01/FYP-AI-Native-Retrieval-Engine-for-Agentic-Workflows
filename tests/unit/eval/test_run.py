@@ -258,6 +258,24 @@ def test_backend_failure_aborts_and_still_writes_the_manifest(
     assert manifest["reportable"] is False
 
 
+def test_interrupted_run_is_marked_aborted(
+    run_cfg: EngineConfig,
+    engine: Engine,
+    mini_corpus: list[CorpusChunk],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def interrupt(task: Task, ctx: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setitem(eval_run.SYSTEMS, "dense_oneshot", interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        run(run_cfg, engine, mini_corpus)
+    (run_dir,) = list((run_cfg.paths.runs_dir).iterdir())
+    manifest = json.loads((run_dir / "manifest.json").read_text("utf-8"))
+    assert manifest["aborted"] == {"aborted": True, "reason": "KeyboardInterrupt: "}
+    assert manifest["reportable"] is False
+
+
 # ----------------------------------------------------------------------- task loader
 def test_load_tasks_uses_split_subset_and_gold(run_cfg: EngineConfig) -> None:
     raw = run_cfg.paths.data_dir / "raw" / "multihop"

@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> Status: Living index · Owner: All · Last updated: 2026-10-04
+> Status: Living index · Owner: All · Last updated: 2026-10-08
 
 An ADR records one decision that is expensive to reverse or that affects experimental
 validity. Copy `TEMPLATE.md`, number sequentially, open a PR, get one teammate's review.

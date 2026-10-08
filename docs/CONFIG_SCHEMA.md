@@ -25,7 +25,8 @@ to 1 (±1e-6); probabilities/thresholds in [0,1]; `retrieval.default_k ≤ retri
 `budget_defaults.max_retrieval_calls ≥ 1`, `budget_defaults.max_llm_calls ≥ 0`,
 `budget_defaults.max_tokens ≥ 1` (ADR-009 §8 — `Budget` mirrors these bounds);
 rapidfuzz thresholds (`int 0–100`) in [0,100]. Any LLM role that will be used must have a
-non-null `model`: because base.yaml ships with every model `null` until ADR-004, this is
+non-null `model`: because base.yaml may ship a role's model as `null` (the verifier, not
+built yet; ADR-004 set planner and generator), this is
 checked before first use, not at load — the code that builds a role's client calls
 `EngineConfig.require_llm_model(role)`, which raises `ConfigError`.
 

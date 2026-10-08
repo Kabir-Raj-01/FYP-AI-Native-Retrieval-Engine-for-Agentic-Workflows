@@ -181,7 +181,7 @@ class LLMPrice(_Section):
 
 class LLMRoleConfig(_Section):  # model Frozen after ADR-004 (planner, generator)
     provider: Literal["anthropic", "openai_compatible", "fake"]
-    model: str | None  # null until ADR-004; required before use (require_llm_model)
+    model: str | None  # null = role unused (verifier); required before use (require_llm_model)
     base_url: str
     api_key_env: str  # env var NAME, never the secret
     temperature: float
@@ -430,8 +430,8 @@ class EngineConfig(_Section):
 
         CONFIG_SCHEMA §1 requires every LLM role that will be used to name a model. Whether
         a role is used is known only to the code that builds its client (factory, eval
-        harness), so this check runs there, before first use, not at load: base.yaml ships
-        with every model null until ADR-004.
+        harness), so this check runs there, before first use, not at load: base.yaml may ship
+        a role's model as null (the verifier, not built yet).
         """
         model = getattr(self.llm, role).model
         if model is None:

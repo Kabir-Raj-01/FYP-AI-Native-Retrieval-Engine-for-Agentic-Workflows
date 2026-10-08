@@ -214,7 +214,7 @@ def run_experiment(
             _write_csv(sub / "per_task.csv", [r.row() for r in rows])
             _write_text(sub / "metrics.json", json.dumps(aggregate(rows), indent=1) + "\n")
             log.info("run.subrun_done", budget=budget, tasks=len(rows))
-    except (EngineError, OSError) as exc:
+    except BaseException as exc:  # Ctrl+C or any crash still marks the run aborted
         aborted = {"aborted": True, "reason": f"{type(exc).__name__}: {exc}"}
         log.error(
             "error",

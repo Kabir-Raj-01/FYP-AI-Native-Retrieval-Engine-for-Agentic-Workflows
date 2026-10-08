@@ -1,6 +1,6 @@
 # Tasks and Milestones
 
-> Status: Living document · Owner: All · Last updated: 2026-10-04
+> Status: Living document · Owner: All · Last updated: 2026-10-08
 > Mirrors the proposal's milestone plan (§4), Table II allocation and Fig. 2 Gantt chart.
 > Week 1 = 17 Aug 2026; dates are approximate — align with the department calendar.
 > Mark items `[x]` in the PR that completes them. Each item names its owner, FR and doc.
@@ -42,13 +42,14 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 - [x] K: QdrantAdapter dense + sparse; Embedder (RETRIEVAL_SPEC §1–5) — plus hybrid (RRF),
       BM25 SparseEncoder and IndexWriter (ADR-001); unit + integration tests
 - [x] K: controller-OFF direct path — `Engine.retrieve_direct` + `/retrieve/direct` endpoint (FR3, ARCHITECTURE §6, API_CONTRACT)
-      — with a minimal app shell (`/v1/health`); `rerank=true` → 422 until the Reranker
-      (ADR-005); NFR-P1 median 104 ms; merge waits for ADR-012
+      — with a minimal app shell (`/v1/health`); `rerank=true` → 422 only on an engine built
+      without a Reranker (bge-reranker-base wired since 2026-10-08); NFR-P1 median 104 ms;
+      ADR-012 Accepted
 - [x] V: FastAPI app, `/health`, `/tasks` create/state (FR2, API_CONTRACT)
       — `/v1/tasks` routes built by K (`engine/api/routers/tasks.py`, branch `k/controlled-path`)
 - [x] V: eval harness v0: dataset loader, dense_oneshot, metrics (Recall/Hit/MRR/CER), run folder + manifest (EVAL_PROTOCOL, OBSERVABILITY)
       — built by K: `python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml`;
-      dense_oneshot without rerank until ADR-005
+      reranks whenever the engine has a Reranker (ADR-005 model still Proposed)
 - [x] S: SQLite TaskStore (WAL, version check) + LangGraph skeleton with stub nodes; `Engine.step/run` loop with budget cap (ARCHITECTURE §3–4)
       — built by K (branch `k/controlled-path`): TaskStore (`engine/state/store.py`:
       version-checked save, cache entries in the same transaction, foreign-task entries
@@ -71,7 +72,7 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 ## Weeks 11–12 (26 Oct–8 Nov) — Baselines, state, planner → Mid-term
 - [x] K: hybrid mode (prefetch + RRF); hybrid_oneshot baseline (BASELINES_SPEC)
       — `python -m eval.run --config configs\experiments\hybrid_oneshot_dev.yaml`;
-      shares `run_oneshot` with dense_oneshot; without rerank until ADR-005
+      shares `run_oneshot` with dense_oneshot; reranks like dense_oneshot
 - [x] K: retrieval instrumentation (latency, calls) in traces
       — calls and latency per step in TraceStep (`budget_after`, `latency_ms`) for the
       one-shot baselines; `events.jsonl` lines carry `run_id`/`task_id`/`step` with fields
@@ -191,3 +192,4 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 | 2026-10-05 | Trace writer + eval harness v0 + dense_oneshot. Preliminary E0 (dev subset, no rerank): Recall@10 0.477, CER 0.177; trajectory coverage 0.661 shows the top-20 holds far more gold than the retrieval-order top-10 — evidence for adding the reranker (ADR-005). Cache + latency profile done. |
 | 2026-10-05 | ADR-005 probe (dev subset, exploratory): bge-reranker-base lifts dense Recall@10 0.493 → 0.556 (80 tasks); MiniLM no reliable gain on dense and hurts hybrid (0.589 → 0.525). Rerank latency not yet valid (measured on battery); bge ≈ 10–24 s per 20 pairs. Decision stays with ADR-005's owner. |
 | 2026-10-05 | hybrid_oneshot baseline. Preliminary dev-subset run (no rerank, non-reportable): Recall@10 0.589, Hit@10 0.898, MRR 0.604, CER 0.291, trajectory coverage 0.729 — vs dense_oneshot 0.477 / 0.823 / 0.491 / 0.177 / 0.661. |
+| 2026-10-08 | ADR-001/003/004/009/010/012 Accepted (Kabir for the team; Samay/Vishal review after the fact); ADR-013 preliminary calibration (relevance threshold 0.2, `rerank.top_n_output` 20, controller defaults kept). qwen2.5:3b planner on local Ollama; first live controller-ON runs on 40 dev-subset tasks (B = 4, non-reportable): CER 0.152, R@10 0.467, trajectory coverage 0.854, 2.65 calls. Latency profile with TRANSFORM 14.5 s. FYP-I demo `examples/demo_fyp1.py`. `eval.run` now marks a run interrupted by Ctrl+C or any crash as aborted. Open: ADR-005 (Samay), ADR-011 (supervisor), CI on GitHub, reportable E0/E1 runs on a clean tree, hand-read trajectories. |
