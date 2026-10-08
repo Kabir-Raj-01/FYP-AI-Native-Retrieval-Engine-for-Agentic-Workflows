@@ -54,10 +54,27 @@ in the environment wins over `.env` (CONFIG_SCHEMA §1).
 Use `127.0.0.1` rather than `localhost` in URLs: on Windows `localhost` is tried as IPv6
 (`::1`) first, which adds a connection delay to every call and distorts latency numbers.
 
-### Local LLM option (no API cost)
-Install Ollama for Windows, run `ollama pull <model chosen in ADR-004>`, keep
-`provider: openai_compatible` and `base_url: http://127.0.0.1:11434/v1`. Verify with a
-one-line structured call: `python -m engine.llm.smoke --role planner`.
+### Local LLM (Ollama, the ADR-004 default — no API cost, no key)
+Install once — the standalone zip into `tools\ollama\` (gitignored, ~1.5 GB), models in
+`var\ollama` (~1.9 GB for `qwen2.5:3b`):
+```powershell
+New-Item -ItemType Directory -Force tools\ollama | Out-Null
+curl.exe -L --fail -o tools\ollama\ollama.zip https://github.com/ollama/ollama/releases/download/v0.40.1/ollama-windows-amd64.zip
+Expand-Archive tools\ollama\ollama.zip -DestinationPath tools\ollama -Force
+Remove-Item tools\ollama\ollama.zip
+```
+Start (every session), then pull the model once:
+```powershell
+$env:OLLAMA_MODELS = "$PWD\var\ollama"; $env:OLLAMA_HOST = "127.0.0.1:11434"
+Start-Process -FilePath .\tools\ollama\ollama.exe -ArgumentList serve -WindowStyle Minimized
+.\tools\ollama\ollama.exe pull qwen2.5:3b              # once
+python -m engine.llm.smoke --role planner              # must end with "ok: role=planner ..."
+python -m engine.llm.smoke --role generator
+```
+Stop: `Stop-Process -Name ollama`. `configs/base.yaml` already points the planner and
+generator at `http://127.0.0.1:11434/v1` with `provider: openai_compatible`. To use a hosted
+model instead, change `llm.<role>.provider/model/base_url` and set `LLM_API_KEY` in `.env`
+(a new model is an ADR-004 amendment).
 
 ## 3. Qdrant (native Windows binary)
 Install once — download the pinned release into `tools\qdrant\` (gitignored):
@@ -101,7 +118,10 @@ python -m eval.run --config configs\experiments\dense_oneshot_dev.yaml   # first
 | Serve the API | `python -m uvicorn engine.api.app:app --host 127.0.0.1 --port 8000` |
 | Run an experiment | `python -m eval.run --config configs\experiments\<name>.yaml` |
 | Latency profile | `python scripts\latency_profile.py` (writes `configs\latency_profile.yaml`) |
-| Report for a run | `python -m eval.report --run <run_id>` |
+| Answers for a finished run (generator, ADR-004) | `python -m eval.generator --run <run_id> [--max-tasks N]` |
+| Report for a run / compare runs | `python -m eval.report --run <run_id> [--run <other_run_id> ...]` |
+| Check an LLM role | `python -m engine.llm.smoke --role planner` (or `generator`) |
+| Start / stop Ollama | §2 "Local LLM" / `Stop-Process -Name ollama` |
 | Dependency audit | `pip-audit` |
 | Clean caches | `Remove-Item -Recurse -Force .pytest_cache, .mypy_cache, .ruff_cache -ErrorAction SilentlyContinue` |
 | Delete local state DBs | `Remove-Item -Confirm var\*.sqlite3` |

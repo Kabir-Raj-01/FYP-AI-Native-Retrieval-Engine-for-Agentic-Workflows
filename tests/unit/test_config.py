@@ -385,7 +385,7 @@ def test_bm25_parameter_bounds(key: str, valid: float, invalid: float) -> None:
 # --------------------------------------------------------------------- LLM role models
 @pytest.mark.parametrize("role", ["planner", "verifier", "generator"])
 def test_role_with_null_model_cannot_be_used(role: str) -> None:
-    cfg = load_config(environ={})  # base.yaml: every model is null until ADR-004
+    cfg = load_config(environ={}, overrides=[f"llm.{role}.model=null"])
     with pytest.raises(ConfigError, match=f"llm.{role}.model"):
         cfg.require_llm_model(role)  # type: ignore[arg-type]
 

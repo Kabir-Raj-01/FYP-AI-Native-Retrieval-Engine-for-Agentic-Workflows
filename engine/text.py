@@ -8,7 +8,14 @@ from __future__ import annotations
 
 import unicodedata
 
-__all__ = ["normalize", "summary_of"]
+__all__ = ["escape_untrusted", "normalize", "summary_of"]
+
+
+def escape_untrusted(value: object) -> str:
+    """Escape ``&``, ``<``, ``>`` in untrusted text placed in a prompt (SECURITY §3), so
+    retrieved text cannot close the ``<evidence untrusted="true">`` block."""
+    return str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
 
 # A sentence end: . ! or ? followed by whitespace (PLANNER_SPEC §3 "sentence boundary").
 _SENTENCE_ENDS = (". ", "! ", "? ")

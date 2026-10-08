@@ -20,6 +20,7 @@ it**. Rules:
 | python | 3.11.9 (python.org, Authenticode-signed) | 2026-10-04 | https://docs.python.org/3.11/ |
 | qdrant-client | 1.19.1 | 2026-10-04 | https://qdrant.tech/documentation/ |
 | Qdrant server, Windows binary (`QDRANT_VERSION`) | **v1.19.1** (`qdrant-x86_64-pc-windows-msvc.zip`, SHA-256 `9b6f69bd85f6abed4bc13f943099f55c6ffd55f5dd90388635320d8fbb569eb0`, matches the release's published digest) | 2026-10-05 | https://github.com/qdrant/qdrant/releases |
+| Ollama server, Windows standalone zip (`ollama-windows-amd64.zip`, in `tools\ollama\`) | **v0.40.1**, model `qwen2.5:3b` (ADR-004), models in `var\ollama` (`OLLAMA_MODELS`) | 2026-10-08 | https://github.com/ollama/ollama/releases |
 | fastembed | 0.8.1 | 2026-10-04 | https://qdrant.github.io/fastembed/ |
 | sentence-transformers | 6.1.0 (torch 2.14.1) | 2026-10-04 | https://www.sbert.net/ |
 | langgraph | 1.2.12 (langsmith 0.14.4, uuid-utils **0.17.0**, see gotchas) | 2026-10-05 | https://langchain-ai.github.io/langgraph/ |
@@ -313,6 +314,15 @@ it**. Rules:
       `response.usage` may be None on local servers → tokens estimated (`ceil(chars/4)`).
       Same retryable error classes as the Anthropic SDK; also built on `httpx2`.
       JSON-mode / schema support of a chosen local model: still to check with ADR-004.
+- [x] Ollama v0.40.1 + `qwen2.5:3b`, verified 2026-10-08 through the OpenAI-compatible
+      endpoint `http://127.0.0.1:11434/v1` (no API key; `response.usage` is reported). The
+      client's prompt-only structured output (schema appended to the system text) works
+      without Ollama's `format` option; the model sometimes emits two JSON objects (one
+      SCHEMA rejection in 11 INIT attempts, retried successfully). CPU (i7-1185G7, no GPU):
+      ~5 s cold start, ~17–22 s per planner call.
+- [x] fastembed's ONNX `BAAI/bge-reranker-base` (`TextCrossEncoder`) gives the same scores
+      as sentence-transformers' `CrossEncoder` (Spearman 1.0, max |Δ| 3e-6 after sigmoid)
+      and no speed-up on this CPU (11.4 vs 11.7 s per 20 pairs, on battery) — not adopted.
 - Gotchas:
   - Current Claude models think adaptively by default and thinking tokens count against
     `max_tokens`: the planner's `llm.planner.max_output_tokens` (600) may truncate the

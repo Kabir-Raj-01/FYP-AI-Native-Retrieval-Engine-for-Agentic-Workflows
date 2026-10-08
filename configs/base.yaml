@@ -12,6 +12,7 @@ paths:
   runs_dir: eval/runs
   state_db: var/state.sqlite3
   llm_cache_db: var/llm_cache.sqlite3
+  rerank_cache_db: var/rerank_cache.sqlite3
   model_cache_dir: var/models     # fastembed model files (its own default is %TEMP%)
 
 embedding:                      # FROZEN after ADR-001
@@ -82,7 +83,7 @@ llm:
   prices: {}                    # {model_name: {input_per_mtok: float, output_per_mtok: float}} — fill from provider pricing
   planner:                      # model FROZEN after ADR-004
     provider: openai_compatible # anthropic | openai_compatible | fake
-    model: null                 # REQUIRED before use — set in ADR-004
+    model: qwen2.5:3b           # ADR-004: local Ollama
     base_url: http://127.0.0.1:11434/v1
     api_key_env: LLM_API_KEY   # env var NAME, not a secret  # pragma: allowlist secret
     temperature: 0.0
@@ -101,7 +102,7 @@ llm:
     max_transport_retries: 3
   generator:                    # model FROZEN after ADR-004
     provider: openai_compatible
-    model: null
+    model: qwen2.5:3b           # ADR-004: local Ollama
     base_url: http://127.0.0.1:11434/v1
     api_key_env: LLM_API_KEY   # env var NAME, not a secret  # pragma: allowlist secret
     temperature: 0.0
@@ -151,9 +152,10 @@ rerank:
   batch_size: 32
   max_input_tokens: 512
   device: cpu
+  score_cache_enabled: true     # scores are a pure function of their key: results unchanged
 
 evidence:
-  relevance_threshold: 0.5      # FROZEN after calibration ADR
+  relevance_threshold: 0.2      # preliminary dev calibration, ADR-013; FROZEN after calibration ADR
   novelty_threshold: 0.15       # FROZEN after calibration ADR
   gap_coverage_threshold: 0.6   # FROZEN after calibration ADR
   max_accept_per_step: 5

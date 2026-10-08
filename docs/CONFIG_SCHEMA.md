@@ -50,6 +50,7 @@ Only the dotted names in this section are config keys. Dotted names such as `cac
 | paths.runs_dir | path | eval/runs | eval |
 | paths.state_db | path | var/state.sqlite3 | TaskStore, Cache |
 | paths.llm_cache_db | path | var/llm_cache.sqlite3 | LLMClient |
+| paths.rerank_cache_db | path | var/rerank_cache.sqlite3 | cross-encoder score cache (`rerank.score_cache_enabled`) |
 | paths.model_cache_dir | path | var/models | fastembed model files (its own default is `%TEMP%`) |
 
 ### embedding / sparse / chunking — Frozen after ADR-001 (Owner: Kabir)
@@ -122,7 +123,7 @@ characters, each SHA-256 64.
 | llm.max_cost_usd_per_run | float | 10.0 | hard stop |
 | llm.prices | map | {} | `{model: {input_per_mtok, output_per_mtok}}` |
 | llm.{planner,verifier,generator}.provider | anthropic\|openai_compatible\|fake | openai_compatible | |
-| llm.<role>.model | str\|null | null | required before use |
+| llm.<role>.model | str\|null | qwen2.5:3b / null / qwen2.5:3b | required before use; planner / verifier / generator, ADR-004 |
 | llm.<role>.base_url | str | http://127.0.0.1:11434/v1 | ignored by `anthropic` |
 | llm.<role>.api_key_env | str | LLM_API_KEY | env var **name** |
 | llm.<role>.temperature | float | 0.0 | |
@@ -178,7 +179,8 @@ Truncates `PlanResult.rationale` (never rejects it) — ADR-009 §10.
 | rerank.batch_size | int | 32 | |
 | rerank.max_input_tokens | int | 512 | |
 | rerank.device | cpu\|cuda | cpu | |
-| evidence.relevance_threshold | float | 0.5 | after calibration ADR |
+| rerank.score_cache_enabled | bool | true | memoise scores by (model, revision, max input tokens, query, text) in `paths.rerank_cache_db`; a pure function, so results are unchanged |
+| evidence.relevance_threshold | float | 0.2 | after calibration ADR (0.2 = preliminary dev calibration, ADR-013) |
 | evidence.novelty_threshold | float | 0.15 | after calibration ADR |
 | evidence.gap_coverage_threshold | float | 0.6 | after calibration ADR |
 | evidence.max_accept_per_step | int | 5 | |

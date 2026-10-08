@@ -18,15 +18,12 @@ import jinja2
 
 from engine.llm.interfaces import Message
 from engine.state.models import PlanMode
+from engine.text import escape_untrusted
 
 __all__ = ["PROMPTS_DIR", "escape_untrusted", "prompt_hashes", "render"]
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 _TEMPLATES = {PlanMode.INIT: "init.j2", PlanMode.REWRITE: "rewrite.j2", PlanMode.SPLIT: "split.j2"}
-
-
-def escape_untrusted(value: Any) -> str:
-    return str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 _ENV = jinja2.Environment(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -76,3 +77,49 @@ def test_model_loads_lazily_once_with_the_pinned_revision(
     scorer("q", ["b"])
     assert loads == [cfg.rerank]
     assert len(cfg.rerank.revision) == 40
+
+
+class EchoModel:
+    """Score = len(text) / 10, so every pair has a known, distinct score."""
+
+    activation_fn = Sigmoid()
+
+    def __init__(self) -> None:
+        self.scored: list[tuple[str, str]] = []
+
+    def predict(self, inputs: list[tuple[str, str]], **kwargs: Any) -> list[float]:
+        self.scored += inputs
+        return [len(t) / 10 for _, t in inputs]
+
+
+def test_score_cache_scores_each_pair_once_and_persists(cfg: EngineConfig, tmp_path: Path) -> None:
+    db = tmp_path / "rerank.sqlite3"
+    model = EchoModel()
+    scorer = CrossEncoderScorer(cfg.rerank, model, cache_path=db)
+    assert scorer("q", ["a", "bbb"]) == [0.1, 0.3]
+    assert scorer("q", ["bbb", "cc", "a"]) == [0.3, 0.2, 0.1]  # input order kept
+    assert model.scored == [("q", "a"), ("q", "bbb"), ("q", "cc")]  # only the new pair
+    assert scorer("other query", ["a"]) == [0.1]
+    assert model.scored[-1] == ("other query", "a")  # the query is part of the key
+
+    again = EchoModel()  # a new process: scores come from the file
+    assert CrossEncoderScorer(cfg.rerank, again, cache_path=db)("q", ["cc", "a"]) == [0.2, 0.1]
+    assert again.scored == []
+
+
+def test_score_cache_key_includes_the_model_revision(cfg: EngineConfig, tmp_path: Path) -> None:
+    db = tmp_path / "rerank.sqlite3"
+    CrossEncoderScorer(cfg.rerank, EchoModel(), cache_path=db)("q", ["a"])
+    other = cfg.rerank.model_copy(update={"revision": "f" * 40})
+    model = EchoModel()
+    CrossEncoderScorer(other, model, cache_path=db)("q", ["a"])
+    assert model.scored == [("q", "a")]  # different weights: scored again
+
+
+def test_without_a_cache_path_nothing_is_stored(cfg: EngineConfig, tmp_path: Path) -> None:
+    model = EchoModel()
+    scorer = CrossEncoderScorer(cfg.rerank, model)
+    scorer("q", ["a"])
+    scorer("q", ["a"])
+    assert model.scored == [("q", "a"), ("q", "a")]
+    assert list(tmp_path.iterdir()) == []

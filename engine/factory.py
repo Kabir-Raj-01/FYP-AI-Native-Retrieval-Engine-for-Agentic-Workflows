@@ -115,7 +115,9 @@ def build_reranker(cfg: EngineConfig, embedder: Embedder) -> Reranker:
     from engine.rerank.cross_encoder import CrossEncoderScorer
     from engine.rerank.state_aware import StateAwareReranker
 
-    return StateAwareReranker(cfg, embedder, CrossEncoderScorer(cfg.rerank))  # loads lazily
+    cache = cfg.paths.rerank_cache_db if cfg.rerank.score_cache_enabled else None
+    scorer = CrossEncoderScorer(cfg.rerank, cache_path=cache)  # loads the model lazily
+    return StateAwareReranker(cfg, embedder, scorer)
 
 
 def build_evidence_manager(

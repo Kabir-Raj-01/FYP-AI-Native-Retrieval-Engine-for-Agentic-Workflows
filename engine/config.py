@@ -90,6 +90,7 @@ class PathsConfig(_Section):
     runs_dir: Path
     state_db: Path
     llm_cache_db: Path
+    rerank_cache_db: Path  # cross-encoder score cache (rerank.score_cache_enabled)
     model_cache_dir: Path  # fastembed model files (its default is %TEMP%)
 
 
@@ -312,6 +313,7 @@ class RerankConfig(_Section):
     batch_size: int
     max_input_tokens: int
     device: Device
+    score_cache_enabled: bool  # memoise scores per (model, revision, query, text)
 
 
 class EvidenceGainWeights(_Section):

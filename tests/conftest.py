@@ -36,7 +36,7 @@ TEST_CONFIG_OVERRIDES = [
     f"llm.{role}.{key}={value}"
     for role in ("planner", "verifier", "generator")
     for key, value in (("provider", "fake"), ("model", "fake-model"))
-]
+] + ["rerank.score_cache_enabled=false"]  # unit tests never write var/
 
 StateFactory = Callable[..., RetrievalState]
 
