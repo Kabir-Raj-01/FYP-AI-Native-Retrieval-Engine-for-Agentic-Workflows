@@ -1,6 +1,6 @@
 # ADR-005: Cross-encoder reranker model
 
-> Status: Proposed · Date: 2026-09-25 · Author(s): Samay · Reviewer: Kabir
+> Status: Accepted (2026-10-09, Kabir for the team; Samay review after the fact) · Date: 2026-09-25 · Author(s): Samay · Reviewer: Kabir
 
 ## Decision (proposed default — confirm, then Accept)
 - Model: `BAAI/bge-reranker-base`; output mapped to [0,1] (sigmoid if logits — verify
@@ -63,6 +63,33 @@ Open for the owner (Samay) — not decided here:
 4. With a reranker, the one-shot baselines' TraceStep `latency_ms["execute"]` would include
    rerank time, because `DirectResult.latency_ms` is search + rerank. Splitting it (e.g.
    `rerank_latency_ms`) is an ADR-012 amendment, to be done with the Reranker.
+
+### Acceptance evidence 2026-10-09 — full dev subset (265 tasks with gold), paired
+Reportable runs with `bge-reranker-base` (`20261008-184814_dense_oneshot_dev_f086ac2`,
+`20261008-185336_hybrid_oneshot_dev_f086ac2`) against the 2026-10-05 runs without a
+reranker (`20261005-074405_dense_oneshot_dev_b348d3e`, `20261005-102621_hybrid_oneshot_dev_fc73ded`);
+`python -m eval.report --run <without> --run <with>`, 95 % paired bootstrap CI:
+
+| Candidates | Recall@10 without → with | d [95 % CI] |
+|---|---|---|
+| dense top-20 | 0.477 → 0.565 | +0.089 [+0.059, +0.118] |
+| hybrid top-20 | 0.589 → 0.619 | +0.030 [+0.001, +0.058] |
+
+Unlike MiniLM, bge does not undo the hybrid fusion gain. (CER is not compared here: the
+bundle grew from 10 to 20 items between the runs, ADR-013 Decision 2.)
+
+Latency: uncached, 20 pairs per call, 4 eval workers sharing the CPU — median 16.9 s
+per rerank in the hybrid run; the persistent score cache (`rerank.score_cache_enabled`)
+makes repeat pairs ~3 ms. The NFR-level single-worker figure comes from the controller-ON
+E1 run (one worker).
+
+## Decision (accepted)
+1. `BAAI/bge-reranker-base` at `rerank.revision`, sigmoid output, 512 tokens, CPU, for
+   every system that reranks (open point 1: accept bge and budget the time — quality
+   gain is significant on both candidate sets; MiniLM showed none on dense and hurt
+   hybrid). Score cache on.
+2. Open point 3 (full dev split) moves to the FYP-II calibration (ADR-006).
+3. Open point 4 is done (ADR-012 A1, `DirectResult.rerank_latency_ms`).
 
 ## Consequences
 `rerank.cross_encoder_model` Frozen; used identically by all systems.
