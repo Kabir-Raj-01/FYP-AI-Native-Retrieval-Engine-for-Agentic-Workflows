@@ -32,11 +32,13 @@ _COLUMNS = (
     "hit@10",
     "ndcg@10",
     "mrr",
+    "cer@10",
     "cer",
     "partial_coverage",
     "trajectory_coverage",
+    "premature_stop",
 )
-_PAIRED = ("recall@10", "cer", "partial_coverage")
+_PAIRED = ("recall@10", "cer@10", "cer", "partial_coverage")
 
 
 def _fmt(v: Any) -> str:
@@ -188,12 +190,14 @@ def compare_runs(runs: Sequence[Path], cfg: EngineConfig) -> Path:
             if not ids:
                 continue
             for metric in _PAIRED:
+                if metric not in pa[ids[0]] or metric not in pb[ids[0]]:
+                    continue  # a run made before the metric existed
                 xa = [float(pa[t][metric]) for t in ids]
                 xb = [float(pb[t][metric]) for t in ids]
                 d, lo, hi = paired_bootstrap(xa, xb, cfg.eval.bootstrap_resamples, cfg.project.seed)
                 p = (
                     f"{mcnemar_exact([x == 1 for x in xa], [x == 1 for x in xb])[2]:.4f}"
-                    if metric == "cer"
+                    if metric.startswith("cer")
                     else ""
                 )
                 lines.append(

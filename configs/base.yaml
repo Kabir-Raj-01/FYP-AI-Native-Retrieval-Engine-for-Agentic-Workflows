@@ -148,7 +148,7 @@ rerank:
   cross_encoder_model: BAAI/bge-reranker-base   # FROZEN after ADR-005
   revision: 2cfc18c9415c912f9d8155881c133215df768a70  # HF commit, verified 2026-10-05  # pragma: allowlist secret
   weights: {relevance: 0.6, gap_coverage: 0.2, novelty: 0.2, redundancy: 0.3}  # FROZEN after calibration ADR
-  top_n_output: 10
+  top_n_output: 20              # = retrieval.default_k = evidence.max_items (ADR-013)
   batch_size: 32
   max_input_tokens: 512
   device: cpu

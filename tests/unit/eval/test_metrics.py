@@ -113,6 +113,9 @@ def test_task_metrics_bundle_vs_trajectory_coverage() -> None:
     assert m.recall == {1: 0.5, 2: 0.5}
     assert (m.cer, m.partial_coverage, m.trajectory_coverage) == (0.0, 0.5, 1.0)
     assert m.mrr == 1.0
+    full = task_metrics("t", None, GROUPS, bundle(["x", "a1", "b"]), [step([])], [2, 3])
+    assert (full.cer, full.cer_at) == (1.0, {2: 0.0, 3: 1.0})  # size-independent CER@k
+    assert aggregate([full])["quality"]["cer@3"] == 1.0
     assert (m.retrieval_calls, m.steps, m.latency_ms) == (1, 1, 120.0)
 
 

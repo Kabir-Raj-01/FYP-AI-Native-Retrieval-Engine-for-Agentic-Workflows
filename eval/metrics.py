@@ -91,6 +91,7 @@ class TaskMetrics:
     recall: dict[int, float] = field(default_factory=dict)
     hit: dict[int, float] = field(default_factory=dict)
     ndcg: dict[int, float] = field(default_factory=dict)
+    cer_at: dict[int, float] = field(default_factory=dict)  # all groups hit in the top k
     mrr: float | None = None
     cer: float | None = None  # complete-evidence recall: all groups hit in the bundle
     partial_coverage: float | None = None  # hit groups / |G| in the bundle
@@ -109,7 +110,12 @@ class TaskMetrics:
             "has_gold": int(self.has_gold),
             "n_groups": self.n_groups,
         }
-        for name, values in (("recall", self.recall), ("hit", self.hit), ("ndcg", self.ndcg)):
+        for name, values in (
+            ("recall", self.recall),
+            ("hit", self.hit),
+            ("ndcg", self.ndcg),
+            ("cer", self.cer_at),
+        ):
             for k, v in sorted(values.items()):
                 out[f"{name}@{k}"] = v
         out.update(
@@ -160,6 +166,7 @@ def task_metrics(
         recall={k: recall_at_k(ranked, gold_groups, k) for k in recall_ks},
         hit={k: hit_at_k(ranked, gold_groups, k) for k in recall_ks},
         ndcg={k: ndcg_at_k(ranked, gold_groups, k) for k in recall_ks},
+        cer_at={k: float(groups_hit(ranked[:k], gold_groups) == n) for k in recall_ks},
         mrr=mrr(ranked, gold_groups),
         cer=cer,
         partial_coverage=in_bundle / n,
@@ -187,6 +194,7 @@ def aggregate(rows: Sequence[TaskMetrics]) -> dict[str, object]:
             out[f"recall@{k}"] = _mean([r.recall[k] for r in subset])
             out[f"hit@{k}"] = _mean([r.hit[k] for r in subset])
             out[f"ndcg@{k}"] = _mean([r.ndcg[k] for r in subset])
+            out[f"cer@{k}"] = _mean([r.cer_at[k] for r in subset])
         for name in (
             "mrr",
             "cer",
