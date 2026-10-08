@@ -258,6 +258,15 @@ def test_backend_failure_aborts_and_still_writes_the_manifest(
     assert manifest["reportable"] is False
 
 
+def test_runs_started_in_the_same_second_get_distinct_ids(
+    run_cfg: EngineConfig, engine: Engine, mini_corpus: list[CorpusChunk]
+) -> None:
+    first = run(run_cfg, engine, mini_corpus)
+    second = run(run_cfg, engine, mini_corpus)
+    assert second.name == first.name + "-2"
+    assert (first / "manifest.json").is_file() and (second / "manifest.json").is_file()
+
+
 def test_interrupted_run_is_marked_aborted(
     run_cfg: EngineConfig,
     engine: Engine,

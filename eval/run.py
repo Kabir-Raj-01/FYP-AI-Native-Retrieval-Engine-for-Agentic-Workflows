@@ -2,7 +2,8 @@
 
     python -m eval.run --config configs\\experiments\\dense_oneshot_dev.yaml [--set key=value]...
 
-Writes ``<paths.runs_dir>/<run_id>/`` with ``run_id = YYYYMMDD-HHMMSS_<experiment>_<git7>``:
+Writes ``<paths.runs_dir>/<run_id>/`` with ``run_id = YYYYMMDD-HHMMSS_<experiment>_<git7>``
+(``-2``, ``-3``, ... appended when that folder already exists):
 ``manifest.json``, ``config.resolved.yaml``, ``events.jsonl`` and one ``b<B>/`` folder per
 retrieval budget (``traces/``, ``bundles/``, ``per_task.csv``, ``metrics.json``).
 
@@ -155,9 +156,16 @@ def run_experiment(
     created = now()
     repo = git()
     commit = repo.get("git_commit")
-    run_id = f"{created:%Y%m%d-%H%M%S}_{exp.name}_{(commit or 'nogit')[:7]}"
-    run_dir = cfg.paths.runs_dir / run_id
-    run_dir.mkdir(parents=True, exist_ok=False)
+    base_id = f"{created:%Y%m%d-%H%M%S}_{exp.name}_{(commit or 'nogit')[:7]}"
+    run_id, n = base_id, 1
+    while True:  # two runs started in the same second get -2, -3, ...
+        run_dir = cfg.paths.runs_dir / run_id
+        try:
+            run_dir.mkdir(parents=True)
+            break
+        except FileExistsError:
+            n += 1
+            run_id = f"{base_id}-{n}"
     _write_text(
         run_dir / "config.resolved.yaml",
         yaml.safe_dump(cfg.model_dump(mode="json", by_alias=True), sort_keys=False),

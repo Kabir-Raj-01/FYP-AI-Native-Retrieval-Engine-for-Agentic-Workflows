@@ -76,7 +76,8 @@ Never logged: API keys, full prompts with keys, raw environment. Prompts may be 
 DEBUG level only.
 
 ## 4. Run folder
-`eval/runs/<run_id>/` with `run_id = YYYYMMDD-HHMMSS_<experiment>_<git7>`:
+`eval/runs/<run_id>/` with `run_id = YYYYMMDD-HHMMSS_<experiment>_<git7>` (`-2`, `-3`, …
+appended when two runs start in the same second):
 ```
 manifest.json
 config.resolved.yaml
