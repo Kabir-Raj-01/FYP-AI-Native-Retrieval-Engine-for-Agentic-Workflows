@@ -116,8 +116,13 @@ re-used cached reranker scores (EVAL_PROTOCOL §4 latency caveat). Search-only l
 (NFR-P1): median 104 ms (ADR-012) / 142 ms (integration test, 24 queries, 2026-10-09).
 
 ### 5.2 E1 — equal budget B ∈ {2, 3, 4} (preliminary)
-Pending: `controller_on_dev` and `fixed_iteration_dev` are running (started 2026-10-09 00:19,
-one worker, local Ollama). Filled in when both manifests are written.
+Pending. The first attempt (`20261008-191942_controller_on_dev_b3b19d7`, started
+2026-10-09 00:19) was stopped at 56 of 300 tasks of B = 2 when the machine ran low on
+memory; it has no manifest and is not reportable. To rerun, in a PowerShell window of its
+own (Qdrant and Ollama running):
+`python -m eval.run --config configs\experiments\controller_on_dev.yaml`, then
+`python -m eval.run --config configs\experimentsixed_iteration_dev.yaml`. The LLM
+response cache and the reranker score cache keep the finished tasks' work.
 
 ## 6. Trajectory analysis
 `docs/reports/FYP1_TRAJECTORY_REVIEW.md`: 21 controller-ON trajectories read by hand,
