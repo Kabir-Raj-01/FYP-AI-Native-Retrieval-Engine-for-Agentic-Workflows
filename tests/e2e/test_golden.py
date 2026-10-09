@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 import pytest
+from structlog.testing import capture_logs
 
 from engine.config import EngineConfig
 from engine.controller.policy import RuleUtilityController
@@ -68,3 +69,28 @@ def test_golden_trajectories(
         pytest.skip(f"snapshot rewritten: {SNAPSHOT}")
     assert SNAPSHOT.exists(), "no snapshot yet: run once with UPDATE_GOLDEN=1"
     assert got == json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+
+
+def test_controlled_path_logs_every_decision_event(
+    cfg: EngineConfig, engine_with_fakes: EngineFactory, mini_tasks: list[MiniTask]
+) -> None:
+    """OBSERVABILITY §3 / CLAUDE.md rule 13 with the real controller, monitor, evidence
+    manager and reranker: every kind of decision on these tasks reaches the event log."""
+    with capture_logs() as logs:
+        trajectories(cfg, engine_with_fakes, mini_tasks)
+    events = {e["event"] for e in logs}
+    assert events >= {
+        "task.created",
+        "gap.created",
+        "cache.miss",
+        "cache.hit",
+        "cache.put",
+        "controller.decision",
+        "retrieval.call",
+        "rerank.done",
+        "evidence.accepted",
+        "evidence.rejected",
+        "gap.exhausted",
+        "monitor.verdict",
+        "task.stopped",
+    }

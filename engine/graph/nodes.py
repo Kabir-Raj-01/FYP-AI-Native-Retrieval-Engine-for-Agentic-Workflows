@@ -141,7 +141,7 @@ def _new_gaps(
     state: RetrievalState, outcome: PlanOutcome, n: int, parent: str | None = None
 ) -> list[EvidenceGap]:
     first = len(state.gaps)  # ids g0, g1, ... unique within the task
-    return [
+    gaps = [
         EvidenceGap(
             gap_id=f"g{first + i}",
             description=sg.description,
@@ -152,6 +152,9 @@ def _new_gaps(
         )
         for i, sg in enumerate(outcome.result.subgoals)
     ]
+    for g in gaps:
+        _log.info("gap.created", gap_id=g.gap_id, parent=parent, need_type=g.need_type)
+    return gaps
 
 
 def _after_plan(state: RetrievalState, outcome: PlanOutcome, **update: Any) -> RetrievalState:
@@ -296,6 +299,7 @@ def _transform(gs: GraphState, ctx: Context, decision: ActionDecision) -> dict[s
     subgoals = outcome.result.subgoals
     if outcome.result.mode == PlanMode.SPLIT and len(subgoals) >= 2:
         children = _new_gaps(s, outcome, ctx.n, parent=current.gap_id)
+        _log.info("gap.superseded", gap_id=current.gap_id, by=[c.gap_id for c in children])
         gaps = [
             g.model_copy(update={"status": GapStatus.SUPERSEDED, "closed_at_step": ctx.n})
             if g.gap_id == current.gap_id
@@ -408,6 +412,9 @@ def monitor(gs: GraphState, ctx: Context) -> dict[str, Any]:
     with _timed(ctx, "monitor"):
         verdict = ctx.parts.monitor.observe(s, decision, update)
     changes = verdict.gap_status_changes
+    for gap_id, status in changes.items():
+        if status == GapStatus.EXHAUSTED:
+            _log.info("gap.exhausted", gap_id=gap_id, stagnation_count=verdict.stagnation_count)
     gaps = [
         g.model_copy(
             update={

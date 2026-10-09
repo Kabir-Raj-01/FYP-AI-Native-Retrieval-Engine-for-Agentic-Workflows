@@ -7,6 +7,7 @@ import threading
 from itertools import count
 
 import pytest
+from structlog.testing import capture_logs
 
 from engine.config import EngineConfig
 from engine.core import Engine
@@ -250,7 +251,10 @@ def test_transform_split_supersedes_the_gap_and_moves_to_the_first_child(
     fake = engine_with_fakes(controller=controller, planner=FakePlanner(transforms=[split]))
     start(fake)
     fake.engine.step("t-1")
-    fake.engine.step("t-1")
+    with capture_logs() as logs:
+        fake.engine.step("t-1")
+    gap_events = [(e["event"], e["gap_id"]) for e in logs if e["event"].startswith("gap.")]
+    assert gap_events == [("gap.created", "g1"), ("gap.created", "g2"), ("gap.superseded", "g0")]
     s = fake.engine.state("t-1")
     assert [(g.gap_id, g.status, g.parent_gap_id) for g in s.gaps] == [
         ("g0", GapStatus.SUPERSEDED, None),
