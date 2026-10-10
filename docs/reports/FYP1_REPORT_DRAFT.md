@@ -121,7 +121,7 @@ Pending. The first attempt (`20261008-191942_controller_on_dev_b3b19d7`, started
 memory; it has no manifest and is not reportable. To rerun, in a PowerShell window of its
 own (Qdrant and Ollama running):
 `python -m eval.run --config configs\experiments\controller_on_dev.yaml`, then
-`python -m eval.run --config configs\experimentsixed_iteration_dev.yaml`. The LLM
+`python -m eval.run --config configs\experiments\fixed_iteration_dev.yaml`. The LLM
 response cache and the reranker score cache keep the finished tasks' work.
 
 ## 6. Trajectory analysis

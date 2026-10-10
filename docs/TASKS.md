@@ -90,9 +90,10 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       — built by K with the graph (`engine/graph/nodes.py`), now driven by the real planner
 - [x] V: cross-encoder relevance-only Reranker (used by baselines); ADR-005
       — built by K (`engine/rerank/`, branch `k/controlled-path`) with the config default
-      bge-reranker-base at the new `rerank.revision`; model choice still ADR-005 (Samay).
-      Open: one-shot traces need `latency_ms["rerank"]` split from `execute` (`DirectResult`
-      has only the total → ADR-012 amendment); E0 not yet re-run with rerank (CPU cost)
+      bge-reranker-base at `rerank.revision`; ADR-005 Accepted 2026-10-09 (Kabir for the
+      team; Samay review after the fact). `DirectResult.rerank_latency_ms` splits rerank
+      from search (ADR-012 Amendment A1, implemented in `engine/core.py` /
+      `baselines/base.py`); E0 re-run with the reranker is the Week 10 reportable run.
 - [x] All: early MultiHop-RAG results table (dense vs hybrid)
       — `docs/reports/FYP1_REPORT_DRAFT.md` §5.1: hybrid − dense Recall@10 +0.053
       [+0.029, +0.078], CER +0.117 (McNemar p < 0.0001), 265 tasks; ADR-005 Accepted

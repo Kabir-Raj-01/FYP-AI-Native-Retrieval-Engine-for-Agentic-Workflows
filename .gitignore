@@ -20,3 +20,24 @@ desktop.ini
 *.egg-info/
 tools/
 .qdrant-initialized
+
+# Secrets: never upload
+.env
+.env.*
+!.env.example
+
+# Virtual environments
+.venv/
+venv/
+
+# Python caches
+__pycache__/
+*.pyc
+.hypothesis/
+
+# Build output
+build/
+dist/
+
+# Runtime output
+var/
