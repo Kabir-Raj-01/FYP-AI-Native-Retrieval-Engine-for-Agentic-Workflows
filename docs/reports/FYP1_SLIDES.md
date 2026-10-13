@@ -71,6 +71,12 @@ heading; bullets are the slide text, *notes* are what the speaker says. Numbers 
    Verified 2026-10-09: controller-OFF returns 20 reranked candidates in ~0.3 s;
    controller-ON resolves both gaps in 2 steps (`ALL_GAPS_RESOLVED`), ~1 s with a warm
    LLM cache (the first run of a new question waits ~15–30 s for the planner).
+   The demo ends as the host app: qwen2.5:3b answers from the top 8 bundle items with
+   passage citations — verified 2026-10-12: `No[2][1]` (gold: No). The first answer takes
+   ~1–2 min on CPU (3k prompt tokens), a repeat ~1 s while Ollama keeps the model loaded:
+   **run the demo once before the audience arrives**, and start Ollama with
+   `$env:OLLAMA_KEEP_ALIVE = "2h"` so the model is not unloaded after 5 idle minutes.
+   `--no-answer` skips this step.
 4. Optional: `python scripts\show_trace.py server <task_id>` for the full trajectory.
 5. Backup: record the screen during a rehearsal (Win+Alt+R, Xbox Game Bar) and keep the
    video next to the slides in case Ollama or Qdrant fails on the day.
