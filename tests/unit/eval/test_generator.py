@@ -90,6 +90,9 @@ def test_context_is_truncated_to_the_token_budget() -> None:
         ('Reasoning...\nThe answer to the question is "Sam Bankman-Fried"', "Sam Bankman-Fried"),
         ('the answer to the question is "x" ... The answer to the question is "Yes"', "Yes"),
         ("  No  ", "No"),
+        # failure shapes seen live with qwen2.5:3b (2026-10-12)
+        ('Insufficient information\nThe answer to the question is "<answer>"', ""),
+        ("The answer to the question is: Insufficient information.", "Insufficient information"),
     ],
 )
 def test_extract_answer(output: str, answer: str) -> None:

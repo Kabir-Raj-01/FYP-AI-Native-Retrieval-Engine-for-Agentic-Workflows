@@ -50,7 +50,9 @@ __all__ = [
 ]
 
 PROMPT = Path(__file__).parent / "prompts" / "answer.j2"
-_ANSWER = re.compile(r'The answer to the question is\s*"([^"]*)"', re.IGNORECASE)
+_ANSWER = re.compile(r'The answer to the question is:?\s*"([^"]*)"', re.IGNORECASE)
+_UNQUOTED = re.compile(r"The answer to the question is:?\s*([^\n\"]+)", re.IGNORECASE)
+_PLACEHOLDER = "<answer>"  # qwen2.5:3b copied the old prompt's placeholder (2026-10-12)
 _ENV = jinja2.Environment(
     loader=jinja2.FileSystemLoader(PROMPT.parent),
     autoescape=False,
@@ -83,8 +85,13 @@ def answer_messages(question: str, bundle: EvidenceBundle, max_tokens: int) -> l
 
 
 def extract_answer(output: str) -> str:
+    """The quoted text of the last answer line; else an unquoted ``…is: X`` line; else the
+    whole output. A copied placeholder is no answer (scored wrong)."""
     found = _ANSWER.findall(output)
-    return found[-1].strip() if found else output.strip()
+    if not found:
+        found = [f.rstrip(".") for f in _UNQUOTED.findall(output)]
+    pred = found[-1].strip() if found else output.strip()
+    return "" if pred.lower() == _PLACEHOLDER else pred
 
 
 def official_correct(prediction: str, gold: str) -> bool:
