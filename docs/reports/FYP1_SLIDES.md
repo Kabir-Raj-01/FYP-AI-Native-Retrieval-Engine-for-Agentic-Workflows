@@ -40,8 +40,10 @@ heading; bullets are the slide text, *notes* are what the speaker says. Numbers 
 ## 7. Results — E1 equal budget (preliminary)
 - Table: controller-ON vs fixed_iteration vs one-shot at B = 2, 3, 4 (report §5.2)
 - Calls used per task (controller-ON stops early) vs CER
-- Controller-ON (B = 4): R@10 0.494, CER 0.249 in 2.52 calls — below hybrid one-shot (0.620 / 0.445,
-  1 call); fixing relevance (ADR-014) gave +0.08 R@10 / +0.08 CER at every budget
+- B = 4, R@10 / CER (calls): hybrid one-shot 0.620 / 0.445 (1) · fixed_iteration 0.555 / 0.411 (4) ·
+  controller-ON 0.494 / 0.249 (2.52); fixing relevance (ADR-014) gave controller-ON +0.08 / +0.08
+- Controller-ON uses 13–37 % fewer calls than fixed_iteration but keeps less evidence
+  (CER −0.11 to −0.18, every budget significant); fixed_iteration matches hybrid's CER at B = 3–4
 - *Notes:* say it plainly — VQ1 is not supported yet; the loss is at acceptance (5.9-item
   bundles vs 20), which is exactly the FYP-II evidence-manager work.
 

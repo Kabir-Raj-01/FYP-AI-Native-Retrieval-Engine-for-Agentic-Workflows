@@ -147,12 +147,14 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       — not needed: controller-ON runs end to end (demo and E1)
 
 ## Week 16 (30 Nov–6 Dec) — FYP-I draft
-- [ ] V+All: E1 on dev subset (equal budget B ∈ {2,3,4}), preliminary; initial report/dashboard
-      — 2026-10-16 at `62bb0be` (ADR-014): one-shot and controller_on runs reportable, results in
-      `docs/reports/FYP1_REPORT_DRAFT.md` §5.2; fixed_iteration (`20261016-112205_…`) still running
+- [x] V+All: E1 on dev subset (equal budget B ∈ {2,3,4}), preliminary; initial report/dashboard
+      — all four systems reportable (2026-10-16/17, `62bb0be` + docs-only `161ee2b`), results and
+      paired statistics in `docs/reports/FYP1_REPORT_DRAFT.md` §5.2. VQ1 not supported yet:
+      controller-ON is below fixed_iteration and hybrid one-shot at every budget; the loss is at
+      acceptance/stopping (ADR-014 fixed the relevance mismatch, +0.08 R@10 / CER)
 - [x] All: FYP-I report draft (methodology ← docs/, design ← ARCHITECTURE + ADRs, results ← eval/runs)
       — `docs/reports/FYP1_REPORT_DRAFT.md` (team edits it into the submitted report)
-- [ ] Tag `v0.5-fyp1`
+- [x] Tag `v0.5-fyp1` — annotated, on the commit that records the E1 results (2026-10-17)
 
 ## FYP-I final evaluation / defense (Dec–early Jan)
 - [ ] Live demo: same question controller-OFF vs ON, trace + stop reason; recorded backup video
@@ -210,3 +212,4 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 | 2026-10-05 | hybrid_oneshot baseline. Preliminary dev-subset run (no rerank, non-reportable): Recall@10 0.589, Hit@10 0.898, MRR 0.604, CER 0.291, trajectory coverage 0.729 — vs dense_oneshot 0.477 / 0.823 / 0.491 / 0.177 / 0.661. |
 | 2026-10-08 | ADR-001/003/004/009/010/012 Accepted (Kabir for the team; Samay/Vishal review after the fact); ADR-013 preliminary calibration (relevance threshold 0.2, `rerank.top_n_output` 20, controller defaults kept). qwen2.5:3b planner on local Ollama; first live controller-ON runs on 40 dev-subset tasks (B = 4, non-reportable): CER 0.152, R@10 0.467, trajectory coverage 0.854, 2.65 calls. Latency profile with TRANSFORM 14.5 s. FYP-I demo `examples/demo_fyp1.py`. `eval.run` now marks a run interrupted by Ctrl+C or any crash as aborted. Open: ADR-005 (Samay), ADR-011 (supervisor), CI on GitHub, reportable E0/E1 runs on a clean tree, hand-read trajectories. |
 | 2026-10-16 | ADR-014: relevance scored against the better of subquery and question (`rerank.relevance_query = max`), both multi-step systems; fixes the subquery/question mismatch behind trajectory-review F1. Full dev subset, controller-ON: Recall@10 +0.08, CER +0.07–0.08 at every budget (p ≤ 0.0003), still below hybrid one-shot (B = 4: R@10 0.494 vs 0.620, CER 0.249 vs 0.445) — loss is at acceptance (bundle 5.9 vs 20 items). E1 one-shot + controller_on reportable at `62bb0be`; fixed_iteration running. Long runs paused/killed by Windows Modern Standby (SETUP §7). 1,012 unit / 15 integration / 2 e2e tests green. |
+| 2026-10-17 | E1 complete: fixed_iteration reportable (`20261016-153022_fixed_iteration_dev_161ee2b`). B = 4, R@10 / CER: hybrid one-shot 0.620 / 0.445 (1 call), fixed_iteration 0.555 / 0.411 (4), controller-ON 0.494 / 0.249 (2.52). Controller-ON is significantly below fixed_iteration at every budget (CER −0.11 to −0.18) with 13–37 % fewer calls; fixed_iteration matches hybrid's CER at B = 3–4 (n.s.). Gap is at acceptance and stopping (bundles 5.9 vs 11.4 vs 20 items) → FYP-II evidence-manager/stopping calibration. Report §5.2, slides §7 updated; tag `v0.5-fyp1`. |

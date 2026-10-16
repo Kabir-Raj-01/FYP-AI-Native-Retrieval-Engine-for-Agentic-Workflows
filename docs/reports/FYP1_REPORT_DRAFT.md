@@ -121,19 +121,21 @@ re-used cached reranker scores (EVAL_PROTOCOL §4 latency caveat). Search-only l
 (NFR-P1): median 104 ms (ADR-012) / 142 ms (integration test, 24 queries, 2026-10-09).
 
 ### 5.2 E1 — equal budget B ∈ {2, 3, 4} (preliminary)
-Commit `62bb0be` (ADR-014: relevance against the better of subquery and question), clean
-tree, no overrides, reranker on, 300 questions (265 with gold). Reportable runs:
+Clean tree, no overrides, reranker on, 300 questions (265 with gold), ADR-014 in force
+(relevance against the better of subquery and question). Reportable runs:
 `20261016-073418_dense_oneshot_dev_62bb0be`, `20261016-073536_hybrid_oneshot_dev_62bb0be`,
-`20261016-073716_controller_on_dev_62bb0be`. **fixed_iteration:**
-`20261016-112205_fixed_iteration_dev_62bb0be` is still running (its B = 3 and B = 4 hops
-need fresh planner REWRITE calls on CPU); its rows are added when it finishes. The
-`subquery` rows are the earlier reportable run `20261010-163330_controller_on_dev_8b966ec`
-(same code apart from ADR-014).
+`20261016-073716_controller_on_dev_62bb0be` and
+`20261016-153022_fixed_iteration_dev_161ee2b` (commit `161ee2b` differs from `62bb0be`
+only in documentation). The `subquery` rows are the earlier reportable run
+`20261010-163330_controller_on_dev_8b966ec` (same code apart from ADR-014).
 
 | System | B | R@10 | Hit@10 | NDCG@10 | MRR | CER@10 | CER | Partial cov. | Traj. cov. | Calls | Premature stop |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | dense_oneshot | 1 (one-shot) | 0.565 | 0.917 | 0.487 | 0.633 | 0.226 | 0.328 | 0.661 | 0.661 | 1.00 | – |
 | hybrid_oneshot | 1 (one-shot) | 0.620 | 0.917 | 0.522 | 0.643 | 0.317 | 0.445 | 0.729 | 0.729 | 1.00 | – |
+| fixed_iteration | 2 | 0.506 | 0.815 | 0.439 | 0.582 | 0.230 | 0.309 | 0.580 | 0.739 | 2.00 | – |
+| fixed_iteration | 3 | 0.550 | 0.857 | 0.471 | 0.608 | 0.279 | 0.396 | 0.638 | 0.825 | 3.00 | – |
+| fixed_iteration | 4 | 0.555 | 0.860 | 0.475 | 0.611 | 0.287 | 0.411 | 0.647 | 0.845 | 4.00 | – |
 | controller_on | 2 | 0.431 | 0.732 | 0.400 | 0.551 | 0.196 | 0.196 | 0.431 | 0.631 | 1.75 | 0.226 |
 | controller_on | 3 | 0.473 | 0.774 | 0.431 | 0.569 | 0.208 | 0.215 | 0.476 | 0.698 | 2.21 | 0.347 |
 | controller_on | 4 | 0.494 | 0.792 | 0.447 | 0.586 | 0.234 | 0.249 | 0.504 | 0.744 | 2.52 | 0.419 |
@@ -146,9 +148,15 @@ exact McNemar on CER):
 
 | Difference (paired, 265 gold tasks) | Recall@10 | CER | Partial coverage |
 |---|---|---|---|
+| controller_on − fixed_iteration, B = 2 | -0.075 [-0.103, -0.048] | -0.113 [-0.155, -0.072]; McNemar p < 0.0001 | -0.149 [-0.180, -0.118] |
+| controller_on − fixed_iteration, B = 3 | -0.077 [-0.106, -0.049] | -0.181 [-0.230, -0.132]; McNemar p < 0.0001 | -0.162 [-0.195, -0.130] |
+| controller_on − fixed_iteration, B = 4 | -0.062 [-0.091, -0.033] | -0.162 [-0.211, -0.117]; McNemar p < 0.0001 | -0.142 [-0.175, -0.111] |
 | controller_on − hybrid_oneshot, B = 2 | -0.189 [-0.226, -0.152] | -0.249 [-0.306, -0.192]; McNemar p < 0.0001 | -0.298 [-0.336, -0.260] |
 | controller_on − hybrid_oneshot, B = 3 | -0.147 [-0.184, -0.110] | -0.230 [-0.291, -0.174]; McNemar p < 0.0001 | -0.253 [-0.291, -0.215] |
 | controller_on − hybrid_oneshot, B = 4 | -0.126 [-0.163, -0.090] | -0.196 [-0.253, -0.140]; McNemar p < 0.0001 | -0.225 [-0.263, -0.186] |
+| fixed_iteration − hybrid_oneshot, B = 2 | -0.114 [-0.149, -0.078] | -0.136 [-0.196, -0.075]; McNemar p < 0.0001 | -0.149 [-0.186, -0.111] |
+| fixed_iteration − hybrid_oneshot, B = 3 | -0.070 [-0.103, -0.036] | -0.049 [-0.106, +0.004]; McNemar p = 0.1048 | -0.091 [-0.128, -0.055] |
+| fixed_iteration − hybrid_oneshot, B = 4 | -0.065 [-0.098, -0.031] | -0.034 [-0.087, +0.019]; McNemar p = 0.2717 | -0.082 [-0.118, -0.046] |
 | controller_on `max` − `subquery` (ADR-014), B = 2 | +0.086 [+0.059, +0.114] | +0.075 [+0.042, +0.113]; McNemar p < 0.0001 | +0.086 [+0.059, +0.114] |
 | controller_on `max` − `subquery` (ADR-014), B = 3 | +0.083 [+0.057, +0.110] | +0.068 [+0.034, +0.106]; McNemar p = 0.0003 | +0.083 [+0.057, +0.111] |
 | controller_on `max` − `subquery` (ADR-014), B = 4 | +0.076 [+0.050, +0.103] | +0.079 [+0.045, +0.117]; McNemar p < 0.0001 | +0.077 [+0.052, +0.104] |
@@ -159,6 +167,7 @@ closest to acceptance):
 | System | Gold groups kept | Retrieved, not kept (reason) | Never retrieved | Mean bundle | Empty bundles (of 300) |
 |---|---|---|---|---|---|
 | hybrid_oneshot (one-shot) | 517 (70%) | 0 (0%; –) | 218 (30%) | 20.0 | 0 |
+| fixed_iteration, B = 4 | 442 (60%) | 164 (22%; relevance < 0.2 or past the 20-item bundle — not logged per item) | 129 (18%) | 11.4 | 33 |
 | controller_on, B = 4 | 345 (47%) | 191 (26%; LOW_RELEVANCE 146, STEP_CAP 35, LOW_NOVELTY 10) | 199 (27%) | 5.9 | 38 |
 | controller_on, `subquery`, B = 4 | 292 (40%) | 253 (34%; LOW_RELEVANCE 216, STEP_CAP 28, LOW_NOVELTY 9) | 190 (26%) | 5.4 | 42 |
 
@@ -166,16 +175,25 @@ closest to acceptance):
 1. ADR-014 removes the relevance mismatch: controller-ON improves at every budget
    (Recall@10 +0.076 to +0.086, CER +0.068 to +0.079, McNemar p ≤ 0.0003) and uses slightly
    fewer retrieval calls (2.52 vs 2.65 at B = 4).
-2. Controller-ON stays significantly below one-shot hybrid at every budget (B = 4: Recall@10
-   −0.126 [−0.163, −0.090], CER −0.196 [−0.253, −0.140]). **VQ1 is not supported at FYP-I.**
-3. The loss is at acceptance, not retrieval: by B = 4 controller-ON has retrieved about as
-   much gold as hybrid puts in its bundle (trajectory coverage 0.744 vs 0.729) but keeps 47 %
-   of gold groups against 70 %. 146 retrieved groups fall under `evidence.relevance_threshold`
-   even against the question, and 35 hit `evidence.max_accept_per_step`; bundles average 5.9
-   items against the one-shot systems' fixed 20 (§7). Both keys are Draft and belong to the
-   FYP-II evidence-manager calibration (§8).
-4. By question type (B = 4, Recall@10 / CER): comparison 0.611 / 0.366, temporal
-   0.456 / 0.265, inference 0.398 / 0.115 — inference questions remain the weakest, as in E0.
+2. **VQ1 is not supported at FYP-I.** At equal budget, controller-ON is significantly below
+   fixed_iteration at every B (Recall@10 −0.062 to −0.077, CER −0.113 to −0.181). It does use
+   13–37 % fewer retrieval calls (1.75 / 2.21 / 2.52 vs 2 / 3 / 4), but the saving costs
+   evidence instead of keeping it.
+3. Against one-shot retrieval, both multi-step systems lose Recall@10 to hybrid at every
+   budget. fixed_iteration reaches hybrid's CER at B = 3 and 4 (−0.049 and −0.034, not
+   significant: p = 0.10 and 0.27) with three to four times the calls; controller-ON stays
+   below (B = 4: CER −0.196 [−0.253, −0.140]).
+4. The gap is at acceptance and stopping, not retrieval: fixed_iteration retrieves the most
+   gold (trajectory coverage 0.845 at B = 4, controller-ON 0.744, hybrid 0.729), and the
+   systems differ in what they keep — bundles of 11.4 and 5.9 items against hybrid's fixed 20,
+   and 60 % and 47 % of gold groups kept against 70 %. Controller-ON loses gold to
+   `evidence.relevance_threshold` (146 groups), `evidence.max_accept_per_step` (35) and early
+   stops (premature-stop rate 0.419 at B = 4). These are Draft keys and the FYP-II
+   evidence-manager and stopping calibration (§8); the bundle-size asymmetry is in §7.
+5. By question type (B = 4, Recall@10 / CER): fixed_iteration comparison 0.698 / 0.604,
+   temporal 0.556 / 0.485, inference 0.405 / 0.156; controller-ON 0.611 / 0.366,
+   0.456 / 0.265, 0.398 / 0.115. Inference questions are the weakest for every system, as
+   in E0.
 
 How ADR-014's setting was chosen (first 40 dev-subset tasks, B = 4, `--set`, non-reportable;
 rule fixed beforehand: highest controller-ON CER, Recall@10 as tie-break):
