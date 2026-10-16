@@ -1,6 +1,6 @@
 # FYP-I trajectory review: controller-ON failure categories
 
-> Status: Draft · Owner: All · Last updated: 2026-10-09 · Related: ACTION_POLICY.md §9, EVIDENCE_MANAGER_SPEC.md §3, PLANNER_SPEC.md, ADR-013
+> Status: Draft · Owner: All · Last updated: 2026-10-16 · Related: ACTION_POLICY.md §9, EVIDENCE_MANAGER_SPEC.md §3, PLANNER_SPEC.md, ADR-013, ADR-014
 
 TASKS.md Weeks 14–15: "read ≥ 20 trajectories by hand with `show_trace.py`; log failure
 categories". Input to the FYP-II refinement items (evidence manager, planner guardrails,
@@ -57,3 +57,11 @@ F1–F7 are calibration, prompt or policy questions. The implementation matches 
 (EVIDENCE_MANAGER_SPEC §3 coverage rule, ACTION_POLICY §2–§6); none of these is changed for
 FYP-I because the keys involved are Draft and their calibration is the FYP-II task
 (ACTION_POLICY §9, ADR-013 "Scope").
+
+**Update 2026-10-16 (F1):** part of F1 was a mismatch, not a calibration choice: the 0.2
+threshold was calibrated on question-vs-passage scores (ADR-013) and applied to
+subquery-vs-passage scores. ADR-014 scores relevance against the better of the subquery and
+the question (`rerank.relevance_query = max`). On the full dev subset it raised controller-ON
+Recall@10 by +0.076 to +0.086 and CER by +0.068 to +0.079 at B = 2–4 (FYP1_REPORT_DRAFT §5.2).
+The rest of F1 — gold under the threshold even against the question, and the per-step
+acceptance cap — stays with the FYP-II evidence-manager calibration.

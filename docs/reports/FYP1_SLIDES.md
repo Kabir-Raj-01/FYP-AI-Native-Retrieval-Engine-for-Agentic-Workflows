@@ -1,6 +1,6 @@
 # FYP-I progress slides and demo runbook
 
-> Status: Draft · Owner: All · Last updated: 2026-10-09 · Related: FYP1_REPORT_DRAFT.md, FYP1_TRAJECTORY_REVIEW.md
+> Status: Draft · Owner: All · Last updated: 2026-10-16 · Related: FYP1_REPORT_DRAFT.md, FYP1_TRAJECTORY_REVIEW.md
 
 Outline for the Week 10 progress slides and the FYP-I defense (TASKS.md). One slide per
 heading; bullets are the slide text, *notes* are what the speaker says. Numbers come from
@@ -29,7 +29,7 @@ heading; bullets are the slide text, *notes* are what the speaker says. Numbers 
 
 ## 5. Engineering
 - Every component behind an interface; every threshold a config key; ADRs for every decision
-- ~1,000 unit tests on fakes + live Qdrant integration, golden trajectories, fault injection
+- 1,012 unit tests on fakes + 15 live-Qdrant integration tests, golden trajectories, fault injection
 - Every run writes a manifest; only clean-tree runs are reportable
 
 ## 6. Results — E0 (dev subset, 265 questions with gold)
@@ -40,9 +40,14 @@ heading; bullets are the slide text, *notes* are what the speaker says. Numbers 
 ## 7. Results — E1 equal budget (preliminary)
 - Table: controller-ON vs fixed_iteration vs one-shot at B = 2, 3, 4 (report §5.2)
 - Calls used per task (controller-ON stops early) vs CER
+- Controller-ON (B = 4): R@10 0.494, CER 0.249 in 2.52 calls — below hybrid one-shot (0.620 / 0.445,
+  1 call); fixing relevance (ADR-014) gave +0.08 R@10 / +0.08 CER at every budget
+- *Notes:* say it plainly — VQ1 is not supported yet; the loss is at acceptance (5.9-item
+  bundles vs 20), which is exactly the FYP-II evidence-manager work.
 
 ## 8. What the trajectories taught us
 - 42 % of gold was retrieved then rejected (relevance scored against short subqueries)
+  → fixed in FYP-I (ADR-014): controller-ON CER +0.07–0.08 at every budget
 - 64 % of planner queries name a publisher (metadata only, never in the text)
 - 53 % of gap resolutions came from non-gold passages (coverage threshold)
 - → concrete FYP-II fixes, not guesses

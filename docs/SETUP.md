@@ -1,6 +1,6 @@
 # Development Setup (Windows)
 
-> Status: Stable · Owner: Kabir · Last updated: 2026-10-05
+> Status: Stable · Owner: Kabir · Last updated: 2026-10-16
 
 The project is developed and run on **Windows only**. Every command in this repository is
 written for **PowerShell** and is run from the repository root with the virtual
@@ -155,6 +155,7 @@ tests (`pytest`); keep the Smart App Control holds listed in the lock's header (
 | Embedding dimension mismatch | collection built with another model — new collection name |
 | Very slow ingestion on CPU | lower `embedding.batch_size`; ingest the dev subset first |
 | LLM JSON parse failures | check the model supports JSON output; lower temperature to 0; see LIBRARY_NOTES |
+| A long `eval.run` stalls for minutes to hours, or aborts with Qdrant "connection refused" / "timed out" | Windows **Modern Standby**: the laptop sleeps on screen-idle timeout, lid close or unplugging even while a run is working (2026-10-16: a 111-min pause, System log Kernel-Power events 506/507 "Idle Timeout"). For long runs: charger in, lid open, and the screen kept on (Settings → System → Power → Screen and sleep → "Never" while plugged in; restore afterwards). Close memory-heavy apps: a run with the local LLM needs ~5 GB free |
 | `database is locked` (SQLite) | WAL mode enabled? one TaskStore connection per worker thread |
 | mypy errors from third-party libs | add module to `[[tool.mypy.overrides]] ignore_missing_imports` in pyproject |
 | `DLL load failed … An Application Control policy has blocked this file` | Windows **Smart App Control** blocks some unsigned native modules. Do not turn Smart App Control off (it cannot be re-enabled without reinstalling Windows); use the fixes in the next rows. Details: LIBRARY_NOTES "Windows environment" |
