@@ -14,10 +14,11 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 
 ## Week 7 (28 Sep–4 Oct) — Foundations and contracts
 - [ ] All: read all docs; resolve open questions in PR comments
-- [ ] K: repo skeleton, pyproject, Qdrant Windows binary setup, CI, pre-commit (SETUP, TESTING §6)
+- [x] K: repo skeleton, pyproject, Qdrant Windows binary setup, CI, pre-commit (SETUP, TESTING §6)
       — skeleton, pyproject fixes and pre-commit done (branch `k/foundations-week7`);
-      Qdrant v1.19.1 binary installed and pinned (branch `k/data-download`); CI not yet
-      run on GitHub
+      Qdrant v1.19.1 binary installed and pinned (branch `k/data-download`); CI `unit` job
+      green on GitHub 2026-10-10 (run #1, `8b966ec`). The `integration` job runs only on PRs
+      to `main`, which does not exist yet
 - [x] K: ADR-001 embedding + chunking + sparse method (accept) · ADR-003 dataset source, licence, split (draft)
       — both Accepted 2026-10-08 (Kabir for the team); ADR-003 also fixes EM next to accuracy
 - [x] S: `engine/state/models.py` exactly per STATE_SPEC; invariant tests skeleton
@@ -128,7 +129,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
       `paths.runs_dir/server/` (OBSERVABILITY §4)
 
 ## Weeks 14–15 (16–29 Nov) — Integration and test buffer (no new features)
-- [ ] All: end-to-end controller_on runs on dev subset; fix defects
+- [x] All: end-to-end controller_on runs on dev subset; fix defects
+      — reportable run `20261010-163330_controller_on_dev_8b966ec` (300 tasks × B = 2, 3, 4,
+      clean tree, no crashes); defects found on the way fixed in `3f6257d`, `903ff1c`, `3111f87`
 - [x] All: read ≥ 20 trajectories by hand with `show_trace.py`; log failure categories
       — 21 read, 7 categories: `docs/reports/FYP1_TRAJECTORY_REVIEW.md`
 - [x] V: golden-trajectory and fault-injection tests
@@ -151,7 +154,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 
 ## FYP-I final evaluation / defense (Dec–early Jan)
 - [ ] Live demo: same question controller-OFF vs ON, trace + stop reason; recorded backup video
-      — demo verified and runbook in `docs/reports/FYP1_SLIDES.md`; recording the video is left
+      — demo verified and runbook in `docs/reports/FYP1_SLIDES.md`; since 2026-10-12 the demo
+      ends with the host's answer from the bundle (`No[2][1]`, gold: No); recording the video
+      is left
 - [ ] Every member can explain every module
 - [x] FYP-II plan slide — `docs/reports/FYP1_SLIDES.md` §10
 
