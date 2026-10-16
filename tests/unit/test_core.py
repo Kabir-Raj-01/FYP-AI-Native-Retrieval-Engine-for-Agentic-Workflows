@@ -77,6 +77,16 @@ def test_rerank_uses_the_relevance_only_reranker(
     )
     assert reranker.calls[0][2] is False  # state=None: relevance-only (ADR-009 "Also")
     assert eng.has_reranker
+    assert reranker.goals == [None]  # one-shot: relevance against the query itself
+
+
+def test_rerank_passes_the_goal_on(
+    cfg: EngineConfig, retriever: FakeRetriever, mini_corpus: list[CorpusChunk]
+) -> None:
+    reranker = FakeReranker(default=0.1)
+    eng = engine(cfg, retriever, reranker=reranker)
+    eng.retrieve_direct("sub", RetrievalMode.DENSE, k=5, rerank=True, goal="the question")
+    assert reranker.goals == ["the question"]  # ADR-014: fixed_iteration's hop queries
 
 
 def test_rerank_without_reranker_is_a_config_error(

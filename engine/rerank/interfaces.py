@@ -14,9 +14,17 @@ class Reranker(ABC):
 
     @abstractmethod
     def rerank(
-        self, query: str, candidates: list[Candidate], state: RetrievalState | None
+        self,
+        query: str,
+        candidates: list[Candidate],
+        state: RetrievalState | None,
+        goal: str | None = None,
     ) -> list[ScoredCandidate]:
         """Score and select ``candidates`` for ``query`` (the pending query).
+
+        Relevance is scored against ``query``, the task goal, or the maximum of both, per
+        ``rerank.relevance_query`` (ADR-014). The goal is ``goal`` if given, else
+        ``state.goal``; with neither (the one-shot paths, where query = goal) it is ``query``.
 
         With a ``state``: relevance, gap coverage over OPEN gaps, novelty against E_t and
         redundancy against already-selected candidates, combined with

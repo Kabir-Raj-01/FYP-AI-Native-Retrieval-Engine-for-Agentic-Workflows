@@ -5,7 +5,8 @@
    there are subgoals left, otherwise a planner REWRITE of the last subgoal given the
    accepted-evidence summaries; when the LLM budget is spent, the last query again with k
    increased by ``retrieval.expand_step_k`` (capped at ``retrieval.max_k``). Retrieve with
-   ``fixed_iteration.mode`` and rerank relevance-only; accept candidates with relevance ≥
+   ``fixed_iteration.mode`` and rerank relevance-only (scored per ``rerank.relevance_query``
+   against the hop query and/or the goal, ADR-014); accept candidates with relevance ≥
    ``evidence.relevance_threshold`` that are not yet accepted (no novelty or gap logic).
 3. No cache, no utility, no early stop: exactly N retrieval calls; the last step has
    ``stop_reason = FIXED_ITERATIONS_COMPLETE``.
@@ -103,7 +104,9 @@ def run_task(task: Task, ctx: BaselineContext) -> EvidenceBundle:
         if hop >= len(subgoals):
             used.append(query)
 
-        result = ctx.engine.retrieve_direct(query, mode, k, rerank=ctx.engine.has_reranker)
+        result = ctx.engine.retrieve_direct(
+            query, mode, k, rerank=ctx.engine.has_reranker, goal=task.question
+        )
         if result.scored is not None:
             ranked = [(s.candidate, s.relevance) for s in result.scored]
         else:

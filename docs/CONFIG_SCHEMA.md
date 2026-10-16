@@ -1,6 +1,6 @@
 # Configuration Schema
 
-> Status: Stable · Owner: All (each section's owner listed) · Last updated: 2026-10-04
+> Status: Stable · Owner: All (each section's owner listed) · Last updated: 2026-10-16
 > Defaults: `configs/base.yaml`. Loader/validator: `engine/config.py` (`EngineConfig`, Pydantic, `extra="forbid"`).
 > Budget bounds and `planner.rationale_max_chars` added by ADR-009 (§8, §10).
 
@@ -181,6 +181,7 @@ Truncates `PlanResult.rationale` (never rejects it) — ADR-009 §10.
 | rerank.max_input_tokens | int | 512 | |
 | rerank.device | cpu\|cuda | cpu | |
 | rerank.score_cache_enabled | bool | true | memoise scores by (model, revision, max input tokens, query, text) in `paths.rerank_cache_db`; a pure function, so results are unchanged |
+| rerank.relevance_query | subquery\|goal\|max | max | what the cross-encoder scores passages against: the pending (sub)query, the task goal, or the per-passage maximum of both; one-shot paths have query = goal, so all three are identical there. Draft; ADR-014 |
 | evidence.relevance_threshold | float | 0.2 | after calibration ADR (0.2 = preliminary dev calibration, ADR-013) |
 | evidence.novelty_threshold | float | 0.15 | after calibration ADR |
 | evidence.gap_coverage_threshold | float | 0.6 | after calibration ADR |

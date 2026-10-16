@@ -25,11 +25,17 @@ class FakeReranker(Reranker):
         self._default = default
         self._top_n = top_n
         self.calls: list[tuple[str, list[str], bool]] = []
+        self.goals: list[str | None] = []  # the ``goal`` argument of each call
 
     def rerank(
-        self, query: str, candidates: list[Candidate], state: RetrievalState | None
+        self,
+        query: str,
+        candidates: list[Candidate],
+        state: RetrievalState | None,
+        goal: str | None = None,
     ) -> list[ScoredCandidate]:
         self.calls.append((query, [c.chunk_id for c in candidates], state is not None))
+        self.goals.append(goal)
         scored = [
             ScoredCandidate(
                 candidate=c,

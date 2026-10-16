@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: Stable · Owner: All · Last updated: 2026-09-28 · Related: STATE_SPEC.md, ADR-002, ADR-009
+> Status: Stable · Owner: All · Last updated: 2026-10-16 · Related: STATE_SPEC.md, ADR-002, ADR-009
 
 ## 1. Layers
 ```
@@ -38,7 +38,7 @@ All interfaces live in `engine/<module>/interfaces.py`. All models come from
 | Cache | `lookup(task_id, query, need_type) -> CacheHit \| None` · `put(entry: CacheEntry) -> None` | CACHE_SPEC |
 | Controller | `select_action(state, cache_hit) -> ActionDecision` (sets `plan_mode` when `action == TRANSFORM`, ADR-009 §3) | ACTION_POLICY |
 | RetrieverAdapter | `search(query, mode, k, filters: SearchFilters \| None = None, with_vectors=True) -> list[Candidate]` · `health() -> bool` (`fetch` dropped until a caller needs it, ADR-009 "Also") | RETRIEVAL_SPEC |
-| Reranker | `rerank(query, candidates, state: RetrievalState \| None) -> list[ScoredCandidate]` (`None` → relevance-only, used by the direct path/baselines, ADR-009 "Also") | RERANK_SPEC |
+| Reranker | `rerank(query, candidates, state: RetrievalState \| None, goal: str \| None = None) -> list[ScoredCandidate]` (`None` → relevance-only, used by the direct path/baselines, ADR-009 "Also"; `goal` = what relevance may be scored against, else `state.goal`, ADR-014) | RERANK_SPEC |
 | EvidenceManager | `update(state, scored, step) -> EvidenceUpdate` | EVIDENCE_MANAGER_SPEC |
 | TrajectoryMonitor | `observe(state, decision, update: EvidenceUpdate \| None) -> MonitorVerdict` (`None` on TRANSFORM/STOP steps) · `advance(state) -> AdvanceResult` (ADR-009 §4) | ACTION_POLICY §6 |
 | TraceWriter | `new_step(**fields) -> TraceStep` (stamps `RunContext`) · `write_step(step) -> None` · `write_bundle(bundle) -> None` · `read_steps(task_id) -> list[TraceStep]` · `read_bundle(task_id) -> EvidenceBundle \| None` · `summarize(steps) -> TraceSummary` | OBSERVABILITY §2 |
@@ -132,10 +132,12 @@ only for the other budget counters each action touches.
 | STOP | none | none | steps +1 |
 
 ## 6. Direct (controller-OFF) path
-`Engine.retrieve_direct(query, mode, k=None, rerank=False) -> DirectResult` (ADR-012) calls
-the same `RetrieverAdapter` instance; optionally applies
-`Reranker.rerank(query, candidates, state=None)`, which is relevance-only mode (ADR-009
-"Also"). No TaskStore, cache, planner or controller. `k=None` → `retrieval.default_k`;
+`Engine.retrieve_direct(query, mode, k=None, rerank=False, goal=None) -> DirectResult`
+(ADR-012) calls the same `RetrieverAdapter` instance; optionally applies
+`Reranker.rerank(query, candidates, state=None, goal=goal)`, which is relevance-only mode
+(ADR-009 "Also"). `goal` is set only by fixed_iteration, whose hop queries are subqueries
+(ADR-014); the HTTP direct endpoint never sets it. No TaskStore, cache, planner or
+controller. `k=None` → `retrieval.default_k`;
 `k ∉ [1, retrieval.max_k]` → `ValueError`; `rerank=True` without a reranker →
 `ConfigError` (the API answers 422 for an Engine built without a reranker). Every call emits a
 `retrieval.call` event (`path="direct"`).
@@ -196,3 +198,4 @@ same Planner.
 | 2026-10-08 | §6: `DirectResult.rerank_latency_ms`; baselines record execute/rerank/total | ADR-012 A1 |
 | 2026-10-08 | §2: `CrossEncoderScorer` gains a persistent score cache (`rerank.score_cache_enabled`, `paths.rerank_cache_db`); `engine/text.py` gains `escape_untrusted` (shared by planner and answer generator) | — |
 | 2026-10-08 | §4 (behaviour): a min-utility STOP ends the current gap, not the task; REUSE not eligible for an already-searched query | ACTION_POLICY §2/§3 amendments |
+| 2026-10-16 | `Reranker.rerank` gains `goal=None` and `Engine.retrieve_direct` gains `goal=None`; relevance is scored against the subquery, the goal or both per `rerank.relevance_query` | ADR-014 |

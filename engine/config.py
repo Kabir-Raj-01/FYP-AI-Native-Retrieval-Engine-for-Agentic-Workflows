@@ -66,6 +66,8 @@ PositiveFloat = Annotated[float, Field(gt=0.0)]
 
 LLMRole = Literal["planner", "verifier", "generator"]
 Device = Literal["cpu", "cuda"]
+# what the cross-encoder scores passages against (RERANK_SPEC §2, ADR-014)
+RelevanceQuery = Literal["subquery", "goal", "max"]
 
 
 class _Section(BaseModel):
@@ -314,6 +316,7 @@ class RerankConfig(_Section):
     max_input_tokens: int
     device: Device
     score_cache_enabled: bool  # memoise scores per (model, revision, query, text)
+    relevance_query: RelevanceQuery  # subquery | goal | max (ADR-014)
 
 
 class EvidenceGainWeights(_Section):

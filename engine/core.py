@@ -158,13 +158,16 @@ class Engine:
         mode: RetrievalMode,
         k: int | None = None,
         rerank: bool = False,
+        goal: str | None = None,
     ) -> DirectResult:
         """One-shot retrieval through the shared adapter (ARCHITECTURE §6; ADR-012).
 
         Args:
             k: candidates to retrieve; ``None`` uses ``retrieval.default_k``.
             rerank: also score the candidates with the relevance-only reranker
-                (``Reranker.rerank(query, candidates, state=None)``).
+                (``Reranker.rerank(query, candidates, state=None, goal=goal)``).
+            goal: the task goal when ``query`` is a subquery (fixed_iteration); relevance
+                is then scored per ``rerank.relevance_query`` (ADR-014). ``None`` = query.
 
         Raises:
             ValueError: ``k`` outside ``[1, retrieval.max_k]``.
@@ -193,7 +196,7 @@ class Engine:
         scored = None
         rerank_ms = None
         if rerank and self._reranker is not None:
-            scored = self._reranker.rerank(query, candidates, None)
+            scored = self._reranker.rerank(query, candidates, None, goal=goal)
             latency_ms = (self._clock() - start) * 1000.0
             rerank_ms = latency_ms - search_ms
         return DirectResult(

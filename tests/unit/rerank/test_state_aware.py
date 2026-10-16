@@ -148,3 +148,70 @@ def test_query_is_passed_to_the_scorer(cfg: EngineConfig) -> None:
     rr = reranker(cfg, {"A": 0.5})
     rr.rerank("the pending query", [cand("A", A)], None)
     assert rr._scorer.calls == [("the pending query", ["A"])]  # type: ignore[attr-defined]
+
+
+# rerank.relevance_query (ADR-014): what the cross-encoder scores passages against.
+GOAL = "Which company acquired the startup first?"  # make_state()'s goal
+
+
+def by_query(scores: dict[tuple[str, str], float]):  # type: ignore[no-untyped-def]
+    """Scorer whose relevance depends on (query, text), recording each call's query."""
+    calls: list[str] = []
+
+    def score(query: str, texts: list[str]) -> list[float]:
+        calls.append(query)
+        return [scores[(query, t)] for t in texts]
+
+    score.calls = calls  # type: ignore[attr-defined]
+    return score
+
+
+SCORES = {("sub", "A"): 0.1, ("sub", "B"): 0.7, (GOAL, "A"): 0.6, (GOAL, "B"): 0.2}
+
+
+def relevance_query_run(
+    cfg: EngineConfig, mode: str, state: RetrievalState | None, goal: str | None = None
+) -> tuple[dict[str, float], list[str]]:
+    cfg.rerank.relevance_query = mode  # type: ignore[assignment]
+    cfg.ablation.state_aware_rerank = False  # final = relevance: isolate the signal
+    sc = by_query(SCORES)
+    rr = StateAwareReranker(cfg, FakeEmbedder(dimension=4), sc)
+    out = rr.rerank("sub", [cand("A", A), cand("B", B, rank=1)], state, goal=goal)
+    return {s.candidate.chunk_id: s.relevance for s in out}, sc.calls  # type: ignore[attr-defined]
+
+
+def test_relevance_query_subquery_scores_against_the_pending_query(cfg: EngineConfig) -> None:
+    rel, calls = relevance_query_run(cfg, "subquery", make_state())
+    assert rel == {"A": 0.1, "B": 0.7}
+    assert calls == ["sub"]
+
+
+def test_relevance_query_goal_uses_the_state_goal(cfg: EngineConfig) -> None:
+    rel, calls = relevance_query_run(cfg, "goal", make_state())
+    assert rel == {"A": 0.6, "B": 0.2}
+    assert calls == [GOAL]
+
+
+def test_relevance_query_goal_argument_serves_the_stateless_path(cfg: EngineConfig) -> None:
+    rel, calls = relevance_query_run(cfg, "goal", None, goal=GOAL)  # fixed_iteration
+    assert rel == {"A": 0.6, "B": 0.2}
+    assert calls == [GOAL]
+
+
+def test_relevance_query_max_takes_the_larger_score_per_passage(cfg: EngineConfig) -> None:
+    rel, calls = relevance_query_run(cfg, "max", make_state())
+    assert rel == {"A": 0.6, "B": 0.7}
+    assert calls == ["sub", GOAL]
+
+
+def test_relevance_query_without_a_goal_falls_back_to_the_query(cfg: EngineConfig) -> None:
+    for mode in ("goal", "max"):  # one-shot path: no state, no goal argument
+        rel, calls = relevance_query_run(cfg, mode, None)
+        assert (rel, calls) == ({"A": 0.1, "B": 0.7}, ["sub"])
+
+
+def test_relevance_query_max_scores_once_when_query_equals_goal(cfg: EngineConfig) -> None:
+    cfg.rerank.relevance_query = "max"
+    sc = by_query({(GOAL, "A"): 0.4})
+    StateAwareReranker(cfg, FakeEmbedder(dimension=4), sc).rerank(GOAL, [cand("A", A)], None, GOAL)
+    assert sc.calls == [GOAL]  # type: ignore[attr-defined]

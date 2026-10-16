@@ -42,10 +42,12 @@ def test_subgoal_queries_then_a_planner_rewrite(
     cfg: EngineConfig, engine_with_fakes: EngineFactory, tmp_path: Path
 ) -> None:
     planner = FakePlanner(init=SUBGOALS)
-    fake = engine_with_fakes(planner=planner, reranker=FakeReranker(default=0.6))
+    reranker = FakeReranker(default=0.6)
+    fake = engine_with_fakes(planner=planner, reranker=reranker)
     bundle, steps = run(fake, cfg, tmp_path, hops=3)
     queries = [r.query for r in fake.retriever.requests]
     assert queries == ["Linden Bay tram", "council harbour", "council harbour rewritten"]
+    assert reranker.goals == [TASK.question] * 3  # every hop's relevance knows the goal
     assert planner.calls == [PlanMode.INIT, PlanMode.REWRITE]
     assert [s.step for s in steps] == [1, 2, 3]
     assert {s.action for s in steps} == {Action.SPARSE_HYBRID}  # fixed_iteration.mode: hybrid

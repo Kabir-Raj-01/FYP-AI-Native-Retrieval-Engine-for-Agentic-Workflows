@@ -153,6 +153,7 @@ rerank:
   max_input_tokens: 512
   device: cpu
   score_cache_enabled: true     # scores are a pure function of their key: results unchanged
+  relevance_query: max          # subquery | goal | max: what relevance is scored against (ADR-014)
 
 evidence:
   relevance_threshold: 0.2      # preliminary dev calibration, ADR-013; FROZEN after calibration ADR

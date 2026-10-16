@@ -11,6 +11,8 @@
 - ``ablation.gap_tracking`` false → gap coverage 0; ``ablation.redundancy_signal`` false →
   redundancy 0.
 Ties keep backend order. Cosines are clipped to [0, 1].
+Relevance is scored against the subquery, the task goal or the maximum of both
+(``rerank.relevance_query``, ADR-014); the one-shot paths have query = goal.
 """
 
 from __future__ import annotations
@@ -45,11 +47,16 @@ class StateAwareReranker(Reranker):
         self._log = get_logger("engine.rerank")
 
     def rerank(
-        self, query: str, candidates: list[Candidate], state: RetrievalState | None
+        self,
+        query: str,
+        candidates: list[Candidate],
+        state: RetrievalState | None,
+        goal: str | None = None,
     ) -> list[ScoredCandidate]:
         if not candidates:
             return []
-        relevance = np.asarray(self._scorer(query, [c.text for c in candidates]))
+        goal = goal if goal is not None else (state.goal if state is not None else None)
+        relevance = self._relevance(query, goal, [c.text for c in candidates])
         n = len(candidates)
         gap = np.zeros(n)
         covered: list[str | None] = [None] * n
@@ -79,6 +86,7 @@ class StateAwareReranker(Reranker):
         self._log.info(
             "rerank.done",
             query=query,
+            relevance_query=self._cfg.rerank.relevance_query,
             state_aware=state is not None and self._cfg.ablation.state_aware_rerank,
             candidates=[
                 {
@@ -93,6 +101,15 @@ class StateAwareReranker(Reranker):
             ],
         )
         return out
+
+    def _relevance(self, query: str, goal: str | None, texts: list[str]) -> np.ndarray:
+        """Cross-encoder relevance against the query, the goal or both (ADR-014)."""
+        mode = self._cfg.rerank.relevance_query
+        if mode == "subquery" or goal is None or goal == query:
+            return np.asarray(self._scorer(query, texts))
+        if mode == "goal":
+            return np.asarray(self._scorer(goal, texts))
+        return np.maximum(self._scorer(query, texts), self._scorer(goal, texts))
 
     @staticmethod
     def _vectors(candidates: list[Candidate]) -> np.ndarray:

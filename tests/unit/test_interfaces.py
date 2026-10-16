@@ -52,7 +52,7 @@ EXPECTED: dict[type[ABC], dict[str, str]] = {
     },
     Reranker: {
         "rerank": "(self, query: str, candidates: list[Candidate],"
-        " state: RetrievalState | None) -> list[ScoredCandidate]",
+        " state: RetrievalState | None, goal: str | None = None) -> list[ScoredCandidate]",
     },
     EvidenceManager: {
         "update": "(self, state: RetrievalState, scored: list[ScoredCandidate], step: int)"

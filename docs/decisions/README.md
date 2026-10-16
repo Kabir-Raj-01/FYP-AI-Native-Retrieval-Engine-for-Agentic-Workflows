@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-> Status: Living index · Owner: All · Last updated: 2026-10-09
+> Status: Living index · Owner: All · Last updated: 2026-10-16
 
 An ADR records one decision that is expensive to reverse or that affects experimental
 validity. Copy `TEMPLATE.md`, number sequentially, open a PR, get one teammate's review.
@@ -21,6 +21,7 @@ Accepted ADRs are never edited except to mark them *Superseded by ADR-0XX*.
 | 011 | Recorded deviations from the approved proposal | Proposed (supervisor) | All | Week 7 |
 | 012 | `DirectResult`, the return type of `Engine.retrieve_direct` (+ A1 rerank latency) | Accepted | Kabir | Week 9 |
 | 013 | Preliminary (FYP-I) calibration: relevance threshold, rerank top-n, controller values | Accepted (keys stay Draft; ADR-006 freezes) | Kabir | Week 16 |
+| 014 | Relevance scored against the subquery and the goal (`rerank.relevance_query` = max) | Accepted (key stays Draft) | Kabir (for Samay) | FYP-I E1 |
 
 Also write an ADR for: any contract change (STATE_SPEC, API_CONTRACT, trace schema), any
 change to a Frozen key, a new baseline, or anything a thesis examiner might ask "why?" about.

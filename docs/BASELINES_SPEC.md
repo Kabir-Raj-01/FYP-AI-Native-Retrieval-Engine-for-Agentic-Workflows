@@ -1,6 +1,6 @@
 # Baselines
 
-> Status: Stable · Owner: Vishal · Last updated: 2026-10-05 · Related: EVAL_PROTOCOL.md
+> Status: Stable · Owner: Vishal · Last updated: 2026-10-16 · Related: EVAL_PROTOCOL.md
 
 ## 1. Shared conditions (all systems, including controller_on)
 Same Qdrant collection, embedding model, sparse encoder, cross-encoder (relevance-only
@@ -40,7 +40,8 @@ Identical with `mode=hybrid` (action SPARSE_HYBRID in the trace).
      budget is exhausted, reuse the last query with k increased by
      `retrieval.expand_step_k`).
    - retrieve with `fixed_iteration.mode` (default `hybrid`), k = `retrieval.default_k`.
-   - rerank relevance-only; accept candidates with relevance ≥
+   - rerank relevance-only, relevance scored per `rerank.relevance_query` (hop query, goal
+     or both — the same key as controller_on, ADR-014); accept candidates with relevance ≥
      `evidence.relevance_threshold` that are not duplicates (no novelty/gap logic).
 3. No cache, no utility, no early stopping: always exactly N retrieval calls.
    `stop_reason = FIXED_ITERATIONS_COMPLETE`.

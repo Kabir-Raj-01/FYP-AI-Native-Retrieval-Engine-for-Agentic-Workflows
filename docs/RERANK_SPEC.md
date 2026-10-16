@@ -1,6 +1,6 @@
 # Adaptive (State-Aware) Reranking
 
-> Status: Stable · Owner: Samay · Last updated: 2026-09-28 · Related: EVIDENCE_MANAGER_SPEC.md, ADR-009
+> Status: Stable · Owner: Samay · Last updated: 2026-10-16 · Related: EVIDENCE_MANAGER_SPEC.md, ADR-009, ADR-014
 
 ## 1. Purpose
 Order candidates by usefulness **to the current trajectory**, not only by query
@@ -8,8 +8,8 @@ relevance: prefer candidates that cover open gaps and add new information, and a
 selecting near-duplicates of each other. No reranker training — a pretrained
 cross-encoder plus state-derived signals.
 
-Interface: `Reranker.rerank(query, candidates, state: RetrievalState | None) ->
-list[ScoredCandidate]` (sorted, length ≤ `rerank.top_n_output`). `state=None` means
+Interface: `Reranker.rerank(query, candidates, state: RetrievalState | None, goal: str |
+None = None) -> list[ScoredCandidate]` (sorted, length ≤ `rerank.top_n_output`). `state=None` means
 relevance-only mode (ADR-009 "Also"): no gap coverage, no novelty against E_t, no MMR —
 `final = relevance`, the same behaviour as `ablation.state_aware_rerank=false` (§3). This
 is how `Engine.retrieve_direct` and the baselines call it — they have no task state.
@@ -17,7 +17,7 @@ is how `Engine.retrieve_direct` and the baselines call it — they have no task 
 ## 2. Signals (per candidate c)
 | Signal | Definition |
 |---|---|
-| relevance(c) | cross-encoder score for (query, c.text) mapped to [0,1] with a sigmoid if the model outputs logits (check the model's output type — LIBRARY_NOTES). `query` = pending query. |
+| relevance(c) | cross-encoder score for (q, c.text) mapped to [0,1] with a sigmoid if the model outputs logits (check the model's output type — LIBRARY_NOTES). `q` per `rerank.relevance_query` (ADR-014): `subquery` → the pending query; `goal` → the task goal G (`goal` argument, else `state.goal`); `max` → the per-candidate maximum of both scores. With no goal, or goal = query (the one-shot paths), `q` = the pending query in every mode. |
 | gap_coverage(c) | `max_{g ∈ OPEN gaps} cos(c.vector, emb_query(g.description))`, clipped to [0,1]; `covered_gap_id` = argmax. 0 if `ablation.gap_tracking` false. |
 | novelty(c) | `1 − max_{e ∈ E_t} cos(c.vector, e.vector)`; 1 if E_t empty; 0 if c.chunk_id already in E_t. |
 | redundancy(c ∣ S) | `max_{s ∈ S} cos(c.vector, s.vector)` over candidates S already selected above c in this list; 0 for the first. 0 if `ablation.redundancy_signal` false. |
