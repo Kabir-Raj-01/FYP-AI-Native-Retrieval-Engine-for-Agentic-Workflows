@@ -1,6 +1,6 @@
 # Library Notes (pinned versions + verified usage)
 
-> Status: Living document · Owner: All · Last updated: 2026-10-05
+> Status: Living document · Owner: All · Last updated: 2026-10-17
 
 Coding assistants often write code for an older version of a library than the one
 installed. This file records the **exact pinned version** and **usage verified by running
@@ -171,7 +171,9 @@ it**. Rules:
     old name still works but emits a `FutureWarning`).
   - Expect a CPU cross-encoder of base size to need tens of seconds for 20–60 candidates on
     this laptop class (same per-token cost as the embedder) — see ADR-005. Measured (on battery,
-    so indicative only): bge-reranker-base 10–24 s per 20 pairs at 512 tokens.
+    so indicative only): bge-reranker-base 10–24 s per 20 pairs at 512 tokens. On AC power
+    (2026-10-17, ADR-016 A1): median 11.3 s per 20 uncached pairs (about a third of the
+    CPU's FP32 peak; ≈ 4 s even at peak); the same run on battery took 32 s.
   - Timings on battery are unreliable on this laptop: the CPU was throttled to ~1 GHz and
     repeat runs differed by >2×, while `Win32_Processor.CurrentClockSpeed` can still
     report the full clock. Benchmark on AC power only.

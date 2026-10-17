@@ -58,3 +58,19 @@ can reduce P7; a GPU or hosted model would make the reference targets testable.
 ## Reversal condition
 A GPU or hosted model becomes available (re-test the reference targets), or a change to
 the reranker or planner model (ADR-004/005) moves the CPU figures by more than 2×.
+
+## Amendment A1 (2026-10-17) — P3 re-measured on AC power
+The P3 figure above was measured on battery, which LIBRARY_NOTES says not to do (the CPU
+throttles while `Win32_Processor.CurrentClockSpeed` still reports the full clock). Re-run
+of the same procedure on AC power: **median 11.3 s per 20 uncached pairs** (6 calls,
+10.0–12.3 s; model load 48 s) — about 3× faster than on battery. The FLOP estimate above
+is also corrected: 192 M of the model's 278 M parameters are the token-embedding table (a
+lookup, no multiply-adds); the 12 transformer layers (≈ 85 M) cost ≈ 0.17 GFLOP per token.
+Twenty pairs padded to ~450–512 tokens are ≈ 9,000–10,000 tokens ≈ 1.5–1.9 TFLOP, so
+11.3 s is ≈ 0.13–0.17 TFLOP/s — about a third of this CPU's AVX-512 peak (4 cores × 32 FP32
+FLOP/cycle × ~3.5 GHz ≈ 0.45 TFLOP/s). Even at that peak the 20 pairs would take ≈ 4 s, so
+1.5 s needs a GPU, as Decision 2 says.
+
+Decision 2's CPU target is tightened accordingly: **uncached reranking of 20 candidates,
+median ≤ 15 s on AC power** (was ≤ 35 s); cached pairs ≤ 10 ms unchanged. Battery timings
+are not benchmarks. Status of P3 is unchanged: not met against the 1.5 s reference.

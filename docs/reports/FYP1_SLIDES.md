@@ -1,6 +1,6 @@
 # FYP-I progress slides and demo runbook
 
-> Status: Draft · Owner: All · Last updated: 2026-10-16 · Related: FYP1_REPORT_DRAFT.md, FYP1_TRAJECTORY_REVIEW.md
+> Status: Draft · Owner: All · Last updated: 2026-10-17 · Related: FYP1_REPORT_DRAFT.md, FYP1_TRAJECTORY_REVIEW.md
 
 Outline for the Week 10 progress slides and the FYP-I defense (TASKS.md). One slide per
 heading; bullets are the slide text, *notes* are what the speaker says. Numbers come from
@@ -29,7 +29,8 @@ heading; bullets are the slide text, *notes* are what the speaker says. Numbers 
 
 ## 5. Engineering
 - Every component behind an interface; every threshold a config key; ADRs for every decision
-- 1,012 unit tests on fakes + 15 live-Qdrant integration tests, golden trajectories, fault injection
+- 1,020 unit tests on fakes + 15 live-Qdrant integration + 2 live-LLM tests, golden trajectories,
+  fault injection; 97 % line coverage
 - Every run writes a manifest; only clean-tree runs are reportable
 
 ## 6. Results — E0 (dev subset, 265 questions with gold)
@@ -75,12 +76,14 @@ heading; bullets are the slide text, *notes* are what the speaker says. Numbers 
 2. Start the API: `python -m uvicorn engine.api.app:app --host 127.0.0.1 --port 8000`.
 3. In a second window: `$env:PYTHONIOENCODING = "utf-8"; python -m examples.demo_fyp1`.
    Default question: dev task multihop:0082 (Scorsese, Polygon vs The Independent).
-   Verified 2026-10-09: controller-OFF returns 20 reranked candidates in ~0.3 s;
-   controller-ON resolves both gaps in 2 steps (`ALL_GAPS_RESOLVED`), ~1 s with a warm
-   LLM cache (the first run of a new question waits ~15–30 s for the planner).
-   The demo ends as the host app: qwen2.5:3b answers from the top 8 bundle items with
-   passage citations — verified 2026-10-12: `No[2][1]` (gold: No). The first answer takes
-   ~1–2 min on CPU (3k prompt tokens), a repeat ~1 s while Ollama keeps the model loaded:
+   Re-verified 2026-10-17 at `3fc01cc` (ADR-014 in force): controller-OFF returns 20
+   reranked candidates in ~0.4 s; controller-ON resolves both gaps in **1 step**
+   (`ALL_GAPS_RESOLVED`; 2 steps before ADR-014), its 5-item bundle holding both gold
+   articles, ~1 s with a warm LLM cache (the first run of a new question waits ~15–30 s
+   for the planner). The demo ends as the host app: qwen2.5:3b answers from the bundle
+   (up to 8 items) with passage citations — `No[1][3]` (gold: No; `No[2][1]` before
+   ADR-014). The first answer takes ~1–2 min on CPU (68 s on 2026-10-17), a repeat ~1 s
+   while Ollama keeps the model loaded:
    **run the demo once before the audience arrives**, and start Ollama with
    `$env:OLLAMA_KEEP_ALIVE = "2h"` so the model is not unloaded after 5 idle minutes.
    `--no-answer` skips this step.

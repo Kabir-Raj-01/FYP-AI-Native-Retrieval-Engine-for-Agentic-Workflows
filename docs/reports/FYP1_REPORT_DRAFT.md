@@ -238,8 +238,9 @@ full-subset effect is in §5.2.
   Recall@10 are less sensitive to this but not immune (§5.2 gives bundle sizes).
 - Performance targets (ADR-016, SRS TBD-4): NFR-P1 (direct retrieval, median 104 ms) and P2
   (controller overhead, median 10 ms) are met; P3 is not — uncached reranking of 20
-  candidates takes a median 32 s on the CPU laptop against 1.5 s (the score cache makes
-  68 % of E1 reranker calls ≤ 1 s) — and P7 is not for fixed_iteration at B = 4 (3.7 h
+  candidates takes a median 11.3 s on the CPU laptop on AC power (≈ 3× slower on battery)
+  against 1.5 s, and ≈ 4 s even at the CPU's compute peak (ADR-016 A1); the score cache makes
+  68 % of E1 reranker calls ≤ 1 s — and P7 is not for fixed_iteration at B = 4 (3.7 h
   against 3 h, one worker, CPU LLM). ADR-016 sets CPU targets and keeps the original ones
   as the GPU reference.
 - Latency is not compared: runs share caches (LLM, reranker scores) from earlier runs, the

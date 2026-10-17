@@ -158,9 +158,9 @@ Legend: **K** = Kabir · **S** = Samay · **V** = Vishal · **All** = pair/mob w
 
 ## FYP-I final evaluation / defense (Dec–early Jan)
 - [ ] Live demo: same question controller-OFF vs ON, trace + stop reason; recorded backup video
-      — demo verified and runbook in `docs/reports/FYP1_SLIDES.md`; since 2026-10-12 the demo
-      ends with the host's answer from the bundle (`No[2][1]`, gold: No); recording the video
-      is left
+      — demo verified and runbook in `docs/reports/FYP1_SLIDES.md`; re-verified 2026-10-17
+      after ADR-014: controller-ON resolves both gaps in 1 step and the host answers
+      `No[1][3]` (gold: No); recording the video is left
 - [ ] Every member can explain every module
 - [x] FYP-II plan slide — `docs/reports/FYP1_SLIDES.md` §10
 

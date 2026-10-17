@@ -23,7 +23,7 @@ Accepted ADRs are never edited except to mark them *Superseded by ADR-0XX*.
 | 013 | Preliminary (FYP-I) calibration: relevance threshold, rerank top-n, controller values | Accepted (keys stay Draft; ADR-006 freezes) | Kabir | Week 16 |
 | 014 | Relevance scored against the subquery and the goal (`rerank.relevance_query` = max) | Accepted (key stays Draft) | Kabir (for Samay) | FYP-I E1 |
 | 015 | Optional bearer token for the HTTP API (`ENGINE_API_TOKEN`, 401 `UNAUTHORIZED`; SRS NFR-S3) | Accepted | Kabir (for Vishal) | FYP-I audit |
-| 016 | Performance targets from profiled runs: P1/P2 confirmed, P3/P7 CPU targets (SRS TBD-4) | Accepted | Kabir | Week 14 (TBD-4) |
+| 016 | Performance targets from profiled runs: P1/P2 confirmed, P3/P7 CPU targets (SRS TBD-4) (+ A1: P3 on AC power) | Accepted | Kabir | Week 14 (TBD-4) |
 
 Also write an ADR for: any contract change (STATE_SPEC, API_CONTRACT, trace schema), any
 change to a Frozen key, a new baseline, or anything a thesis examiner might ask "why?" about.
