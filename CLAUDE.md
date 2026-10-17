@@ -75,7 +75,7 @@ eval/                      # datasets/, run.py, generator.py, metrics.py, stats.
 data/                      # ingestion scripts; data/raw and data/processed are gitignored
 examples/langgraph_agent/  # external agent demo: may import client/, NEVER engine/
 scripts/                   # show_trace.py, latency_profile.py, check_gold_mapping.py
-tests/                     # unit/ integration/ e2e/ fakes/ fixtures/
+tests/                     # unit/ integration/ e2e/ llm/ fakes/ fixtures/
 docs/
 ```
 Each module package = `interfaces.py` (ABC) + implementation file(s). Callers import
@@ -83,7 +83,7 @@ only `interfaces.py` and `engine.state.models`.
 
 ## Commands (PowerShell, repo root, `.venv` active — full list in docs/SETUP.md §5)
 `pip install -e ".[dev]"` · `ruff check .` · `ruff format .` · `mypy --strict engine`
-Unit tests: `pytest -m "not integration and not llm and not e2e"` · integration: `pytest -m integration`
+Unit tests: `pytest -m "not integration and not llm and not e2e"` · integration: `pytest -m integration` · live LLM (Ollama up): `pytest -m llm`
 Qdrant: start `tools\qdrant\qdrant.exe` (SETUP.md §3) / `Stop-Process -Name qdrant`
 `python -m data.ingest --dataset multihop` · `python -m uvicorn engine.api.app:app --host 127.0.0.1 --port 8000`
 `python -m eval.run --config configs\experiments\controller_on_dev.yaml` · `python scripts\latency_profile.py`
