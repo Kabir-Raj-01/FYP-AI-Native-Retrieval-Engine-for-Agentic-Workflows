@@ -84,9 +84,11 @@ not built): cross-task caching, learned policies, extra backends (PRD "Out of sc
 | FR11 | HTTP API `/v1/tasks/*` + Python `RetrievalClient`; FYP-I demo `examples/demo_fyp1.py` | done (agent demo: FYP-II) |
 | FR12 | MultiHop-RAG loader | done (HotpotQA, curated set: FYP-II) |
 
-Quality gates (2026-10-16, `62bb0be`): 1,012 unit tests on fakes (including fault injection),
-15 integration tests against a live Qdrant and 2 golden-trajectory e2e tests, all green;
-`ruff`, `mypy --strict engine` and pre-commit clean.
+Quality gates (2026-10-17): 1,020 unit tests on fakes (including fault injection, the
+optional bearer token of ADR-015 and SRS NFR-R3), 15 integration tests against a live
+Qdrant, 2 golden-trajectory e2e tests and 2 live-LLM tests, all green; unit-test line
+coverage of `engine/` 97 % (SRS NFR-M5: ≥ 70 %, ≥ 85 % for the five core modules — all
+≥ 95 %); `ruff`, `mypy --strict engine` and pre-commit clean.
 
 ## 5. Results (dev subset, preliminary)
 ### 5.1 E0 — one-shot baselines (reportable)
@@ -234,6 +236,12 @@ full-subset effect is in §5.2.
   ≥ 0.2, at most `evidence.max_accept_per_step` = 5 per step, novelty and duplicate rules).
   CER and partial coverage therefore reward the one-shot systems' larger bundles; CER@10 and
   Recall@10 are less sensitive to this but not immune (§5.2 gives bundle sizes).
+- Performance targets (ADR-016, SRS TBD-4): NFR-P1 (direct retrieval, median 104 ms) and P2
+  (controller overhead, median 10 ms) are met; P3 is not — uncached reranking of 20
+  candidates takes a median 32 s on the CPU laptop against 1.5 s (the score cache makes
+  68 % of E1 reranker calls ≤ 1 s) — and P7 is not for fixed_iteration at B = 4 (3.7 h
+  against 3 h, one worker, CPU LLM). ADR-016 sets CPU targets and keeps the original ones
+  as the GPU reference.
 - Latency is not compared: runs share caches (LLM, reranker scores) from earlier runs, the
   controller-ON E1 run was paused for ~111 min by Windows Modern Standby (one task's latency
   and the run's wall time include the pause; no metric depends on it), and the CPU is shared.
