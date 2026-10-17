@@ -1,6 +1,6 @@
 # Security and Robustness
 
-> Status: Stable · Owner: All · Last updated: 2026-10-04
+> Status: Stable · Owner: All · Last updated: 2026-10-17
 
 ## 1. Secrets
 - API keys only in `.env` (gitignored); `.env.example` lists variable names with empty
@@ -11,9 +11,14 @@
 - Leaked key → revoke immediately at the provider, rotate, and note it in the team chat.
 
 ## 2. API exposure
-- Default bind `127.0.0.1`. The API has no authentication in the core scope; do not bind
-  to `0.0.0.0` on shared networks. For a remote demo, put it behind an SSH tunnel, or set
-  `ENGINE_API_TOKEN` to enable a simple bearer-token check (optional middleware).
+- Default bind `127.0.0.1`, and no authentication by default; do not bind to `0.0.0.0` on
+  shared networks. For a remote demo, put it behind an SSH tunnel, or set
+  `ENGINE_API_TOKEN` (environment or `.env`) to require `Authorization: Bearer <token>` on
+  every `/v1/*` request (middleware in `engine/api/app.py`, constant-time comparison;
+  401 `UNAUTHORIZED` otherwise; ADR-015). The token is read by the API only — it is not
+  part of `EngineConfig`, so it never reaches `config.resolved.yaml`, the config hash,
+  logs or traces. Clients pass it as `RetrievalClient(..., token=...)`. Use a long random
+  value, e.g. `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
 - Request size limits (goal/query length, `k`) come from configuration and are checked by
   the router, which returns 422 `VALIDATION_ERROR` (API_CONTRACT, ADR-010).
 

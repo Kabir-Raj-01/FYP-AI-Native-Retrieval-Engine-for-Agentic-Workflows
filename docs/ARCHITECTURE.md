@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: Stable · Owner: All · Last updated: 2026-10-16 · Related: STATE_SPEC.md, ADR-002, ADR-009
+> Status: Stable · Owner: All · Last updated: 2026-10-17 · Related: STATE_SPEC.md, ADR-002, ADR-009
 
 ## 1. Layers
 ```
@@ -199,3 +199,4 @@ same Planner.
 | 2026-10-08 | §2: `CrossEncoderScorer` gains a persistent score cache (`rerank.score_cache_enabled`, `paths.rerank_cache_db`); `engine/text.py` gains `escape_untrusted` (shared by planner and answer generator) | — |
 | 2026-10-08 | §4 (behaviour): a min-utility STOP ends the current gap, not the task; REUSE not eligible for an already-searched query | ACTION_POLICY §2/§3 amendments |
 | 2026-10-16 | `Reranker.rerank` gains `goal=None` and `Engine.retrieve_direct` gains `goal=None`; relevance is scored against the subquery, the goal or both per `rerank.relevance_query` | ADR-014 |
+| 2026-10-17 | API: optional bearer-token middleware (`ENGINE_API_TOKEN`, 401 `UNAUTHORIZED`); `RetrievalClient(token=...)` | ADR-015 |

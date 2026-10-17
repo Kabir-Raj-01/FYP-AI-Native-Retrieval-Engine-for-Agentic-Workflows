@@ -1,6 +1,6 @@
 # API Contract
 
-> Status: Frozen (contract — change only via ADR) · Owner: Vishal · Last updated: 2026-10-04
+> Status: Frozen (contract — change only via ADR) · Owner: Vishal · Last updated: 2026-10-17 (ADR-015)
 > Implementation: `engine/api/` (routers + `schemas.py`), `client/retrieval_client.py`.
 > `BudgetRequest` bounds amended by ADR-009 §8; request limits moved to config by ADR-010.
 
@@ -60,6 +60,11 @@ class DirectResponse(BaseModel):
 ```
 
 ## Behaviour
+- Optional bearer token (ADR-015, SRS NFR-S3): when the server's `ENGINE_API_TOKEN` is set,
+  every `/v1/*` request must send `Authorization: Bearer <token>`; a missing or wrong header
+  → 401 `UNAUTHORIZED` with `WWW-Authenticate: Bearer`, before the request reaches the
+  engine. `/docs`, `/redoc` and `/openapi.json` stay open. Unset or empty (the default): no
+  check.
 - `POST /tasks` with an existing `task_id` → 409 `TASK_EXISTS`.
 - Request limits are checked against config in the router (ADR-010): goal length within
   `api.goal_min_chars`–`api.goal_max_chars`, query length ≤ `api.query_max_chars`,
@@ -76,6 +81,7 @@ class DirectResponse(BaseModel):
 All errors: `{"error": {"code": "<CODE>", "message": "...", "task_id": "...|null"}}`
 | HTTP | Code |
 |---|---|
+| 401 | `UNAUTHORIZED` (only when `ENGINE_API_TOKEN` is set: missing or wrong bearer token) |
 | 404 | `TASK_NOT_FOUND` |
 | 409 | `TASK_EXISTS`, `TASK_NOT_ACTIVE`, `TASK_CONFLICT` |
 | 422 | `VALIDATION_ERROR` (request body) |
@@ -98,7 +104,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/retrieve/direct -Co
 Imports request/response models from `engine.state.models` / `engine.api.schemas`
 (never redeclares them) and re-exports them as `client.models`, so host apps and the demo
 agent import only `client` and `client.models`. Uses `httpx` with timeout `client_timeout_s`. Maps error codes to
-exceptions (`TaskNotFound`, `TaskNotActive`, `BackendUnavailable`, ...).
+exceptions (`TaskNotFound`, `TaskNotActive`, `BackendUnavailable`, `Unauthorized`, ...).
+`RetrievalClient(base_url, token=...)` sends the bearer token when the server requires one.
 ```python
 client = RetrievalClient("http://127.0.0.1:8000")
 task = client.create_task(goal="...", budget=BudgetRequest(max_retrieval_calls=4))

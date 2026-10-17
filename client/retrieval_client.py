@@ -43,6 +43,7 @@ __all__ = [
     "TaskExists",
     "TaskNotActive",
     "TaskNotFound",
+    "Unauthorized",
     "ValidationFailed",
 ]
 
@@ -85,6 +86,9 @@ class RunBudgetExceeded(RetrievalClientError): ...  # noqa: N818
 class InternalError(RetrievalClientError): ...
 
 
+class Unauthorized(RetrievalClientError): ...  # noqa: N818 — missing or wrong bearer token
+
+
 _BY_CODE: dict[str, type[RetrievalClientError]] = {
     "TASK_NOT_FOUND": TaskNotFound,
     "TASK_EXISTS": TaskExists,
@@ -96,6 +100,7 @@ _BY_CODE: dict[str, type[RetrievalClientError]] = {
     "RUN_TIMEOUT": RunTimeout,
     "RUN_BUDGET_EXCEEDED": RunBudgetExceeded,
     "INTERNAL_ERROR": InternalError,
+    "UNAUTHORIZED": Unauthorized,
 }
 
 
@@ -114,10 +119,14 @@ class RetrievalClient:
         base_url: str,
         *,
         timeout_s: float = 150.0,  # mirrors api.client_timeout_s in configs/base.yaml
+        token: str | None = None,
         http: httpx.Client | None = None,
     ) -> None:
-        """``http`` replaces the transport (tests pass a FastAPI TestClient)."""
+        """``token`` is sent as ``Authorization: Bearer`` (servers with ``ENGINE_API_TOKEN``
+        set, ADR-015); ``http`` replaces the transport (tests pass a FastAPI TestClient)."""
         self._http = http or httpx.Client(base_url=base_url, timeout=timeout_s)
+        if token:
+            self._http.headers["Authorization"] = f"Bearer {token}"
 
     def close(self) -> None:
         self._http.close()

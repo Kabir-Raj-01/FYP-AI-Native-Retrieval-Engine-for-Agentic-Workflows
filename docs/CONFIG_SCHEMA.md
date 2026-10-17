@@ -14,6 +14,10 @@
 4. `--set key=value` CLI overrides — for local debugging only; `eval/run.py` refuses to
    mark a run as reportable if any `--set` was used.
 
+`ENGINE_API_TOKEN` (optional API bearer token, ADR-015) is read by `engine/api/app.py`
+only and is deliberately **not** a config key, so it never appears in the resolved config
+or its hash.
+
 The fully resolved config is saved as `config.resolved.yaml` in every run folder, and its
 hash goes into the manifest. The server loads the file named by `ENGINE_CONFIG`
 (default `configs/base.yaml`).

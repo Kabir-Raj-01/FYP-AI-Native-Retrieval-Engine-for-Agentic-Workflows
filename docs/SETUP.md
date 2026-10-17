@@ -48,7 +48,7 @@ in the environment wins over `.env` (CONFIG_SCHEMA §1).
 | `QDRANT_URL` | non-default Qdrant | `http://127.0.0.1:6333` |
 | `ENGINE_CONFIG` | server config file | `configs/base.yaml` |
 | `QDRANT_VERSION` | the pinned Qdrant release tag | e.g. `v1.x.y`, see LIBRARY_NOTES |
-| `ENGINE_API_TOKEN` | optional API auth | empty = disabled |
+| `ENGINE_API_TOKEN` | optional API bearer token (ADR-015): `/v1/*` then needs `Authorization: Bearer <token>` | empty = disabled |
 | `HF_HOME` | model download cache | `C:\Users\<you>\.cache\huggingface` |
 
 Use `127.0.0.1` rather than `localhost` in URLs: on Windows `localhost` is tried as IPv6

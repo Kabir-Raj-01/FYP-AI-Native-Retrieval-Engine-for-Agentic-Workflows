@@ -1,6 +1,6 @@
 # Observability: Traces, Events, Runs
 
-> Status: Frozen for the TraceStep schema (ADR to change) · Owner: Vishal · Last updated: 2026-10-09
+> Status: Frozen for the TraceStep schema (ADR to change) · Owner: Vishal · Last updated: 2026-10-17
 > TraceStep amended by ADR-009 (schema_version, step semantics, run_id/system via RunContext).
 
 ## 1. Three kinds of records
@@ -66,12 +66,13 @@ code that runs a step binds `step` (one-shot baselines: 1).
 | `cache.hit` / `cache.miss` / `cache.put` / `cache.evict` | query, similarity, match, entry_id |
 | `controller.decision` | eligible, scores, chosen, rule |
 | `retrieval.call` | mode, k, query, n_returned, latency_ms |
-| `rerank.done` | per-candidate relevance/gap/novelty/redundancy/final |
+| `rerank.done` | query, relevance_query (ADR-014), state_aware, per-candidate relevance/gap/novelty/redundancy/final |
 | `evidence.accepted` / `evidence.rejected` / `evidence.evicted` | chunk_id, reason, scores |
 | `gap.created` / `gap.resolved` / `gap.superseded` / `gap.exhausted` / `gap.verification` | gap_id, plus: created → parent, need_type; resolved → by (evidence id); superseded → by (child gap ids); exhausted → stagnation_count; verification → not emitted until the LLM verifier exists |
 | `monitor.verdict` | continue, stop_reason, stagnation_count, advanced_to |
 | `llm.call` | role, model, tokens, cost_usd, cached, latency_ms, attempt |
 | `error` | type, message, component, retryable |
+| `api.unauthorized` | path (a request rejected by the optional bearer token, ADR-015; the header is never logged) |
 Never logged: API keys, full prompts with keys, raw environment. Prompts may be logged at
 DEBUG level only.
 

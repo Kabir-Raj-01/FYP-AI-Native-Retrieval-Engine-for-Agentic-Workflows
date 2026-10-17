@@ -15,6 +15,7 @@ from client.retrieval_client import (
     TaskExists,
     TaskNotActive,
     TaskNotFound,
+    Unauthorized,
     ValidationFailed,
 )
 
@@ -30,5 +31,6 @@ __all__ = [
     "TaskExists",
     "TaskNotActive",
     "TaskNotFound",
+    "Unauthorized",
     "ValidationFailed",
 ]

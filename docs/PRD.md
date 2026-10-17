@@ -1,6 +1,6 @@
 # Product Requirements
 
-> Status: Stable · Owner: All · Last updated: 2026-10-04 · Source: FYP Proposal (18 Sep 2026)
+> Status: Stable · Owner: All · Last updated: 2026-10-17 · Source: FYP Proposal (18 Sep 2026)
 > Developer summary of the official SRS (`../SRS — AI-Native Retrieval Engine for Agentic
 > Workflows.docx`). The SRS is authoritative: if the two disagree, fix this file.
 
@@ -99,7 +99,7 @@ indexing of benchmark corpora. (DATA.md, RETRIEVAL_SPEC.md)
 | Efficiency | No fine-tuning/RL; per-task and per-run LLM call/token/cost caps; runs on student hardware (CPU acceptable for embeddings at MultiHop-RAG scale) | Budget tests; `llm.max_cost_usd_per_run` |
 | Reliability | Backend/LLM failure never corrupts stored state; direct mode stays available | Fault-injection tests (TESTING.md) |
 | Usability | Host integration needs only API_CONTRACT.md + client + a small adapter | Agent demo |
-| Security | No secrets in git; retrieved text treated as untrusted; API bound to localhost by default | SECURITY.md checks |
+| Security | No secrets in git; retrieved text treated as untrusted; API bound to localhost by default, optional bearer token for remote demos (ADR-015) | SECURITY.md checks; `tests/unit/api/test_auth.py` |
 
 ## 5. Scope
 **In scope:** textual multi-hop retrieval control; Qdrant dense/sparse/hybrid backend
