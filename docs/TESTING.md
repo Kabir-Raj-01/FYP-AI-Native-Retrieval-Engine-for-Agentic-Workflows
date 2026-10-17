@@ -1,6 +1,6 @@
 # Testing Strategy
 
-> Status: Stable · Owner: Vishal (framework) — each module owner writes their module's tests · Last updated: 2026-10-04
+> Status: Stable · Owner: Vishal (framework) — each module owner writes their module's tests · Last updated: 2026-10-17
 > §4 categories 2 and 5 amended by ADR-009.
 
 ## 1. Layers
@@ -82,6 +82,14 @@ The unit-test command `pytest -m "not integration and not llm and not e2e"` runs
 10. **Config tests:** base.yaml loads; every experiment file loads; invalid weight sums
     are rejected; `budget_defaults.max_llm_calls = 0` loads and `Budget.pressure()` does
     not raise (ADR-009 §8).
+11. **Live LLM** (`tests/llm/test_live_llm.py`, marker `llm`): the real planner's INIT on a
+    dev question is ACCEPTED (not the fallback) with valid subgoals; the generator answers.
+    Response cache off; a role whose endpoint is unreachable or whose API key is missing is
+    skipped, not failed. Run `pytest -m llm` before milestones with Ollama up (SETUP §2).
+12. **API security and availability:** the optional bearer token (`tests/unit/api/test_auth.py`,
+    ADR-015: off by default, 401 without/with a wrong token, docs open, never echoed, the
+    server reads it from the environment); direct mode works with the planner, cache and
+    controller disabled (SRS NFR-R3, `tests/unit/api/test_prd_acceptance.py`).
 
 ## 5. Conventions
 - File mirrors module: `engine/cache/task_cache.py` → `tests/unit/cache/test_task_cache.py`.

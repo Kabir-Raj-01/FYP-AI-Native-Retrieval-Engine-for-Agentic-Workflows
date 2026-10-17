@@ -1,6 +1,7 @@
 """PRD §3 acceptance criteria not covered elsewhere: FR2 (state survives a server restart),
-FR3 (direct retrieval creates no state; both paths share one RetrieverAdapter) and FR11
-(OpenAPI docs render at ``/docs``)."""
+FR3 (direct retrieval creates no state; both paths share one RetrieverAdapter), FR11
+(OpenAPI docs render at ``/docs``) and SRS NFR-R3 (direct mode works with the planner,
+cache and controller disabled)."""
 
 from __future__ import annotations
 
@@ -62,3 +63,26 @@ def test_fr11_openapi_docs_render(engine_with_fakes: EngineFactory) -> None:
         docs = client.get("/docs")
         assert docs.status_code == 200 and "swagger-ui" in docs.text
         assert client.get("/openapi.json").json()["paths"]
+
+
+class _Disabled:
+    """Stands in for a disabled controlled-path component: any use fails the test."""
+
+    def __init__(self, name: str) -> None:
+        self._name = name
+
+    def __getattr__(self, attr: str) -> object:
+        raise AssertionError(f"direct mode used the disabled {self._name} ({attr})")
+
+
+def test_nfr_r3_direct_mode_works_with_the_controlled_components_disabled(
+    cfg: EngineConfig, engine_with_fakes: EngineFactory
+) -> None:
+    cfg.ablation.planner = False
+    cfg.ablation.cache = False
+    off = {n: _Disabled(n) for n in ("planner", "cache", "controller", "evidence", "monitor")}
+    fake = engine_with_fakes(**off)
+    with TestClient(create_app(fake.engine)) as http:
+        r = http.post("/v1/retrieve/direct", json={"query": GOAL, "mode": "hybrid", "rerank": True})
+    assert r.status_code == 200 and r.json()["candidates"]
+    assert len(fake.retriever.requests) == 1
